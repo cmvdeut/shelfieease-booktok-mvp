@@ -93,6 +93,7 @@ export default function LibraryPage() {
     </main>
   );
 }function toHttps(url: string) {
+  if (!url) return "";
   return url.startsWith("http://") ? url.replace("http://", "https://") : url;
 }
 
@@ -103,26 +104,64 @@ export default function LibraryPage() {
  * - als die faalt: mooie placeholder
  */
 function Cover({ isbn13, coverUrl, title }: { isbn13: string; coverUrl: string; title: string }) {
-  const fallback = `https://covers.openlibrary.org/b/isbn/${isbn13}-M.jpg`;
+  // Meerdere fallback opties voor betere compatibiliteit op mobiel
+  const openLibraryMedium = `https://covers.openlibrary.org/b/isbn/${isbn13}-M.jpg`;
+  const openLibraryLarge = `https://covers.openlibrary.org/b/isbn/${isbn13}-L.jpg`;
+  
+  // Bepaal initiële source: Open Library heeft betere mobiel compatibiliteit
+  const getInitialSrc = () => {
+    if (coverUrl) {
+      const httpsUrl = toHttps(coverUrl);
+      // Google Books covers kunnen CORS problemen hebben op mobiel, gebruik Open Library
+      if (httpsUrl.includes("books.google.com") || httpsUrl.includes("googleusercontent.com")) {
+        return openLibraryMedium;
+      }
+      return httpsUrl;
+    }
+    return openLibraryMedium;
+  };
+  
+  const [currentSrc, setCurrentSrc] = useState<string>(getInitialSrc);
+  const [errorCount, setErrorCount] = useState(0);
+  
+  // Update source wanneer coverUrl verandert
+  useEffect(() => {
+    const newSrc = getInitialSrc();
+    setCurrentSrc(newSrc);
+    setErrorCount(0); // Reset error count bij nieuwe source
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coverUrl, isbn13]);
+
+  const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    setErrorCount(prev => prev + 1);
+    
+    // Fallback chain:
+    // 1. Als eerste error en we hebben een coverUrl die niet Open Library is, probeer Open Library
+    if (errorCount === 0 && coverUrl && !coverUrl.includes("openlibrary.org")) {
+      setCurrentSrc(openLibraryMedium);
+      return;
+    }
+    // 2. Als tweede error, probeer grote Open Library versie
+    if (errorCount === 1) {
+      setCurrentSrc(openLibraryLarge);
+      return;
+    }
+    // 3. Als derde error, verberg image (placeholder blijft zichtbaar)
+    img.style.display = "none";
+  };
 
   return (
     <div style={coverWrap}>
       <img
-        src={(coverUrl ? toHttps(coverUrl) : fallback)}
+        key={currentSrc}
+        src={currentSrc}
         alt={title}
         loading="lazy"
+        crossOrigin="anonymous"
         referrerPolicy="no-referrer"
         style={coverImg}
-        onError={(e) => {
-          const img = e.currentTarget;
-          if (img.dataset.fallbackTried === "1") {
-            // tweede keer mislukt -> verberg img, placeholder blijft zichtbaar
-            img.style.display = "none";
-            return;
-          }
-          img.dataset.fallbackTried = "1";
-          img.src = fallback;
-        }}
+        onError={handleError}
       />
       <div style={coverPlaceholder}>
         <div style={{ fontWeight: 900, fontSize: 18, lineHeight: 1.1 }}>📚</div>
