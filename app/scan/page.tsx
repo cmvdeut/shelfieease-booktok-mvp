@@ -81,10 +81,20 @@ export default function ScanPage() {
   return (
     <main style={{ padding: 16, maxWidth: 720, margin: "0 auto" }}>
       <div style={topbar}>
-        <h1 style={{ margin: 0 }}>Scan</h1>
-        <Link href="/">
-          <button style={btnSecondary}>Home</button>
-        </Link>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.6, color: "#cfcfe6", opacity: 0.9, marginBottom: 4 }}>
+            ShelfieEase • BookTok
+          </div>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 950 }}>Scan</h1>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <Link href="/library">
+            <button style={btnSecondary}>My Shelf</button>
+          </Link>
+          <Link href="/">
+            <button style={btnSecondary}>Home</button>
+          </Link>
+        </div>
       </div>
 
       {!code ? (
