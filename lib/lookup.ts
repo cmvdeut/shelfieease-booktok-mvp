@@ -15,6 +15,7 @@ type OpenLibraryAuthorResponse = {
 
 type GoogleBooksResponse = {
   items?: Array<{
+    id?: unknown;
     volumeInfo?: {
       title?: unknown;
       authors?: unknown;
@@ -25,6 +26,7 @@ type GoogleBooksResponse = {
     };
   }>;
 };
+
 
 export async function lookupByIsbn(isbnRaw: string): Promise<LookupResult> {
   const isbn = normalizeIsbn(isbnRaw);
@@ -117,7 +119,8 @@ async function lookupGoogleBooks(isbn: string): Promise<LookupResult> {
     if (!r.ok) return { title: undefined, authors: [], coverUrl: undefined };
 
     const data = (await r.json()) as GoogleBooksResponse;
-    const info = data.items?.[0]?.volumeInfo;
+    const item = data.items?.[0];
+    const info = item?.volumeInfo;
     if (!info) return { title: undefined, authors: [], coverUrl: undefined };
 
     const title = isString(info.title) ? info.title : undefined;
@@ -125,12 +128,19 @@ async function lookupGoogleBooks(isbn: string): Promise<LookupResult> {
     const authors =
       Array.isArray(info.authors) ? (info.authors as unknown[]).filter(isString) : [];
 
-    const rawCover =
-      (isString(info.imageLinks?.thumbnail) ? info.imageLinks?.thumbnail : undefined) ||
-      (isString(info.imageLinks?.smallThumbnail) ? info.imageLinks?.smallThumbnail : undefined) ||
-      "";
+    const volumeId = typeof item?.id === "string" ? item.id : "";
 
-    const coverUrl = toHttps(rawCover) || coverFromOpenLibrary(isbn);
+    const rawThumb =
+      (typeof info.imageLinks?.thumbnail === "string" ? info.imageLinks.thumbnail : "") ||
+      (typeof info.imageLinks?.smallThumbnail === "string" ? info.imageLinks.smallThumbnail : "");
+
+    const stableGoogleCover = volumeId
+      ? `https://books.google.com/books/content?id=${encodeURIComponent(
+          volumeId
+        )}&printsec=frontcover&img=1&zoom=2&source=gbs_api`
+      : "";
+
+    const coverUrl = toHttps(rawThumb) || stableGoogleCover || coverFromOpenLibrary(isbn);
 
     return { title, authors, coverUrl };
   } catch {
