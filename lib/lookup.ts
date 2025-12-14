@@ -140,7 +140,15 @@ async function lookupGoogleBooks(isbn: string): Promise<LookupResult> {
         )}&printsec=frontcover&img=1&zoom=2&source=gbs_api`
       : "";
 
-    const coverUrl = toHttps(rawThumb) || stableGoogleCover || coverFromOpenLibrary(isbn);
+    // Voor covers: Open Library heeft betere mobiel compatibiliteit (geen CORS issues)
+    // Google Books covers kunnen problemen hebben op mobiel browsers
+    // Fallback chain: Open Library > Google thumbnail > Google stable API
+    const openLibraryCover = coverFromOpenLibrary(isbn);
+    const googleThumb = toHttps(rawThumb);
+    
+    // Gebruik Open Library als primaire cover source (betere mobiel support)
+    // Alleen als Open Library niet beschikbaar is, gebruik Google
+    const coverUrl = openLibraryCover || googleThumb || stableGoogleCover;
 
     return { title, authors, coverUrl };
   } catch {
