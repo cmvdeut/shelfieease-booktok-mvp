@@ -97,69 +97,46 @@ export default function LibraryPage() {
   return url.startsWith("http://") ? url.replace("http://", "https://") : url;
 }
 
-/** Cover component met robuuste fallback voor mobiel:
- * - Start altijd met Open Library (beste mobiel compatibiliteit)
- * - Probeert opgeslagen coverUrl als fallback
- * - Meerdere Open Library formaten als backup
+/** Cover component: laad altijd direct van Open Library op basis van ISBN
+ * - Open Library Covers API is gratis, geen API key nodig
+ * - Werkt betrouwbaar op alle devices (geen CORS problemen)
+ * - coverUrl wordt opgeslagen voor referentie, maar niet gebruikt voor laden
  */
 function Cover({ isbn13, coverUrl, title }: { isbn13: string; coverUrl: string; title: string }) {
-  // Open Library heeft beste mobiel compatibiliteit, gebruik dit als primaire source
+  // Open Library Covers API - direct laden op basis van ISBN
+  // Formaten: -S (small), -M (medium), -L (large)
+  const openLibrarySmall = `https://covers.openlibrary.org/b/isbn/${isbn13}-S.jpg`;
   const openLibraryMedium = `https://covers.openlibrary.org/b/isbn/${isbn13}-M.jpg`;
   const openLibraryLarge = `https://covers.openlibrary.org/b/isbn/${isbn13}-L.jpg`;
   
-  // Bepaal initiële source: probeer eerst opgeslagen URL, dan Open Library
-  const getInitialSrc = () => {
-    if (coverUrl) {
-      const httpsUrl = toHttps(coverUrl);
-      // Google Books thumbnails werken vaak goed, probeer die eerst
-      if (httpsUrl.includes("books.google.com") || httpsUrl.includes("googleusercontent.com")) {
-        // Gebruik Google Books URL maar met betere parameters
-        return httpsUrl.replace(/zoom=\d+/, "zoom=2").replace(/&edge=curl/, "");
-      }
-      // Andere URLs direct gebruiken
-      return httpsUrl;
-    }
-    // Geen coverUrl: start met Open Library
-    return openLibraryMedium;
-  };
-  
-  const [currentSrc, setCurrentSrc] = useState<string>(getInitialSrc);
+  // Start altijd met Open Library Medium (beste balans kwaliteit/snelheid)
+  const [currentSrc, setCurrentSrc] = useState<string>(openLibraryMedium);
   const [errorCount, setErrorCount] = useState(0);
   
-  // Update source wanneer coverUrl of isbn13 verandert
+  // Reset wanneer ISBN verandert
   useEffect(() => {
-    const newSrc = getInitialSrc();
-    setCurrentSrc(newSrc);
+    setCurrentSrc(openLibraryMedium);
     setErrorCount(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coverUrl, isbn13]);
+  }, [isbn13]);
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
     const newErrorCount = errorCount + 1;
     setErrorCount(newErrorCount);
     
-    // Intelligente fallback chain:
-    // 1. Eerste error: probeer Open Library Medium
+    // Fallback chain: probeer verschillende Open Library formaten
+    // 1. Eerste error: probeer Large (mogelijk beschikbaar waar Medium niet werkt)
     if (newErrorCount === 1) {
-      setCurrentSrc(openLibraryMedium);
-      return;
-    }
-    // 2. Tweede error: probeer Open Library Large
-    if (newErrorCount === 2) {
       setCurrentSrc(openLibraryLarge);
       return;
     }
-    // 3. Derde error: probeer opgeslagen URL opnieuw (als die anders was)
-    if (newErrorCount === 3 && coverUrl) {
-      const httpsUrl = toHttps(coverUrl);
-      if (httpsUrl !== currentSrc && httpsUrl !== openLibraryMedium && httpsUrl !== openLibraryLarge) {
-        setCurrentSrc(httpsUrl);
-        return;
-      }
+    // 2. Tweede error: probeer Small
+    if (newErrorCount === 2) {
+      setCurrentSrc(openLibrarySmall);
+      return;
     }
-    // 4. Vierde error: verberg image (placeholder blijft zichtbaar)
-    if (newErrorCount >= 4) {
+    // 3. Derde error: verberg image (placeholder blijft zichtbaar)
+    if (newErrorCount >= 3) {
       img.style.display = "none";
     }
   };

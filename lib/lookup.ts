@@ -39,11 +39,11 @@ export async function lookupByIsbn(isbnRaw: string): Promise<LookupResult> {
   const gb = await lookupGoogleBooks(isbn);
   if (gb.title) return gb;
 
-  // 3) Last resort
+  // 3) Last resort - altijd Open Library cover URL
   return {
     title: undefined,
     authors: [],
-    coverUrl: coverFromOpenLibrary(isbn),
+    coverUrl: coverFromOpenLibrary(isbn, "M"),
   };
 }
 
@@ -60,9 +60,10 @@ function isString(x: unknown): x is string {
   return typeof x === "string";
 }
 
-function coverFromOpenLibrary(isbn: string) {
-  // Open Library cover URL - werkt meestal goed
-  return `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+function coverFromOpenLibrary(isbn: string, size: "S" | "M" | "L" = "M") {
+  // Open Library Covers API - gratis, geen API key nodig, werkt overal
+  // Formaten: -S (small), -M (medium), -L (large)
+  return `https://covers.openlibrary.org/b/isbn/${isbn}-${size}.jpg`;
 }
 
 function getGoogleBooksThumbnailUrl(thumbnailUrl?: string): string {
@@ -89,7 +90,7 @@ function getGoogleBooksThumbnailUrl(thumbnailUrl?: string): string {
 async function lookupOpenLibrary(isbn: string): Promise<LookupResult> {
   try {
     const r = await fetch(`https://openlibrary.org/isbn/${encodeURIComponent(isbn)}.json`);
-    if (!r.ok) return { title: undefined, authors: [], coverUrl: coverFromOpenLibrary(isbn) };
+    if (!r.ok) return { title: undefined, authors: [], coverUrl: coverFromOpenLibrary(isbn, "M") };
 
     const data = (await r.json()) as OpenLibraryIsbnResponse;
 
@@ -106,10 +107,10 @@ async function lookupOpenLibrary(isbn: string): Promise<LookupResult> {
     return {
       title,
       authors,
-      coverUrl: coverFromOpenLibrary(isbn),
+      coverUrl: coverFromOpenLibrary(isbn, "M"),
     };
   } catch {
-    return { title: undefined, authors: [], coverUrl: coverFromOpenLibrary(isbn) };
+    return { title: undefined, authors: [], coverUrl: coverFromOpenLibrary(isbn, "M") };
   }
 }
 
@@ -166,11 +167,12 @@ async function lookupGoogleBooks(isbn: string): Promise<LookupResult> {
         )}&printsec=frontcover&img=1&zoom=2&source=gbs_api`
       : "";
 
-    // Open Library cover (altijd beschikbaar)
-    const openLibraryCover = coverFromOpenLibrary(isbn);
+    // Open Library cover (altijd beschikbaar, beste mobiel compatibiliteit)
+    const openLibraryCover = coverFromOpenLibrary(isbn, "M");
     
-    // Prioriteit: Google thumbnail (meestal beste kwaliteit) > Open Library > Stable Google API
-    // Google thumbnail URLs werken meestal goed op mobiel als ze correct geformatteerd zijn
+    // Sla de cover URL op voor referentie, maar we laden altijd direct van Open Library
+    // Dit voorkomt CORS problemen en werkt betrouwbaar op alle devices
+    // We slaan de beste beschikbare URL op (voor toekomstige referentie)
     const coverUrl = googleThumbnail || openLibraryCover || stableGoogleCover;
 
     return { title, authors, coverUrl };
