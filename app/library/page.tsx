@@ -98,13 +98,15 @@ export default function LibraryPage() {
 }
 
 /** Cover component: laad altijd direct van Open Library op basis van ISBN
- * - Open Library Covers API is gratis, geen API key nodig
- * - Werkt betrouwbaar op alle devices (geen CORS problemen)
- * - coverUrl wordt opgeslagen voor referentie, maar niet gebruikt voor laden
+ * - Open Library Covers API: https://covers.openlibrary.org/b/isbn/{ISBN}-{SIZE}.jpg
+ * - Formaten: -S (small), -M (medium), -L (large)
+ * - Rate limit: 100 requests/IP per 5 minuten (voor ISBN lookups)
+ * - Geen API key nodig, gratis, geen CORS problemen
  */
 function Cover({ isbn13, coverUrl, title }: { isbn13: string; coverUrl: string; title: string }) {
   // Open Library Covers API - direct laden op basis van ISBN
-  // Formaten: -S (small), -M (medium), -L (large)
+  // URL pattern: https://covers.openlibrary.org/b/$key/$value-$size.jpg
+  // We gebruiken ISBN als key, met formaten S, M, L
   const openLibrarySmall = `https://covers.openlibrary.org/b/isbn/${isbn13}-S.jpg`;
   const openLibraryMedium = `https://covers.openlibrary.org/b/isbn/${isbn13}-M.jpg`;
   const openLibraryLarge = `https://covers.openlibrary.org/b/isbn/${isbn13}-L.jpg`;
@@ -136,6 +138,7 @@ function Cover({ isbn13, coverUrl, title }: { isbn13: string; coverUrl: string; 
       return;
     }
     // 3. Derde error: verberg image (placeholder blijft zichtbaar)
+    // Open Library retourneert een blank image als cover niet gevonden wordt
     if (newErrorCount >= 3) {
       img.style.display = "none";
     }
