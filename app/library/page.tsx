@@ -145,8 +145,36 @@ function Cover({ isbn13, coverUrl, title }: { isbn13: string; coverUrl: string; 
     }
   }, [normalizedIsbn]);
 
-  const handleLoad = () => {
+  const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
     setIsLoading(false);
+    
+    // Open Library retourneert een 1x1 transparante GIF als er geen cover is
+    // Dit triggert geen onError, dus we moeten dit handmatig detecteren
+    // Check of de afbeelding te klein is (waarschijnlijk een placeholder)
+    if (img.naturalWidth <= 1 && img.naturalHeight <= 1) {
+      // Dit is waarschijnlijk een lege placeholder, probeer volgende fallback
+      const newErrorCount = errorCount + 1;
+      setErrorCount(newErrorCount);
+      
+      if (newErrorCount === 1) {
+        setCurrentSrc(openLibraryLarge);
+        setIsLoading(true);
+        return;
+      }
+      if (newErrorCount === 2) {
+        setCurrentSrc(openLibrarySmall);
+        setIsLoading(true);
+        return;
+      }
+      // Geen cover beschikbaar, verberg image
+      if (newErrorCount >= 3) {
+        img.style.display = "none";
+      }
+      return;
+    }
+    
+    // Echte cover geladen, alles goed!
   };
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
