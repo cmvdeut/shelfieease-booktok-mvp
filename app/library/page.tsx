@@ -133,55 +133,85 @@ function Cover({ isbn13, coverUrl, title }: { isbn13: string; coverUrl: string; 
   
   // Start altijd met Open Library Medium (beste balans kwaliteit/snelheid)
   const [currentSrc, setCurrentSrc] = useState<string>(openLibraryMedium);
+  const [hasValidCover, setHasValidCover] = useState<boolean>(false);
   const [errorCount, setErrorCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
   
-  // Reset wanneer ISBN verandert
+  // Check of cover bestaat voordat we het proberen te laden
   useEffect(() => {
-    if (normalizedIsbn) {
-      setCurrentSrc(openLibraryMedium);
-      setErrorCount(0);
-      setIsLoading(true);
+    if (!normalizedIsbn) {
+      setHasValidCover(false);
+      return;
     }
-  }, [normalizedIsbn]);
+
+    // Reset state
+    setCurrentSrc(openLibraryMedium);
+    setErrorCount(0);
+    setHasValidCover(false);
+
+    // Check of de cover bestaat door de eerste bytes te lezen
+    // Open Library retourneert een 1x1 GIF als er geen cover is
+    const checkCover = async () => {
+      try {
+        const response = await fetch(openLibraryMedium, { method: "HEAD" });
+        if (!response.ok) {
+          // Probeer Large
+          const responseLarge = await fetch(openLibraryLarge, { method: "HEAD" });
+          if (responseLarge.ok) {
+            setCurrentSrc(openLibraryLarge);
+            setHasValidCover(true);
+            return;
+          }
+          // Probeer Small
+          const responseSmall = await fetch(openLibrarySmall, { method: "HEAD" });
+          if (responseSmall.ok) {
+            setCurrentSrc(openLibrarySmall);
+            setHasValidCover(true);
+            return;
+          }
+          setHasValidCover(false);
+          return;
+        }
+        
+        // Check content-type en content-length
+        const contentType = response.headers.get("content-type");
+        const contentLength = response.headers.get("content-length");
+        
+        // Als het een GIF is en klein (< 100 bytes), is het waarschijnlijk een placeholder
+        if (contentType?.includes("gif") && contentLength && parseInt(contentLength) < 100) {
+          // Probeer andere formaten
+          const responseLarge = await fetch(openLibraryLarge, { method: "HEAD" });
+          if (responseLarge.ok && !responseLarge.headers.get("content-type")?.includes("gif")) {
+            setCurrentSrc(openLibraryLarge);
+            setHasValidCover(true);
+            return;
+          }
+          setHasValidCover(false);
+          return;
+        }
+        
+        setHasValidCover(true);
+      } catch (error) {
+        setHasValidCover(false);
+      }
+    };
+
+    checkCover();
+  }, [normalizedIsbn, openLibraryMedium, openLibraryLarge, openLibrarySmall]);
 
   const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
-    setIsLoading(false);
     
-    // Open Library retourneert een 1x1 transparante GIF als er geen cover is
-    // Dit triggert geen onError, dus we moeten dit handmatig detecteren
-    // Check of de afbeelding te klein is (waarschijnlijk een placeholder)
+    // Double check: als de afbeelding 1x1 is, is het een placeholder
     if (img.naturalWidth <= 1 && img.naturalHeight <= 1) {
-      // Dit is waarschijnlijk een lege placeholder, probeer volgende fallback
-      const newErrorCount = errorCount + 1;
-      setErrorCount(newErrorCount);
-      
-      if (newErrorCount === 1) {
-        setCurrentSrc(openLibraryLarge);
-        setIsLoading(true);
-        return;
-      }
-      if (newErrorCount === 2) {
-        setCurrentSrc(openLibrarySmall);
-        setIsLoading(true);
-        return;
-      }
-      // Geen cover beschikbaar, verberg image
-      if (newErrorCount >= 3) {
-        img.style.display = "none";
-      }
-      return;
+      setHasValidCover(false);
+      img.style.display = "none";
     }
-    
-    // Echte cover geladen, alles goed!
   };
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
     const newErrorCount = errorCount + 1;
     setErrorCount(newErrorCount);
-    setIsLoading(false);
     
     // Debug: log errors (alleen in development)
     if (process.env.NODE_ENV === "development") {
@@ -192,18 +222,19 @@ function Cover({ isbn13, coverUrl, title }: { isbn13: string; coverUrl: string; 
     // 1. Eerste error: probeer Large (mogelijk beschikbaar waar Medium niet werkt)
     if (newErrorCount === 1) {
       setCurrentSrc(openLibraryLarge);
-      setIsLoading(true);
+      setHasValidCover(true);
       return;
     }
     // 2. Tweede error: probeer Small
     if (newErrorCount === 2) {
       setCurrentSrc(openLibrarySmall);
-      setIsLoading(true);
+      setHasValidCover(true);
       return;
     }
     // 3. Derde error: verberg image (placeholder blijft zichtbaar)
     // Open Library retourneert een blank image als cover niet gevonden wordt
     if (newErrorCount >= 3) {
+      setHasValidCover(false);
       img.style.display = "none";
     }
   };
@@ -219,18 +250,32 @@ function Cover({ isbn13, coverUrl, title }: { isbn13: string; coverUrl: string; 
     );
   }
 
+  // Als we weten dat er geen cover is, toon alleen placeholder
+  if (!hasValidCover && errorCount >= 2) {
+    return (
+      <div style={coverWrap}>
+        <div style={coverPlaceholder}>
+          <div style={{ fontWeight: 900, fontSize: 18, lineHeight: 1.1 }}>📚</div>
+          <div style={{ fontSize: 12, color: "#b7b7b7" }}>No cover</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={coverWrap}>
-      <img
-        key={currentSrc}
-        src={currentSrc}
-        alt={title}
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        style={{ ...coverImg, opacity: isLoading ? 0.5 : 1 }}
-        onLoad={handleLoad}
-        onError={handleError}
-      />
+      {hasValidCover && (
+        <img
+          key={currentSrc}
+          src={currentSrc}
+          alt={title}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          style={coverImg}
+          onLoad={handleLoad}
+          onError={handleError}
+        />
+      )}
       <div style={coverPlaceholder}>
         <div style={{ fontWeight: 900, fontSize: 18, lineHeight: 1.1 }}>📚</div>
         <div style={{ fontSize: 12, color: "#b7b7b7" }}>No cover</div>
