@@ -107,10 +107,19 @@ function Cover({ isbn13, coverUrl, title }: { isbn13: string; coverUrl: string; 
   const openLibraryMedium = `https://covers.openlibrary.org/b/isbn/${isbn13}-M.jpg`;
   const openLibraryLarge = `https://covers.openlibrary.org/b/isbn/${isbn13}-L.jpg`;
   
-  // Bepaal initiële source: ALTIJD Open Library eerst (beste mobiel compatibiliteit)
-  // Open Library werkt betrouwbaar op alle devices, Google Books heeft CORS issues
+  // Bepaal initiële source: probeer eerst opgeslagen URL, dan Open Library
   const getInitialSrc = () => {
-    // Gebruik altijd Open Library als primaire source (werkt overal)
+    if (coverUrl) {
+      const httpsUrl = toHttps(coverUrl);
+      // Google Books thumbnails werken vaak goed, probeer die eerst
+      if (httpsUrl.includes("books.google.com") || httpsUrl.includes("googleusercontent.com")) {
+        // Gebruik Google Books URL maar met betere parameters
+        return httpsUrl.replace(/zoom=\d+/, "zoom=2").replace(/&edge=curl/, "");
+      }
+      // Andere URLs direct gebruiken
+      return httpsUrl;
+    }
+    // Geen coverUrl: start met Open Library
     return openLibraryMedium;
   };
   
@@ -130,22 +139,27 @@ function Cover({ isbn13, coverUrl, title }: { isbn13: string; coverUrl: string; 
     const newErrorCount = errorCount + 1;
     setErrorCount(newErrorCount);
     
-    // Fallback chain voor betere mobiel compatibiliteit:
-    // 1. Eerste error: probeer opgeslagen coverUrl (als die er is en niet Google)
-    if (newErrorCount === 1 && coverUrl) {
-      const httpsUrl = toHttps(coverUrl);
-      if (!httpsUrl.includes("books.google.com") && !httpsUrl.includes("googleusercontent.com")) {
-        setCurrentSrc(httpsUrl);
-        return;
-      }
+    // Intelligente fallback chain:
+    // 1. Eerste error: probeer Open Library Medium
+    if (newErrorCount === 1) {
+      setCurrentSrc(openLibraryMedium);
+      return;
     }
-    // 2. Tweede error: probeer grote Open Library versie
+    // 2. Tweede error: probeer Open Library Large
     if (newErrorCount === 2) {
       setCurrentSrc(openLibraryLarge);
       return;
     }
-    // 3. Derde error: verberg image (placeholder blijft zichtbaar)
-    if (newErrorCount >= 3) {
+    // 3. Derde error: probeer opgeslagen URL opnieuw (als die anders was)
+    if (newErrorCount === 3 && coverUrl) {
+      const httpsUrl = toHttps(coverUrl);
+      if (httpsUrl !== currentSrc && httpsUrl !== openLibraryMedium && httpsUrl !== openLibraryLarge) {
+        setCurrentSrc(httpsUrl);
+        return;
+      }
+    }
+    // 4. Vierde error: verberg image (placeholder blijft zichtbaar)
+    if (newErrorCount >= 4) {
       img.style.display = "none";
     }
   };

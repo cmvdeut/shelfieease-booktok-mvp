@@ -61,8 +61,29 @@ function isString(x: unknown): x is string {
 }
 
 function coverFromOpenLibrary(isbn: string) {
-  // Let op: Open Library heeft niet altijd een cover, maar dit is een goede fallback
+  // Open Library cover URL - werkt meestal goed
   return `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+}
+
+function getGoogleBooksThumbnailUrl(thumbnailUrl?: string): string {
+  if (!thumbnailUrl) return "";
+  
+  // Google Books thumbnail URLs hebben vaak http://, converteren naar https://
+  const httpsUrl = toHttps(thumbnailUrl);
+  
+  // Soms bevat de URL parameters die we kunnen aanpassen voor betere kwaliteit
+  // Vervang "zoom=1" door "zoom=2" voor hogere resolutie
+  if (httpsUrl.includes("zoom=1")) {
+    return httpsUrl.replace("zoom=1", "zoom=2");
+  }
+  
+  // Voeg zoom parameter toe als die niet bestaat
+  if (httpsUrl.includes("books.google.com") && !httpsUrl.includes("zoom=")) {
+    const separator = httpsUrl.includes("?") ? "&" : "?";
+    return `${httpsUrl}${separator}zoom=2`;
+  }
+  
+  return httpsUrl;
 }
 
 async function lookupOpenLibrary(isbn: string): Promise<LookupResult> {
@@ -130,24 +151,27 @@ async function lookupGoogleBooks(isbn: string): Promise<LookupResult> {
 
     const volumeId = typeof item?.id === "string" ? item.id : "";
 
+    // Haal Google Books thumbnail op (deze werken vaak beter dan stable API)
     const rawThumb =
       (typeof info.imageLinks?.thumbnail === "string" ? info.imageLinks.thumbnail : "") ||
       (typeof info.imageLinks?.smallThumbnail === "string" ? info.imageLinks.smallThumbnail : "");
 
+    // Verbeter Google Books thumbnail URL voor betere kwaliteit
+    const googleThumbnail = getGoogleBooksThumbnailUrl(rawThumb);
+
+    // Stable Google Books API URL (als fallback)
     const stableGoogleCover = volumeId
       ? `https://books.google.com/books/content?id=${encodeURIComponent(
           volumeId
         )}&printsec=frontcover&img=1&zoom=2&source=gbs_api`
       : "";
 
-    // VOOR MOBIEL: Gebruik ALTIJD Open Library als primaire cover source
-    // Google Books covers hebben CORS problemen op mobiel browsers
-    // Open Library heeft betere compatibiliteit en werkt overal
+    // Open Library cover (altijd beschikbaar)
     const openLibraryCover = coverFromOpenLibrary(isbn);
     
-    // Gebruik Open Library (altijd beschikbaar, beste mobiel support)
-    // Google covers worden alleen gebruikt als backup in de Cover component zelf
-    const coverUrl = openLibraryCover;
+    // Prioriteit: Google thumbnail (meestal beste kwaliteit) > Open Library > Stable Google API
+    // Google thumbnail URLs werken meestal goed op mobiel als ze correct geformatteerd zijn
+    const coverUrl = googleThumbnail || openLibraryCover || stableGoogleCover;
 
     return { title, authors, coverUrl };
   } catch {
