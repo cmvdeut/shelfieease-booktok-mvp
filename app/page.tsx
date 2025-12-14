@@ -15,18 +15,16 @@ export default function Home() {
   return (
     <main style={page}>
       <div style={hero}>
-        <div style={kicker}>ShelfieEase • BookTok</div>
         <h1 style={h1}>📚 ShelfieEase</h1>
         <p style={subtitle}>
           Scan books. Build your shelf. Share the vibe.
         </p>
         <p style={description}>
-          De eenvoudigste manier om je boekenverzameling bij te houden. 
-          Scan je boeken met je telefoon en bouw je persoonlijke bibliotheek.
+          Track your reading. Scan books with your phone. Build your personal library.
         </p>
         {bookCount > 0 && (
           <div style={statsBadge}>
-            Je hebt al {bookCount} boek{bookCount === 1 ? "" : "en"} in je collectie!
+            You have {bookCount} book{bookCount === 1 ? "" : "s"} in your collection
           </div>
         )}
       </div>
@@ -49,18 +47,18 @@ export default function Home() {
       <div style={features}>
         <div style={feature}>
           <div style={featureIcon}>📱</div>
-          <div style={featureTitle}>Scan met je telefoon</div>
-          <div style={featureText}>Gebruik je camera om ISBN codes te scannen</div>
+          <div style={featureTitle}>Scan with phone</div>
+          <div style={featureText}>Use your camera to scan ISBN codes</div>
         </div>
         <div style={feature}>
           <div style={featureIcon}>🔍</div>
-          <div style={featureTitle}>Automatische lookup</div>
-          <div style={featureText}>Boekinfo en covers worden automatisch opgehaald</div>
+          <div style={featureTitle}>Auto lookup</div>
+          <div style={featureText}>Book info and covers load automatically</div>
         </div>
         <div style={feature}>
           <div style={featureIcon}>📊</div>
-          <div style={featureTitle}>Track je progress</div>
-          <div style={featureText}>Houd bij wat je leest, gelezen hebt of nog wilt lezen</div>
+          <div style={featureTitle}>Track progress</div>
+          <div style={featureText}>Keep track of what you're reading, read, or want to read</div>
         </div>
       </div>
     </main>

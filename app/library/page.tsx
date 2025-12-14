@@ -29,7 +29,7 @@ export default function LibraryPage() {
           const data = await lookupByIsbn(b.isbn13);
           return {
             ...b,
-            title: b.title && b.title !== "(Unknown title)" ? b.title : (data.title || b.title),
+            title: b.title && b.title !== "Unknown title" ? b.title : (data.title || b.title),
             authors: b.authors?.length ? b.authors : (data.authors || b.authors || []),
             coverUrl: data.coverUrl || b.coverUrl || "",
             updatedAt: Date.now(),
@@ -47,11 +47,10 @@ export default function LibraryPage() {
     <main style={page}>
       <div style={hero}>
         <div>
-          <div style={kicker}>ShelfieEase • BookTok</div>
           <h1 style={h1}>My Shelf</h1>
           <p style={sub}>
-            {stats.total} boek{stats.total === 1 ? "" : "en"} • {stats.tbr} TBR • {stats.reading} Reading •{" "}
-            {stats.read} Read
+            {stats.total} book{stats.total === 1 ? "" : "s"} • {stats.tbr} TBR • {stats.reading} Reading •{" "}
+            {stats.read} Finished
           </p>
         </div>
 
@@ -68,10 +67,10 @@ export default function LibraryPage() {
       {books.length === 0 ? (
         <div style={emptyCard}>
           <p style={{ color: "#cfcfe6", marginTop: 0, fontWeight: 700 }}>
-            Nog geen boeken. Tijd om te scannen 📚✨
+            No books yet. Time to scan 📚✨
           </p>
           <Link href="/scan">
-            <button style={btnPrimary}>Scan je eerste boek</button>
+            <button style={btnPrimary}>Scan your first book</button>
           </Link>
         </div>
       ) : (
@@ -148,7 +147,7 @@ function Cover({
       ) : null}
 
       <div style={coverPlaceholder}>
-        <div style={{ fontWeight: 950, fontSize: 16, lineHeight: 1.2 }}>{title || "Unknown title"}</div>
+        <div style={{ fontWeight: 950, fontSize: 16, lineHeight: 1.2 }}>{title || "Unknown"}</div>
         {authors.length ? <div style={{ marginTop: 6, fontSize: 12, color: "#d8d8ff" }}>{authors.join(", ")}</div> : null}
         <div style={{ marginTop: 10, fontSize: 12, color: "#b7b7b7" }}>ISBN {isbn13}</div>
       </div>
