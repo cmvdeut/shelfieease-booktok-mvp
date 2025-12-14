@@ -182,8 +182,8 @@ export default function LibraryPage() {
             : "linear-gradient(135deg, rgba(109,94,252,0.22), rgba(255,73,240,0.10) 45%, rgba(0,0,0,0) 70%), #121218",
           zIndex: 0,
         }} />
-        <div style={{ ...shelfHeaderContent, position: "relative", zIndex: 1 }}>
-          <div style={{ position: "relative", display: "inline-block", zIndex: 9999 }} ref={dropdownRef}>
+        <div style={{ ...shelfHeaderContent, position: "relative", zIndex: 10000 }}>
+          <div style={{ position: "relative", display: "inline-block" }} ref={dropdownRef}>
             <button
               style={shelfSelector}
               onClick={() => setShowShelfDropdown(!showShelfDropdown)}
@@ -244,7 +244,7 @@ export default function LibraryPage() {
           </div>
         </div>
 
-        <div style={{ ...actions, position: "relative", zIndex: 1 }}>
+        <div style={{ ...actions, position: "relative", zIndex: 1, pointerEvents: showShelfDropdown ? "none" : "auto" }}>
           <button style={btnGhost} onClick={refreshCovers} disabled={refreshing}>
             {refreshing ? "Refreshing…" : "Refresh covers"}
           </button>
@@ -512,7 +512,6 @@ const shelfHeader: React.CSSProperties = {
   alignItems: "flex-end",
   gap: 14,
   flexWrap: "wrap",
-  zIndex: 10,
 };
 
 const shelfHeaderContent: React.CSSProperties = {
