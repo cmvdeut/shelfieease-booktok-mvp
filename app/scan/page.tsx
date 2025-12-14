@@ -44,7 +44,7 @@ export default function ScanPage() {
 
     try {
       const data = await lookupByIsbn(isbn);
-      setTitle(data.title || "(Title not found)");
+      setTitle(data.title || "Title not found");
       setCoverUrl(data.coverUrl || "");
       setAuthors(data.authors || []);
     } finally {
@@ -58,7 +58,7 @@ export default function ScanPage() {
     upsertBook({
       id: crypto.randomUUID(),
       isbn13: code,
-      title: title || "(Unknown title)",
+      title: title || "Unknown title",
       authors: authors || [],
       coverUrl: coverUrl || "",
       status: "TBR",
@@ -82,9 +82,6 @@ export default function ScanPage() {
     <main style={{ padding: 16, maxWidth: 720, margin: "0 auto" }}>
       <div style={topbar}>
         <div>
-          <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.6, color: "#cfcfe6", opacity: 0.9, marginBottom: 4 }}>
-            ShelfieEase • BookTok
-          </div>
           <h1 style={{ margin: 0, fontSize: 28, fontWeight: 950 }}>Scan</h1>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
@@ -155,7 +152,7 @@ export default function ScanPage() {
 
               <div style={{ display: "grid", gap: 6 }}>
                 <div style={{ fontSize: 20, fontWeight: 900, lineHeight: 1.2 }}>
-                  {title || "(Unknown title)"}
+                  {title || "Unknown title"}
                 </div>
 
                 {authors.length > 0 && (
@@ -170,7 +167,7 @@ export default function ScanPage() {
           )}
 
           <button style={btnPrimaryBig} onClick={saveToShelf} disabled={loading}>
-            Save to shelf
+            Add to shelf
           </button>
 
           <div style={{ display: "grid", gap: 10 }}>
@@ -178,7 +175,7 @@ export default function ScanPage() {
               Scan another
             </button>
             <Link href="/library">
-              <button style={btnSecondary}>Go to My Shelf</button>
+              <button style={btnSecondary}>View shelf</button>
             </Link>
           </div>
         </div>
