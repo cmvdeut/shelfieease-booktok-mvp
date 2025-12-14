@@ -183,7 +183,7 @@ export default function LibraryPage() {
           zIndex: 0,
         }} />
         <div style={{ ...shelfHeaderContent, position: "relative", zIndex: 1 }}>
-          <div style={{ position: "relative", display: "inline-block" }} ref={dropdownRef}>
+          <div style={{ position: "relative", display: "inline-block", zIndex: 9999 }} ref={dropdownRef}>
             <button
               style={shelfSelector}
               onClick={() => setShowShelfDropdown(!showShelfDropdown)}
@@ -506,12 +506,13 @@ const shelfHeader: React.CSSProperties = {
   border: "1px solid #2a2a32",
   boxShadow: "0 16px 50px rgba(0,0,0,0.45)",
   marginBottom: 16,
-  overflow: "hidden",
+  overflow: "visible",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "flex-end",
   gap: 14,
   flexWrap: "wrap",
+  zIndex: 10,
 };
 
 const shelfHeaderContent: React.CSSProperties = {
@@ -622,7 +623,7 @@ const dropdown: React.CSSProperties = {
   border: "1px solid #2a2a32",
   borderRadius: 16,
   padding: 8,
-  zIndex: 1000,
+  zIndex: 9999,
   boxShadow: "0 16px 50px rgba(0,0,0,0.65)",
 };
 
@@ -808,6 +809,8 @@ const grid: React.CSSProperties = {
   gap: 14,
   marginTop: 14,
   gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+  position: "relative",
+  zIndex: 1,
 };
 
 const card: React.CSSProperties = {
