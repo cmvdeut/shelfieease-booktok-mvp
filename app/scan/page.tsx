@@ -7,15 +7,24 @@ import { useEffect, useState } from "react";
 
 import { Scanner } from "@/components/Scanner";
 import { lookupByIsbn } from "@/lib/lookup";
-import { upsertBook } from "@/lib/storage";
+import { upsertBook, getActiveShelfId, ensureDefaultShelf, setActiveShelfId } from "@/lib/storage";
 
 export default function ScanPage() {
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
 
   useEffect(() => {
     const ua = navigator.userAgent.toLowerCase();
     setIsMobile(/android|iphone|ipad|ipod/.test(ua));
+    ensureDefaultShelf();
+    
+    // Cleanup: ensure scanner is stopped when leaving page
+    return () => {
+      setShowScanner(false);
+      // Give time for scanner to cleanup
+      setTimeout(() => {}, 200);
+    };
   }, []);
   
   const [code, setCode] = useState<string>("");
@@ -36,6 +45,9 @@ export default function ScanPage() {
     const isbn = isbnRaw.trim();
     if (!isbn) return;
 
+    // Stop and unmount scanner immediately after detection
+    setShowScanner(false);
+
     setLoading(true);
     setTitle("");
     setCoverUrl("");
@@ -55,6 +67,13 @@ export default function ScanPage() {
   function saveToShelf() {
     if (!code) return;
 
+    let activeShelfId = getActiveShelfId();
+    if (!activeShelfId) {
+      const defaultShelf = ensureDefaultShelf();
+      setActiveShelfId(defaultShelf.id);
+      activeShelfId = defaultShelf.id;
+    }
+
     upsertBook({
       id: crypto.randomUUID(),
       isbn13: code,
@@ -62,6 +81,7 @@ export default function ScanPage() {
       authors: authors || [],
       coverUrl: coverUrl || "",
       status: "TBR",
+      shelfId: activeShelfId,
       addedAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -76,6 +96,7 @@ export default function ScanPage() {
     setAuthors([]);
     setManual("");
     setLoading(false);
+    setShowScanner(false);
   }
 
   return (
@@ -97,7 +118,24 @@ export default function ScanPage() {
       {!code ? (
         <>
           {isMobile ? (
-            <Scanner key="scanner" onDetected={(c) => handleIsbn(c)} />
+            <>
+              {!showScanner ? (
+                <div style={desktopNotice}>
+                  <p style={{ marginTop: 0, marginBottom: 12 }}>Ready to scan 📱</p>
+                  <button
+                    style={btnPrimary}
+                    onClick={() => setShowScanner(true)}
+                  >
+                    Start scanning
+                  </button>
+                </div>
+              ) : (
+                <Scanner 
+                  key="scanner" 
+                  onDetected={(c) => handleIsbn(c)}
+                />
+              )}
+            </>
           ) : (
             <div style={desktopNotice}>
               <p style={{ marginTop: 0 }}>Scanning works on mobile 📱</p>
