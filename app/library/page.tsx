@@ -51,13 +51,30 @@ export default function LibraryPage() {
           <button style={btnPrimary}>+ Scan</button>
         </Link>
       </div>
-      <button
-  style={btnSecondary}
-  onClick={refreshCovers}
-  disabled={refreshing}
->
-  {refreshing ? "Refreshing…" : "Refresh covers"}
-</button>
+      <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+        <button
+          style={btnSecondary}
+          onClick={refreshCovers}
+          disabled={refreshing}
+        >
+          {refreshing ? "Refreshing…" : "Refresh covers"}
+        </button>
+        <button
+          style={btnSecondary}
+          onClick={() => {
+            // Debug: test Open Library cover voor eerste boek
+            if (books.length > 0) {
+              const firstBook = books[0];
+              const testUrl = `https://covers.openlibrary.org/b/isbn/${firstBook.isbn13.replace(/[^\dX]/gi, "")}-M.jpg`;
+              console.log("Testing cover URL:", testUrl);
+              console.log("ISBN:", firstBook.isbn13);
+              window.open(testUrl, "_blank");
+            }
+          }}
+        >
+          Test cover (first book)
+        </button>
+      </div>
 
       {books.length === 0 ? (
         <div style={emptyCard}>
@@ -104,37 +121,56 @@ export default function LibraryPage() {
  * - Geen API key nodig, gratis, geen CORS problemen
  */
 function Cover({ isbn13, coverUrl, title }: { isbn13: string; coverUrl: string; title: string }) {
+  // Normaliseer ISBN: verwijder alle niet-numerieke tekens (behalve X voor ISBN-10)
+  const normalizedIsbn = (isbn13 || "").replace(/[^\dX]/gi, "");
+  
   // Open Library Covers API - direct laden op basis van ISBN
   // URL pattern: https://covers.openlibrary.org/b/$key/$value-$size.jpg
   // We gebruiken ISBN als key, met formaten S, M, L
-  const openLibrarySmall = `https://covers.openlibrary.org/b/isbn/${isbn13}-S.jpg`;
-  const openLibraryMedium = `https://covers.openlibrary.org/b/isbn/${isbn13}-M.jpg`;
-  const openLibraryLarge = `https://covers.openlibrary.org/b/isbn/${isbn13}-L.jpg`;
+  const openLibrarySmall = `https://covers.openlibrary.org/b/isbn/${normalizedIsbn}-S.jpg`;
+  const openLibraryMedium = `https://covers.openlibrary.org/b/isbn/${normalizedIsbn}-M.jpg`;
+  const openLibraryLarge = `https://covers.openlibrary.org/b/isbn/${normalizedIsbn}-L.jpg`;
   
   // Start altijd met Open Library Medium (beste balans kwaliteit/snelheid)
   const [currentSrc, setCurrentSrc] = useState<string>(openLibraryMedium);
   const [errorCount, setErrorCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Reset wanneer ISBN verandert
   useEffect(() => {
-    setCurrentSrc(openLibraryMedium);
-    setErrorCount(0);
-  }, [isbn13]);
+    if (normalizedIsbn) {
+      setCurrentSrc(openLibraryMedium);
+      setErrorCount(0);
+      setIsLoading(true);
+    }
+  }, [normalizedIsbn]);
+
+  const handleLoad = () => {
+    setIsLoading(false);
+  };
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
     const newErrorCount = errorCount + 1;
     setErrorCount(newErrorCount);
+    setIsLoading(false);
+    
+    // Debug: log errors (alleen in development)
+    if (process.env.NODE_ENV === "development") {
+      console.warn(`Cover load error ${newErrorCount} for ISBN ${normalizedIsbn}:`, currentSrc);
+    }
     
     // Fallback chain: probeer verschillende Open Library formaten
     // 1. Eerste error: probeer Large (mogelijk beschikbaar waar Medium niet werkt)
     if (newErrorCount === 1) {
       setCurrentSrc(openLibraryLarge);
+      setIsLoading(true);
       return;
     }
     // 2. Tweede error: probeer Small
     if (newErrorCount === 2) {
       setCurrentSrc(openLibrarySmall);
+      setIsLoading(true);
       return;
     }
     // 3. Derde error: verberg image (placeholder blijft zichtbaar)
@@ -144,6 +180,17 @@ function Cover({ isbn13, coverUrl, title }: { isbn13: string; coverUrl: string; 
     }
   };
 
+  if (!normalizedIsbn) {
+    return (
+      <div style={coverWrap}>
+        <div style={coverPlaceholder}>
+          <div style={{ fontWeight: 900, fontSize: 18, lineHeight: 1.1 }}>📚</div>
+          <div style={{ fontSize: 12, color: "#b7b7b7" }}>No ISBN</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={coverWrap}>
       <img
@@ -151,9 +198,9 @@ function Cover({ isbn13, coverUrl, title }: { isbn13: string; coverUrl: string; 
         src={currentSrc}
         alt={title}
         loading="lazy"
-        crossOrigin="anonymous"
         referrerPolicy="no-referrer"
-        style={coverImg}
+        style={{ ...coverImg, opacity: isLoading ? 0.5 : 1 }}
+        onLoad={handleLoad}
         onError={handleError}
       />
       <div style={coverPlaceholder}>
