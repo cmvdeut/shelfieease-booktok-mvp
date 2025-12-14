@@ -90,13 +90,13 @@ export default function ScanPage() {
       {!code ? (
         <>
           {isMobile ? (
-  <Scanner onDetected={(c) => handleIsbn(c)} />
-) : (
-  <div style={desktopNotice}>
-    <p style={{ marginTop: 0 }}>Scanning works on mobile 📱</p>
-    <p style={{ color: "#b7b7b7" }}>Use the ISBN field below on desktop.</p>
-  </div>
-)}
+            <Scanner key="scanner" onDetected={(c) => handleIsbn(c)} />
+          ) : (
+            <div style={desktopNotice}>
+              <p style={{ marginTop: 0 }}>Scanning works on mobile 📱</p>
+              <p style={{ color: "#b7b7b7" }}>Use the ISBN field below on desktop.</p>
+            </div>
+          )}
 
 
 
