@@ -92,9 +92,13 @@ export default function LibraryPage() {
   }
 
   function handleCreateShelf() {
-    if (!newShelfName.trim() || newShelfName.trim().length > 24) return;
+    const name = newShelfName.trim();
+    if (!name || name.length > 24) return;
     
-    const shelf = createShelf(newShelfName.trim(), newShelfEmoji);
+    // Validate emoji - fallback to 📚 if empty
+    const emoji = newShelfEmoji.trim() || "📚";
+    
+    const shelf = createShelf(name, emoji);
     const updatedShelves = loadShelves();
     setShelves(updatedShelves);
     setActiveShelfIdState(shelf.id);
@@ -273,14 +277,34 @@ export default function LibraryPage() {
                 <div style={formHint}>{newShelfName.length}/24</div>
               </div>
               <div style={formGroup}>
-                <label style={formLabel}>Emoji (optional)</label>
+                <label style={formLabel}>Emoji</label>
+                <div style={emojiPicker}>
+                  {["📚", "✨", "🔥", "💖", "🧙", "🗡️", "🌙", "🧋", "😭", "🕯️", "🏰", "🐉"].map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      style={{
+                        ...emojiChip,
+                        ...(newShelfEmoji === emoji ? emojiChipActive : {}),
+                      }}
+                      onClick={() => setNewShelfEmoji(emoji)}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
                 <input
                   type="text"
                   value={newShelfEmoji}
-                  onChange={(e) => setNewShelfEmoji(e.target.value || "📚")}
+                  onChange={(e) => {
+                    const val = e.target.value.slice(0, 2);
+                    setNewShelfEmoji(val || "📚");
+                  }}
                   placeholder="📚"
-                  style={formInput}
+                  style={{ ...formInput, marginTop: 8 }}
+                  maxLength={2}
                 />
+                <div style={{ ...formHint, textAlign: "left" }}>Or type custom emoji (max 2 chars)</div>
               </div>
               <div style={modalActions}>
                 <button style={btnGhost} onClick={() => setShowNewShelfModal(false)}>
@@ -454,6 +478,7 @@ function Cover({
           referrerPolicy="no-referrer"
           style={coverImg}
           onError={() => {
+            // Missing covers are normal - fallback to next candidate
             if (srcIndex + 1 < candidates.length) goNext();
           }}
           onLoad={(e) => {
@@ -711,6 +736,35 @@ const formHint: React.CSSProperties = {
   fontSize: 12,
   color: "#8f8fa3",
   textAlign: "right",
+};
+
+const emojiPicker: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 8,
+  marginBottom: 4,
+};
+
+const emojiChip: React.CSSProperties = {
+  width: 44,
+  height: 44,
+  borderRadius: 12,
+  border: "1px solid #2a2a32",
+  background: "#101014",
+  color: "#fff",
+  fontSize: 20,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 0,
+  transition: "all 120ms ease",
+};
+
+const emojiChipActive: React.CSSProperties = {
+  background: "rgba(109,94,252,0.25)",
+  borderColor: "#6d5efc",
+  transform: "scale(1.05)",
 };
 
 const modalActions: React.CSSProperties = {

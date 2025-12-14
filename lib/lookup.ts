@@ -90,7 +90,10 @@ function getGoogleBooksThumbnailUrl(thumbnailUrl?: string): string {
 async function lookupOpenLibrary(isbn: string): Promise<LookupResult> {
   try {
     const r = await fetch(`https://openlibrary.org/isbn/${encodeURIComponent(isbn)}.json`);
-    if (!r.ok) return { title: undefined, authors: [], coverUrl: coverFromOpenLibrary(isbn, "M") };
+    if (!r.ok) {
+      // 404 is normal - not all books are in Open Library
+      return { title: undefined, authors: [], coverUrl: coverFromOpenLibrary(isbn, "M") };
+    }
 
     const data = (await r.json()) as OpenLibraryIsbnResponse;
 
