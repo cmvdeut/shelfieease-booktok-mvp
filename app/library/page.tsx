@@ -244,7 +244,7 @@ export default function LibraryPage() {
           </div>
         </div>
 
-        <div style={actions}>
+        <div style={{ ...actions, position: "relative", zIndex: 1 }}>
           <button style={btnGhost} onClick={refreshCovers} disabled={refreshing}>
             {refreshing ? "Refreshing…" : "Refresh covers"}
           </button>
@@ -507,6 +507,11 @@ const shelfHeader: React.CSSProperties = {
   boxShadow: "0 16px 50px rgba(0,0,0,0.45)",
   marginBottom: 16,
   overflow: "hidden",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-end",
+  gap: 14,
+  flexWrap: "wrap",
 };
 
 const shelfHeaderContent: React.CSSProperties = {
@@ -515,6 +520,7 @@ const shelfHeaderContent: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: 16,
+  flex: 1,
 };
 
 const shelfStats: React.CSSProperties = {
