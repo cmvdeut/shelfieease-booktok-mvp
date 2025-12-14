@@ -14,8 +14,8 @@ export default function LibraryPage() {
   const stats = useMemo(() => {
     const tbr = books.filter((b) => (b.status ?? "TBR") === "TBR").length;
     const reading = books.filter((b) => (b.status ?? "TBR") === "Reading").length;
-    const read = books.filter((b) => (b.status ?? "TBR") === "Read").length;
-  
+    const read = books.filter((b) => (b.status ?? "TBR") === "Finished").length;
+   
     return { total: books.length, tbr, reading, read };
   }, [books]);
   
@@ -314,7 +314,7 @@ function badgeFor(status: string): React.CSSProperties {
     border: "1px solid #2a2a32",
   };
 
-  if (status === "Read") return { ...base, background: "rgba(79, 209, 197, 0.18)", color: "#bff7ef" };
+  if (status === "Finished") return { ...base, background: "rgba(79, 209, 197, 0.18)", color: "#bff7ef" };
   if (status === "Reading") return { ...base, background: "rgba(255, 203, 76, 0.16)", color: "#ffe2a3" };
   return { ...base, background: "rgba(109,94,252,0.18)", color: "#d8d8ff" };
 }

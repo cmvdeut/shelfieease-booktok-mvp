@@ -6,7 +6,8 @@ export type Book = {
   title: string;
   authors: string[];
   coverUrl?: string;
-  status: BookStatus;
+  status?: BookStatus;
+
   addedAt: number;
   updatedAt: number;
 };
