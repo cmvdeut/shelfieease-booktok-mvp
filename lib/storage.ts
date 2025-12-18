@@ -24,11 +24,39 @@ const KEY_BOOKS = "shelfieease_books_v1";
 const KEY_SHELVES = "shelfieease_shelves_v1";
 const KEY_ACTIVE_SHELF = "shelfieease_active_shelf_v1";
 
+function normalizeShelfEmoji(input: unknown): string {
+  const e = typeof input === "string" ? input.trim() : "";
+  return e ? e : "📚";
+}
+
 // Shelf functions
 export function loadShelves(): Shelf[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(KEY_SHELVES) || "[]");
+    const raw = JSON.parse(localStorage.getItem(KEY_SHELVES) || "[]") as unknown;
+    if (!Array.isArray(raw)) return [];
+
+    let changed = false;
+    const shelves: Shelf[] = [];
+
+    for (const item of raw) {
+      const s = item as Partial<Shelf> | null | undefined;
+      if (!s || typeof s !== "object") continue;
+      if (typeof s.id !== "string" || typeof s.name !== "string" || typeof s.createdAt !== "number") continue;
+
+      const nextEmoji = normalizeShelfEmoji((s as any).emoji);
+      if (s.emoji !== nextEmoji) changed = true;
+
+      shelves.push({
+        id: s.id,
+        name: s.name,
+        emoji: nextEmoji,
+        createdAt: s.createdAt,
+      });
+    }
+
+    if (changed) saveShelves(shelves);
+    return shelves;
   } catch {
     return [];
   }
@@ -71,10 +99,11 @@ export function ensureDefaultShelf(): Shelf {
 }
 
 export function createShelf(name: string, emoji: string = "📚"): Shelf {
+  const emojiValue = normalizeShelfEmoji(emoji);
   const shelf: Shelf = {
     id: crypto.randomUUID(),
     name: name.trim(),
-    emoji: emoji || "📚",
+    emoji: emojiValue,
     createdAt: Date.now(),
   };
   const shelves = loadShelves();
