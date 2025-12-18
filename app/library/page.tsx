@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { loadBooks, saveBooks, getActiveShelfId, setActiveShelfId, ensureDefaultShelf, loadShelves, createShelf, updateBook, deleteBook, type Book, type Shelf, type BookStatus } from "@/lib/storage";
 import { lookupByIsbn } from "@/lib/lookup";
+import html2canvas from "html2canvas";
 
 export default function LibraryPage() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -12,12 +13,16 @@ export default function LibraryPage() {
   const [activeShelfId, setActiveShelfIdState] = useState<string | null>(null);
   const [showNewShelfModal, setShowNewShelfModal] = useState(false);
   const [showShelfDropdown, setShowShelfDropdown] = useState(false);
-  const [newShelfName, setNewShelfName] = useState("");
-  const [newShelfEmoji, setNewShelfEmoji] = useState("📚");
+  const [name, setName] = useState("");
+  const [emoji, setEmoji] = useState("📚");
+  const [emojiTouched, setEmojiTouched] = useState(false);
+  const [suggestedEmoji, setSuggestedEmoji] = useState<string | null>(null);
   const [actionMenuBookId, setActionMenuBookId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const actionMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const shareCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Ensure default shelf exists
@@ -91,20 +96,93 @@ export default function LibraryPage() {
     setShowShelfDropdown(false);
   }
 
+  function suggestEmojiFromName(name: string): string | null {
+    const n = name.toLowerCase();
+
+    const has = (...words: string[]) => words.some((w) => n.includes(w));
+
+    // Romantasy / Fantasy
+    if (has("romantasy", "fantasy", "fae", "fairy", "magic", "mage", "witch", "wizard", "dragon", "court", "kingdom", "throne")) {
+      if (has("dragon")) return "🐉";
+      if (has("court", "kingdom", "throne")) return "🏰";
+      return "🧙";
+    }
+
+    // Romance / spicy
+    if (has("romance", "love", "spicy", "smut", "spice", "steam", "steamy", "hot", "trope")) {
+      if (has("spicy", "smut", "steam", "steamy", "hot")) return "🔥";
+      return "💖";
+    }
+
+    // Thriller / mystery
+    if (has("thriller", "mystery", "crime", "detective", "murder", "case", "noir")) {
+      if (has("detective", "case")) return "🕵️";
+      if (has("murder")) return "🔪";
+      return "🧩";
+    }
+
+    // Horror / dark
+    if (has("horror", "dark", "gothic", "haunted", "vampire", "ghost", "curse", "cursed")) {
+      if (has("dark")) return "🖤";
+      if (has("gothic", "haunted", "ghost")) return "🕯️";
+      return "🌙";
+    }
+
+    // Cozy / comfort / seizoenen
+    if (has("cozy", "comfort", "autumn", "fall", "winter", "summer", "spring")) {
+      if (has("autumn", "fall")) return "🍂";
+      if (has("winter")) return "❄️";
+      if (has("summer")) return "🌞";
+      if (has("spring")) return "🌷";
+      return "☕";
+    }
+
+    // Sci-fi / space
+    if (has("sci-fi", "scifi", "space", "alien", "galaxy", "planet", "cyberpunk")) {
+      if (has("planet", "galaxy")) return "🪐";
+      return "🚀";
+    }
+
+    // Self-help / growth
+    if (has("self help", "self-help", "growth", "mindset", "habits", "wellbeing", "healing")) return "🌱";
+
+    // Manga / comics
+    if (has("manga", "comics", "graphic")) return "💥";
+
+    // Sad / tears
+    if (has("sad", "cry", "crying", "tears", "tearjerker")) return "😭";
+
+    // Default-ish
+    if (n.trim().length >= 3) return "📚";
+    return null;
+  }
+
+  // Auto-suggest emoji when name changes (only if emoji not touched)
+  useEffect(() => {
+    const s = suggestEmojiFromName(name);
+    setSuggestedEmoji(s);
+
+    if (!emojiTouched && s) {
+      setEmoji(s);
+    }
+  }, [name, emojiTouched]);
+
   function handleCreateShelf() {
-    const name = newShelfName.trim();
-    if (!name || name.length > 24) return;
+    const nameTrimmed = name.trim();
+    if (!nameTrimmed || nameTrimmed.length > 24) return;
     
     // Validate emoji - fallback to 📚 if empty
-    const emoji = newShelfEmoji.trim() || "📚";
+    const emojiTrimmed = emoji.trim() || "📚";
     
-    const shelf = createShelf(name, emoji);
+    const shelf = createShelf(nameTrimmed, emojiTrimmed);
     const updatedShelves = loadShelves();
     setShelves(updatedShelves);
     setActiveShelfIdState(shelf.id);
     setShowNewShelfModal(false);
-    setNewShelfName("");
-    setNewShelfEmoji("📚");
+    setName("");
+    setEmoji("📚");
+    setEmojiTouched(false);
+    setSuggestedEmoji(null);
   }
 
   function handleMoveBook(bookId: string, targetShelfId: string) {
@@ -150,6 +228,67 @@ export default function LibraryPage() {
     } finally {
       setRefreshing(false);
     }
+  }
+
+  async function handleShareShelf() {
+    if (!shareCardRef.current || !activeShelf) return;
+    
+    setSharing(true);
+    try {
+      // Wait a bit for images to load
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      
+      const canvas = await html2canvas(shareCardRef.current, {
+        backgroundColor: "#0f0f12",
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          setSharing(false);
+          return;
+        }
+        
+        const file = new File([blob], `${activeShelf.name.replace(/\s+/g, "-")}-shelf.png`, {
+          type: "image/png",
+        });
+        
+        // Try native share on mobile
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: `${activeShelf.emoji} ${activeShelf.name}`,
+              text: `Check out my ${activeShelf.name} shelf!`,
+              files: [file],
+            });
+          } catch (err) {
+            // User cancelled or error - fallback to download
+            downloadImage(blob, file.name);
+          }
+        } else {
+          // Fallback: download
+          downloadImage(blob, file.name);
+        }
+        
+        setSharing(false);
+      }, "image/png");
+    } catch (error) {
+      console.error("Failed to generate share card:", error);
+      setSharing(false);
+    }
+  }
+
+  function downloadImage(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   const activeShelf = shelves.find((s) => s.id === activeShelfId);
@@ -252,14 +391,35 @@ export default function LibraryPage() {
           <button style={btnGhost} onClick={refreshCovers} disabled={refreshing}>
             {refreshing ? "Refreshing…" : "Refresh covers"}
           </button>
-          <Link href="/scan">
-            <button style={btnPrimary}>+ Scan</button>
-          </Link>
-        </div>
+          <button style={btnGhost} onClick={handleShareShelf} disabled={sharing || !activeShelf || activeBooks.length === 0}>
+            {sharing ? "Generating…" : "Share shelf"}
+          </button>
+        <Link href="/scan">
+          <button style={btnPrimary}>+ Scan</button>
+        </Link>
+      </div>
       </div>
 
+      {/* Hidden Share Card for rendering */}
+      {activeShelf && (
+        <div style={{ position: "fixed", left: "-10000px", top: 0, opacity: 0, pointerEvents: "none" }}>
+          <ShareCard
+            ref={shareCardRef}
+            shelf={activeShelf}
+            books={activeBooks.slice(0, 6)}
+            stats={stats}
+          />
+        </div>
+      )}
+
       {showNewShelfModal && (
-        <div style={modalOverlay} onClick={() => setShowNewShelfModal(false)}>
+        <div style={modalOverlay} onClick={() => {
+          setShowNewShelfModal(false);
+          setEmojiTouched(false);
+          setName("");
+          setEmoji("📚");
+          setSuggestedEmoji(null);
+        }}>
           <div style={modal} onClick={(e) => e.stopPropagation()}>
             <h2 style={modalTitle}>New Shelf</h2>
             <div style={modalForm}>
@@ -267,53 +427,88 @@ export default function LibraryPage() {
                 <label style={formLabel}>Name</label>
                 <input
                   type="text"
-                  value={newShelfName}
-                  onChange={(e) => setNewShelfName(e.target.value.slice(0, 24))}
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value.slice(0, 24));
+                    // Reset emojiTouched when name is cleared
+                    if (!e.target.value.trim()) setEmojiTouched(false);
+                  }}
                   placeholder="My Shelf"
                   maxLength={24}
                   style={formInput}
                   autoFocus
                 />
-                <div style={formHint}>{newShelfName.length}/24</div>
+                <div style={formHint}>
+                  {name.length}/24
+                </div>
+                {suggestedEmoji && !emojiTouched && (
+                  <div style={{ marginTop: 6, fontSize: 12, color: "#b7b7b7" }}>
+                    Suggested emoji: <span style={{ fontSize: 16 }}>{suggestedEmoji}</span>
+                  </div>
+                )}
               </div>
               <div style={formGroup}>
                 <label style={formLabel}>Emoji</label>
                 <div style={emojiPicker}>
-                  {["📚", "✨", "🔥", "💖", "🧙", "🗡️", "🌙", "🧋", "😭", "🕯️", "🏰", "🐉"].map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      style={{
-                        ...emojiChip,
-                        ...(newShelfEmoji === emoji ? emojiChipActive : {}),
-                      }}
-                      onClick={() => setNewShelfEmoji(emoji)}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
+                  {(() => {
+                    const defaultEmojis = ["📚", "✨", "🔥", "💖", "🧙", "🗡️", "🌙", "🧋", "😭", "🕯️", "🏰", "🐉"];
+                    // If suggested emoji exists, place it first and remove duplicates
+                    const emojisToShow = suggestedEmoji
+                      ? [suggestedEmoji, ...defaultEmojis.filter((e) => e !== suggestedEmoji)]
+                      : defaultEmojis;
+                    
+                    return emojisToShow.map((emojiOption) => (
+                      <button
+                        key={emojiOption}
+                        type="button"
+                        style={{
+                          ...emojiChip,
+                          ...(emoji === emojiOption ? emojiChipActive : {}),
+                        }}
+                        onClick={() => {
+                          setEmojiTouched(true);
+                          setEmoji(emojiOption);
+                        }}
+                      >
+                        {emojiOption}
+                      </button>
+                    ));
+                  })()}
                 </div>
                 <input
                   type="text"
-                  value={newShelfEmoji}
+                  value={emoji}
                   onChange={(e) => {
+                    setEmojiTouched(true);
                     const val = e.target.value.slice(0, 2);
-                    setNewShelfEmoji(val || "📚");
+                    // Emoji is required: if cleared, immediately revert to 📚
+                    setEmoji(val.trim() ? val : "📚");
+                  }}
+                  onBlur={(e) => {
+                    // Only set default if empty when user leaves field
+                    if (!e.target.value.trim()) {
+                      setEmoji("📚");
+                    }
                   }}
                   placeholder="📚"
                   style={{ ...formInput, marginTop: 8 }}
                   maxLength={2}
                 />
-                <div style={{ ...formHint, textAlign: "left" }}>Or type custom emoji (max 2 chars)</div>
               </div>
               <div style={modalActions}>
-                <button style={btnGhost} onClick={() => setShowNewShelfModal(false)}>
+                <button style={btnGhost} onClick={() => {
+                  setShowNewShelfModal(false);
+                  setEmojiTouched(false);
+                  setName("");
+                  setEmoji("📚");
+                  setSuggestedEmoji(null);
+                }}>
                   Cancel
                 </button>
                 <button
                   style={btnPrimary}
                   onClick={handleCreateShelf}
-                  disabled={!newShelfName.trim()}
+                  disabled={!name.trim()}
                 >
                   Create
                 </button>
@@ -369,14 +564,20 @@ export default function LibraryPage() {
               </button>
               
               {actionMenuBookId === b.id && (
-                <div
-                  ref={(el) => {
-                    actionMenuRefs.current[b.id] = el;
-                  }}
-                  style={actionMenu}
-                >
-                  <div style={actionMenuSection}>
-                    <div style={actionMenuLabel}>Move to shelf</div>
+                <>
+                  <div
+                    style={actionMenuOverlay}
+                    onClick={() => setActionMenuBookId(null)}
+                  />
+                  <div
+                    ref={(el) => {
+                      actionMenuRefs.current[b.id] = el;
+                    }}
+                    style={actionMenu}
+                  >
+                    <div style={actionMenuHandle} />
+                    <div style={actionMenuSection}>
+                      <div style={actionMenuLabel}>Move to shelf</div>
                     {shelves.map((shelf) => (
                       <button
                         key={shelf.id}
@@ -420,7 +621,8 @@ export default function LibraryPage() {
                   >
                     <span>Delete book</span>
                   </button>
-                </div>
+                  </div>
+                </>
               )}
 
               <Cover isbn13={b.isbn13} coverUrl={b.coverUrl || ""} title={b.title} authors={b.authors || []} />
@@ -449,6 +651,297 @@ function toHttps(url: string) {
   return url.startsWith("http://") ? url.replace("http://", "https://") : url;
 }
 
+const ShareCard = React.forwardRef<
+  HTMLDivElement,
+  {
+    shelf: Shelf;
+    books: Book[];
+    stats: { total: number; tbr: number; reading: number; read: number };
+  }
+>(({ shelf, books, stats }, ref) => {
+  // 9:16 ratio - typical mobile story size
+  const width = 1080;
+  const height = 1920;
+
+  const cardRadius = 56;
+
+  function safeTitle(t?: string) {
+    const v = (t || "").trim();
+    return v ? v : "Unknown";
+  }
+
+  function coverCandidate(book: Book) {
+    if (book.coverUrl) return toHttps(book.coverUrl);
+    return `https://covers.openlibrary.org/b/isbn/${book.isbn13}-L.jpg?default=false`;
+  }
+
+  const tiles = books.slice(0, 6);
+  const collagePlacements = [
+    { left: 78, top: 420, rotate: -10, z: 2 },
+    { left: 392, top: 380, rotate: 4, z: 4 },
+    { left: 706, top: 430, rotate: 10, z: 3 },
+    { left: 140, top: 860, rotate: -6, z: 1 },
+    { left: 470, top: 840, rotate: 2, z: 5 },
+    { left: 790, top: 900, rotate: 8, z: 2 },
+  ] as const;
+
+  const ShareCoverTile = ({
+    book,
+    style,
+  }: {
+    book: Book;
+    style: React.CSSProperties;
+  }) => {
+    const [imgOk, setImgOk] = React.useState(true);
+    const title = safeTitle(book.title);
+
+    return (
+      <div
+        style={{
+          width: 300,
+          height: 450,
+          borderRadius: 26,
+          overflow: "hidden",
+          position: "absolute",
+          boxShadow: "0 22px 70px rgba(0,0,0,0.55)",
+          border: "2px solid rgba(255,255,255,0.10)",
+          background:
+            "linear-gradient(135deg, rgba(109,94,252,0.28), rgba(255,73,240,0.14) 55%, rgba(0,0,0,0.25)), #101014",
+          ...style,
+        }}
+      >
+        {/* Always render a placeholder behind the image (covers missing/CORS/404 nicely) */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "flex-end",
+            padding: 18,
+            boxSizing: "border-box",
+            background:
+              "radial-gradient(800px 600px at 20% 15%, rgba(255,73,240,0.24), rgba(255,73,240,0) 55%), radial-gradient(900px 700px at 80% 20%, rgba(109,94,252,0.32), rgba(109,94,252,0) 60%), linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0)), #0f0f12",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <div
+              style={{
+                fontSize: 18,
+                fontWeight: 950,
+                color: "#fff",
+                lineHeight: 1.15,
+                textShadow: "0 10px 22px rgba(0,0,0,0.55)",
+                display: "-webkit-box",
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: "vertical" as any,
+                overflow: "hidden",
+              }}
+            >
+              {title}
+            </div>
+            <div style={{ marginTop: 10, fontSize: 12, fontWeight: 900, color: "rgba(255,255,255,0.55)" }}>
+              ISBN {book.isbn13}
+            </div>
+          </div>
+        </div>
+
+        {imgOk ? (
+          <img
+            src={coverCandidate(book)}
+            alt={title}
+            crossOrigin="anonymous"
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+            onError={() => setImgOk(false)}
+            onLoad={(e) => {
+              // Also treat tiny "not available" images as missing
+              const img = e.currentTarget;
+              if (img.naturalWidth < 90 || img.naturalHeight < 120) setImgOk(false);
+            }}
+          />
+        ) : null}
+      </div>
+    );
+  };
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        width: `${width}px`,
+        height: `${height}px`,
+        borderRadius: cardRadius,
+        overflow: "hidden",
+        background:
+          "radial-gradient(1200px 900px at 20% 15%, rgba(255,73,240,0.28), rgba(255,73,240,0) 55%), radial-gradient(1200px 900px at 85% 20%, rgba(109,94,252,0.35), rgba(109,94,252,0) 60%), linear-gradient(135deg, rgba(109,94,252,0.22), rgba(255,73,240,0.14) 45%, rgba(0,0,0,0.92) 75%), #0b0b10",
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        padding: "86px 70px",
+        boxSizing: "border-box",
+        fontFamily: "system-ui, -apple-system, sans-serif",
+        boxShadow: "0 30px 120px rgba(0,0,0,0.65)",
+      }}
+    >
+      {/* Soft overlay for extra depth */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0) 35%, rgba(0,0,0,0.55) 100%)",
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* Shelf header */}
+      <div style={{ position: "relative", zIndex: 2, marginBottom: 44, textAlign: "center" }}>
+        <div style={{ fontSize: 120, lineHeight: 1, marginBottom: 18 }}>{shelf.emoji || "📚"}</div>
+        <div
+          style={{
+            fontSize: 78,
+            fontWeight: 950,
+            color: "#fff",
+            lineHeight: 1.05,
+            letterSpacing: -0.6,
+            textShadow: "0 18px 38px rgba(0,0,0,0.55)",
+          }}
+        >
+          {shelf.name}
+        </div>
+      </div>
+
+      {/* Covers collage (overlapping, BookTok vibe) */}
+      <div style={{ position: "relative", flex: 1, zIndex: 2 }}>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: 40,
+            border: "1px solid rgba(255,255,255,0.08)",
+            background: "rgba(255,255,255,0.03)",
+            backdropFilter: "blur(12px)",
+          }}
+        />
+        <div style={{ position: "absolute", inset: 0 }}>
+          {tiles.map((book, i) => {
+            const p = collagePlacements[i] || collagePlacements[collagePlacements.length - 1];
+            return (
+              <ShareCoverTile
+                key={book.id}
+                book={book}
+                style={{
+                  left: p.left,
+                  top: p.top,
+                  transform: `rotate(${p.rotate}deg)`,
+                  zIndex: p.z,
+                }}
+              />
+            );
+          })}
+
+          {/* If there are very few books, add subtle “ghost” cards so it still feels full */}
+          {tiles.length < 3 && (
+            <>
+              <div
+                style={{
+                  width: 300,
+                  height: 450,
+                  borderRadius: 26,
+                  position: "absolute",
+                  left: 210,
+                  top: 760,
+                  transform: "rotate(-8deg)",
+                  border: "2px dashed rgba(255,255,255,0.10)",
+                  background: "rgba(0,0,0,0.15)",
+                  zIndex: 0,
+                }}
+              />
+              <div
+                style={{
+                  width: 300,
+                  height: 450,
+                  borderRadius: 26,
+                  position: "absolute",
+                  left: 570,
+                  top: 760,
+                  transform: "rotate(8deg)",
+                  border: "2px dashed rgba(255,255,255,0.10)",
+                  background: "rgba(0,0,0,0.15)",
+                  zIndex: 0,
+                }}
+              />
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div
+        style={{
+          position: "relative",
+          zIndex: 2,
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 16,
+          marginTop: 34,
+          marginBottom: 26,
+          paddingTop: 18,
+          borderTop: "1px solid rgba(255,255,255,0.12)",
+        }}
+      >
+        {(
+          [
+            { label: "Total", value: stats.total, color: "#fff" },
+            { label: "TBR", value: stats.tbr, color: "#d8d8ff" },
+            { label: "Reading", value: stats.reading, color: "#ffe2a3" },
+            { label: "Finished", value: stats.read, color: "#bff7ef" },
+          ] as const
+        ).map((s) => (
+          <div
+            key={s.label}
+            style={{
+              flex: 1,
+              textAlign: "center",
+              padding: "16px 12px",
+              borderRadius: 22,
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.10)",
+            }}
+          >
+            <div style={{ fontSize: 44, fontWeight: 950, color: s.color, lineHeight: 1 }}>{s.value}</div>
+            <div style={{ fontSize: 18, color: "rgba(255,255,255,0.75)", fontWeight: 800, marginTop: 8 }}>
+              {s.label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Watermark */}
+      <div
+        style={{
+          position: "relative",
+          zIndex: 2,
+          textAlign: "center",
+          fontSize: 18,
+          color: "rgba(255,255,255,0.35)",
+          fontWeight: 800,
+          letterSpacing: 1.2,
+        }}
+      >
+        ShelfieEase
+      </div>
+    </div>
+  );
+});
+
+ShareCard.displayName = "ShareCard";
+
 function Cover({
   isbn13,
   coverUrl,
@@ -471,19 +964,19 @@ function Cover({
   return (
     <div style={coverWrap}>
       {src ? (
-        <img
+      <img
           src={src}
-          alt={title}
-          loading="lazy"
+        alt={title}
+        loading="lazy"
           referrerPolicy="no-referrer"
-          style={coverImg}
+        style={coverImg}
           onError={() => {
             // Missing covers are normal - fallback to next candidate
             if (srcIndex + 1 < candidates.length) goNext();
           }}
           onLoad={(e) => {
             // Filter "Image not available" (vaak heel klein)
-            const img = e.currentTarget;
+          const img = e.currentTarget;
             if (img.naturalWidth > 0 && img.naturalHeight > 0) {
               if (img.naturalWidth < 90 || img.naturalHeight < 120) {
                 if (srcIndex + 1 < candidates.length) goNext();
@@ -643,10 +1136,13 @@ const dropdown: React.CSSProperties = {
   left: 0,
   marginTop: 8,
   minWidth: 200,
+  maxWidth: "90vw",
+  maxHeight: "70vh",
+  overflowY: "auto",
   background: "#15151c",
   border: "1px solid #2a2a32",
   borderRadius: 16,
-  padding: 8,
+  padding: 6,
   zIndex: 9999,
   boxShadow: "0 16px 50px rgba(0,0,0,0.65)",
 };
@@ -654,17 +1150,18 @@ const dropdown: React.CSSProperties = {
 const dropdownItem: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: 10,
+  gap: 8,
   width: "100%",
-  padding: "10px 12px",
+  padding: "8px 12px",
   borderRadius: 12,
   border: 0,
   background: "transparent",
   color: "#fff",
   fontWeight: 700,
   cursor: "pointer",
-  fontSize: 15,
+  fontSize: 14,
   textAlign: "left",
+  minHeight: 36,
 };
 
 const dropdownItemActive: React.CSSProperties = {
@@ -730,6 +1227,10 @@ const formInput: React.CSSProperties = {
   color: "#fff",
   fontSize: 16,
   fontFamily: "inherit",
+  width: "100%",
+  boxSizing: "border-box",
+  WebkitAppearance: "none",
+  appearance: "none",
 };
 
 const formHint: React.CSSProperties = {
@@ -758,13 +1259,15 @@ const emojiChip: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   padding: 0,
-  transition: "all 120ms ease",
+  transition: "all 150ms ease",
 };
 
 const emojiChipActive: React.CSSProperties = {
   background: "rgba(109,94,252,0.25)",
   borderColor: "#6d5efc",
+  borderWidth: "2px",
   transform: "scale(1.05)",
+  boxShadow: "0 0 16px rgba(109,94,252,0.4), 0 4px 12px rgba(109,94,252,0.2)",
 };
 
 const modalActions: React.CSSProperties = {
@@ -795,16 +1298,19 @@ const actionButton: React.CSSProperties = {
 };
 
 const actionMenu: React.CSSProperties = {
-  position: "absolute",
-  top: 40,
-  right: 8,
-  minWidth: 200,
+  position: "fixed",
+  bottom: 0,
+  left: 0,
+  right: 0,
+  maxHeight: "70vh",
+  overflowY: "auto",
   background: "#15151c",
-  border: "1px solid #2a2a32",
-  borderRadius: 16,
-  padding: 8,
+  borderTop: "1px solid #2a2a32",
+  borderTopLeftRadius: 20,
+  borderTopRightRadius: 20,
+  padding: "12px 16px 20px",
   zIndex: 1000,
-  boxShadow: "0 16px 50px rgba(0,0,0,0.65)",
+  boxShadow: "0 -8px 32px rgba(0,0,0,0.8)",
 };
 
 const actionMenuSection: React.CSSProperties = {
@@ -818,7 +1324,7 @@ const actionMenuLabel: React.CSSProperties = {
   color: "#8f8fa3",
   textTransform: "uppercase",
   letterSpacing: 0.5,
-  padding: "8px 12px 4px",
+  padding: "6px 12px 4px",
 };
 
 const actionMenuItem: React.CSSProperties = {
@@ -836,6 +1342,7 @@ const actionMenuItem: React.CSSProperties = {
   cursor: "pointer",
   fontSize: 14,
   textAlign: "left",
+  minHeight: 44,
 };
 
 const actionMenuItemActive: React.CSSProperties = {
@@ -847,6 +1354,21 @@ const actionMenuDivider: React.CSSProperties = {
   height: 1,
   background: "#2a2a32",
   margin: "6px 0",
+};
+
+const actionMenuOverlay: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,0.6)",
+  zIndex: 999,
+};
+
+const actionMenuHandle: React.CSSProperties = {
+  width: 40,
+  height: 4,
+  background: "#4a4a5a",
+  borderRadius: 2,
+  margin: "0 auto 12px",
 };
 
 const emptyCard: React.CSSProperties = {
@@ -936,7 +1458,7 @@ function badgeFor(status: string): React.CSSProperties {
     fontWeight: 950,
     padding: "6px 10px",
     borderRadius: 999,
-    border: "1px solid #2a2a32",
+  border: "1px solid #2a2a32",
   };
 
   if (status === "Finished") return { ...base, background: "rgba(79, 209, 197, 0.18)", color: "#bff7ef" };
