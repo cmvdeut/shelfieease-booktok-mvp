@@ -12,6 +12,42 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#6d5efc" />
+        <Script
+          id="early-error-logger"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+(function () {
+  try {
+    window.__seLog = function (kind, payload) {
+      try {
+        var obj = { t: Date.now(), kind: kind, payload: payload };
+        localStorage.setItem("se:earlyError", JSON.stringify(obj));
+      } catch (e) {}
+    };
+
+    window.addEventListener("error", function (e) {
+      window.__seLog("window.error", {
+        message: e.message,
+        filename: e.filename,
+        lineno: e.lineno,
+        colno: e.colno,
+        stack: e.error && e.error.stack ? e.error.stack : null
+      });
+    });
+
+    window.addEventListener("unhandledrejection", function (e) {
+      var r = e.reason || {};
+      window.__seLog("unhandledrejection", {
+        message: r.message || String(r),
+        stack: r.stack || null
+      });
+    });
+  } catch (e) {}
+})();
+            `,
+          }}
+        />
       </head>
       <body
         style={{
@@ -21,32 +57,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           color: "#fff"
         }}
       >
-        <Script
-          id="early-error-logging"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.__earlyErrors = [];
-              function save(msg) {
-                try {
-                  localStorage.setItem("__early_error", msg.slice(0, 4000));
-                } catch (e) {}
-                console.error("[Early Error]", msg);
-              }
-              window.addEventListener("error", function(e) {
-                var msg = "error: " + (e.message || "") + "\\n" + (e.filename || "") + ":" + (e.lineno || "") + "\\n" + (e.error && e.error.stack ? e.error.stack : "");
-                save(msg);
-                window.__earlyErrors.push(msg);
-              });
-              window.addEventListener("unhandledrejection", function(e) {
-                var reason = e.reason;
-                var msg = "rejection: " + (reason && reason.message ? reason.message : String(reason)) + "\\n" + (reason && reason.stack ? reason.stack : "");
-                save(msg);
-                window.__earlyErrors.push(msg);
-              });
-            `,
-          }}
-        />
         <ClientErrorTrap />
         {children}
         <script
