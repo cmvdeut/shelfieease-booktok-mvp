@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { Scanner } from "@/components/Scanner";
+import Scanner from "@/components/Scanner";
+import { CoverImg } from "@/components/CoverImg";
 import { lookupByIsbn } from "@/lib/lookup";
 import { upsertBook } from "@/lib/storage";
 
@@ -168,24 +169,37 @@ export default function ScanPage() {
             <p style={muted}>{statusText || "Looking up book…"}</p>
           ) : (
             <>
-              {coverUrl ? (
-                <img
+              {/* Placeholder container */}
+              <div
+                style={{
+                  width: "100%",
+                  maxHeight: 420,
+                  borderRadius: 18,
+                  border: "1px solid #2a2a32",
+                  background: "rgba(255,255,255,0.04)",
+                  overflow: "hidden",
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                {/* Cover image (auto hides on error) */}
+                <CoverImg
                   src={coverUrl}
-                  alt=""
-                  referrerPolicy="no-referrer"
                   style={{
                     width: "100%",
                     maxHeight: 420,
                     objectFit: "cover",
                     borderRadius: 18,
-                    border: "1px solid #2a2a32",
+                    display: "block",
                   }}
-                  onError={(e) => {
-                    // Als cover faalt: verberg img (UI blijft mooi)
-                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                  }}
+                  onError={() => setCoverUrl("")}
                 />
-              ) : null}
+
+                {/* If no coverUrl, show text */}
+                {!coverUrl ? (
+                  <div style={{ color: "#8f8fa3", fontWeight: 800 }}>No cover</div>
+                ) : null}
+              </div>
 
               <div style={{ display: "grid", gap: 6 }}>
                 <p style={{ fontWeight: 950, margin: 0, fontSize: 18 }}>{title}</p>

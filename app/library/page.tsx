@@ -4,7 +4,8 @@ import Link from "next/link";
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { loadBooks, saveBooks, getActiveShelfId, setActiveShelfId, ensureDefaultShelf, loadShelves, createShelf, updateBook, deleteBook, type Book, type Shelf, type BookStatus } from "@/lib/storage";
 import { lookupByIsbn } from "@/lib/lookup";
-import html2canvas from "html2canvas";
+import { CoverImg } from "@/components/CoverImg";
+import { toBlob } from "html-to-image";
 
 export default function LibraryPage() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -20,10 +21,18 @@ export default function LibraryPage() {
   const [actionMenuBookId, setActionMenuBookId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [shareCoverUrls, setShareCoverUrls] = useState<string[]>([]);
+  const [shareStyle, setShareStyle] = useState<"aesthetic" | "bold">("aesthetic");
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareBlob, setShareBlob] = useState<Blob | null>(null);
+  const [shareFilename, setShareFilename] = useState("");
+  const [shareCaption, setShareCaption] = useState("");
+  const [copyImageStatus, setCopyImageStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [copyCaptionStatus, setCopyCaptionStatus] = useState<"idle" | "copied" | "failed">("idle");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const actionMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const shareCardRef = useRef<HTMLDivElement>(null);
-
+  
   useEffect(() => {
     // Ensure default shelf exists
     ensureDefaultShelf();
@@ -39,10 +48,34 @@ export default function LibraryPage() {
     // Load books and migrate any without shelfId to default shelf
     const allBooks = loadBooks();
     const defaultShelfId = getActiveShelfId() || ensureDefaultShelf().id;
+
+    // If we previously confirmed an Open Library cover is missing, strip any stale
+    // `default=false` Open Library coverUrl to avoid repeated 404 console spam.
+    const hasOlMissingFlag = (isbn13: string) => {
+      try {
+        return Boolean(localStorage.getItem(`se:olCoverMissing:${isbn13}`));
+      } catch {
+        return false;
+      }
+    };
+    const stripStaleOpenLibraryCover = (b: Book) => {
+      if (!b.coverUrl) return b;
+      if (!b.isbn13) return b;
+      if (!b.coverUrl.includes("covers.openlibrary.org")) return b;
+      if (!b.coverUrl.includes("default=false")) return b;
+      if (!hasOlMissingFlag(b.isbn13)) return b;
+      return { ...b, coverUrl: "" };
+    };
+    let didStrip = false;
+    const cleanedBooks = allBooks.map((b) => {
+      const next = stripStaleOpenLibraryCover(b);
+      if (next !== b) didStrip = true;
+      return next;
+    });
     
-    const needsMigration = allBooks.some((b) => !b.shelfId);
+    const needsMigration = cleanedBooks.some((b) => !b.shelfId);
     if (needsMigration) {
-      const migrated = allBooks.map((b) => ({
+      const migrated = cleanedBooks.map((b) => ({
         ...b,
         shelfId: b.shelfId || defaultShelfId,
         updatedAt: b.updatedAt || Date.now(),
@@ -50,7 +83,9 @@ export default function LibraryPage() {
       saveBooks(migrated);
       setBooks(migrated);
     } else {
-      setBooks(allBooks);
+      // Persist cleanup if we changed anything
+      if (didStrip) saveBooks(cleanedBooks);
+      setBooks(cleanedBooks);
     }
   }, []);
 
@@ -207,6 +242,13 @@ export default function LibraryPage() {
     setShowDeleteConfirm(null);
   }
 
+  function handleCoverError(bookId: string) {
+    // If a cover URL is broken / "image not available", clear it so we show our placeholder.
+    updateBook(bookId, { coverUrl: "", updatedAt: Date.now() });
+    const updated = loadBooks();
+    setBooks(updated);
+  }
+
   async function refreshCovers() {
     setRefreshing(true);
     try {
@@ -218,7 +260,8 @@ export default function LibraryPage() {
             ...b,
             title: b.title && b.title !== "Unknown title" ? b.title : (data.title || b.title),
             authors: b.authors?.length ? b.authors : (data.authors || b.authors || []),
-            coverUrl: data.coverUrl || b.coverUrl || "",
+            // Always respect lookup result (even if empty) so stale/broken URLs get cleared.
+            coverUrl: data.coverUrl,
             updatedAt: Date.now(),
           };
         })
@@ -235,47 +278,90 @@ export default function LibraryPage() {
     
     setSharing(true);
     try {
-      // Wait a bit for images to load
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      
-      const canvas = await html2canvas(shareCardRef.current, {
-        backgroundColor: "#0f0f12",
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
-      
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          setSharing(false);
-          return;
+      const title = `${activeShelf.emoji || "📚"} ${activeShelf.name}`;
+      const isMobile =
+        typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+      // html-to-image inlines external images via fetch; only include covers that are CORS-fetchable.
+      async function canUseCover(url: string) {
+        try {
+          const res = await fetch(url, { mode: "cors", cache: "no-store" });
+          if (!res.ok) return false;
+          const ct = res.headers.get("content-type") || "";
+          return ct.startsWith("image/");
+        } catch {
+          return false;
         }
-        
-        const file = new File([blob], `${activeShelf.name.replace(/\s+/g, "-")}-shelf.png`, {
-          type: "image/png",
-        });
-        
-        // Try native share on mobile
-        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      }
+
+      const picked: string[] = [];
+      const seen = new Set<string>();
+
+      for (const b of activeBooks) {
+        if (picked.length >= 6) break;
+
+        const candidates = [
+          // IMPORTANT: do not synthesize Open Library URLs here; it produces 404 spam
+          // (and the ShareCard already has placeholders for missing covers).
+          b.coverUrl ? toHttps(b.coverUrl) : "",
+        ].filter(Boolean);
+
+        for (const url of candidates) {
+          if (picked.length >= 6) break;
+          if (seen.has(url)) continue;
+          seen.add(url);
+          if (await canUseCover(url)) {
+            picked.push(url);
+            break; // use first working candidate per book
+          }
+        }
+      }
+
+      // Update the hidden ShareCard contents (covers) before capture.
+      setShareCoverUrls(picked);
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+      const blob = await toBlob(shareCardRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+      });
+
+      if (!blob) return;
+
+      const filename = `${activeShelf.name.replace(/\s+/g, "-")}-shelf.png`;
+      const caption = `✨ My ${activeShelf.emoji || "📚"} ${activeShelf.name} shelf update!
+📚 Total: ${stats.total} | TBR: ${stats.tbr} | Reading: ${stats.reading} | Read: ${stats.read}
+What should I add next? 👀
+#BookTok #TBR #ReadingCommunity #Shelfie #Bookish`;
+
+      // Mobile: try native share sheet with file
+      setShareBlob(blob);
+      setShareFilename(filename);
+      setShareCaption(caption);
+      setCopyImageStatus("idle");
+      setCopyCaptionStatus("idle");
+
+      if (isMobile && navigator.share) {
+        const file = new File([blob], filename, { type: "image/png" });
+        if (navigator.canShare?.({ files: [file] })) {
           try {
             await navigator.share({
-              title: `${activeShelf.emoji} ${activeShelf.name}`,
-              text: `Check out my ${activeShelf.name} shelf!`,
+              title,
+              text: caption,
               files: [file],
             });
-          } catch (err) {
-            // User cancelled or error - fallback to download
-            downloadImage(blob, file.name);
+            return;
+          } catch {
+            // If user cancels or share fails, open modal for download/copy.
           }
-        } else {
-          // Fallback: download
-          downloadImage(blob, file.name);
         }
-        
-        setSharing(false);
-      }, "image/png");
+      }
+
+      // Desktop (or fallback): show options modal (download / copy / links / optional share sheet)
+      setShareModalOpen(true);
     } catch (error) {
       console.error("Failed to generate share card:", error);
+    } finally {
       setSharing(false);
     }
   }
@@ -296,9 +382,11 @@ export default function LibraryPage() {
   // Get first few covers for blurred background
   const shelfCovers = useMemo(() => {
     return activeBooks
-      .filter((b) => b.coverUrl || b.isbn13)
+      // IMPORTANT: do not synthesize Open Library URLs here (it causes 404 spam).
+      // Only use already-known cover URLs; otherwise show the normal gradient background.
+      .filter((b) => Boolean(b.coverUrl) && !String(b.coverUrl).includes("covers.openlibrary.org"))
       .slice(0, 3)
-      .map((b) => b.coverUrl || `https://covers.openlibrary.org/b/isbn/${b.isbn13}-L.jpg?default=false`);
+      .map((b) => toHttps(b.coverUrl || ""));
   }, [activeBooks]);
 
   return (
@@ -363,7 +451,7 @@ export default function LibraryPage() {
                   <span>+</span>
                   <span>New shelf</span>
                 </button>
-              </div>
+        </div>
             )}
           </div>
           
@@ -382,7 +470,7 @@ export default function LibraryPage() {
             </div>
             <div style={statItem}>
               <span style={statNumber}>{stats.read}</span>
-              <span style={statLabel}>Finished</span>
+              <span style={statLabel}>Read</span>
             </div>
           </div>
         </div>
@@ -391,8 +479,75 @@ export default function LibraryPage() {
           <button style={btnGhost} onClick={refreshCovers} disabled={refreshing}>
             {refreshing ? "Refreshing…" : "Refresh covers"}
           </button>
-          <button style={btnGhost} onClick={handleShareShelf} disabled={sharing || !activeShelf || activeBooks.length === 0}>
-            {sharing ? "Generating…" : "Share shelf"}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: 3,
+              borderRadius: 999,
+              border: "1px solid #2a2a32",
+              background: "#111118",
+              height: 40,
+              flex: "0 0 auto",
+            }}
+            aria-label="Share card style"
+          >
+            <button
+              type="button"
+              onClick={() => setShareStyle("aesthetic")}
+              style={{
+                padding: "8px 10px",
+                borderRadius: 999,
+                border: shareStyle === "aesthetic" ? "1px solid rgba(255,255,255,0.20)" : "1px solid transparent",
+                cursor: "pointer",
+                fontWeight: 950,
+                fontSize: 12,
+                color: "#fff",
+                background:
+                  shareStyle === "aesthetic"
+                    ? "linear-gradient(135deg, rgba(109,94,252,0.8), rgba(255,73,240,0.55))"
+                    : "transparent",
+                boxShadow:
+                  shareStyle === "aesthetic"
+                    ? "0 10px 24px rgba(109,94,252,0.25), 0 0 0 2px rgba(0,0,0,0.25) inset"
+                    : "none",
+                opacity: shareStyle === "aesthetic" ? 1 : 0.7,
+              }}
+            >
+              Aesthetic
+            </button>
+            <button
+              type="button"
+              onClick={() => setShareStyle("bold")}
+              style={{
+                padding: "8px 10px",
+                borderRadius: 999,
+                border: shareStyle === "bold" ? "1px solid rgba(255,255,255,0.18)" : "1px solid transparent",
+                cursor: "pointer",
+                fontWeight: 950,
+                fontSize: 12,
+                color: "#fff",
+                background: shareStyle === "bold" ? "rgba(255,255,255,0.10)" : "transparent",
+                boxShadow:
+                  shareStyle === "bold"
+                    ? "0 10px 24px rgba(0,0,0,0.35), 0 0 0 2px rgba(255,255,255,0.06) inset"
+                    : "none",
+                opacity: shareStyle === "bold" ? 1 : 0.7,
+              }}
+            >
+              Bold
+            </button>
+          </div>
+          <ShareCardPreview variant={shareStyle} />
+          <button
+            style={btnGhost}
+            onClick={handleShareShelf}
+            disabled={sharing || !activeShelf || activeBooks.length === 0}
+            aria-label={sharing ? "Generating share image" : "Share Shelfie"}
+            title={sharing ? "Generating…" : "Share Shelfie"}
+          >
+            {sharing ? "Generating…" : "Share Shelfie"}
           </button>
         <Link href="/scan">
           <button style={btnPrimary}>+ Scan</button>
@@ -405,10 +560,140 @@ export default function LibraryPage() {
         <div style={{ position: "fixed", left: "-10000px", top: 0, opacity: 0, pointerEvents: "none" }}>
           <ShareCard
             ref={shareCardRef}
+            mode="shelfie"
             shelf={activeShelf}
-            books={activeBooks.slice(0, 6)}
+            coverUrls={shareCoverUrls}
+            variant={shareStyle}
             stats={stats}
           />
+        </div>
+      )}
+
+      {shareModalOpen && (
+        <div
+          style={modalOverlay}
+          onClick={() => {
+            setShareModalOpen(false);
+          }}
+        >
+          <div style={modal} onClick={(e) => e.stopPropagation()}>
+            <h2 style={modalTitle}>Share Shelfie</h2>
+
+            <p style={{ margin: "6px 0 12px", color: "#cfcfe6", fontWeight: 700 }}>
+              Tip: On mobile you’ll get the native share sheet.
+            </p>
+
+            <div style={{ display: "grid", gap: 10 }}>
+              <button
+                style={btnPrimary}
+                onClick={() => {
+                  if (!shareBlob || !shareFilename) return;
+                  downloadImage(shareBlob, shareFilename);
+                }}
+              >
+                Download PNG
+              </button>
+
+              <button
+                style={btnGhost}
+                disabled={
+                  !shareBlob ||
+                  !(navigator as any)?.clipboard?.write ||
+                  typeof (window as any)?.ClipboardItem === "undefined"
+                }
+                onClick={async () => {
+                  if (!shareBlob) return;
+                  try {
+                    const ClipboardItemCtor = (window as any).ClipboardItem;
+                    await (navigator as any).clipboard.write([
+                      new ClipboardItemCtor({ "image/png": shareBlob }),
+                    ]);
+                    setCopyImageStatus("copied");
+                    window.setTimeout(() => setCopyImageStatus("idle"), 1500);
+                  } catch {
+                    setCopyImageStatus("failed");
+                  }
+                }}
+                title={
+                  (navigator as any)?.clipboard?.write && typeof (window as any)?.ClipboardItem !== "undefined"
+                    ? "Copy image to clipboard"
+                    : "Copy not supported in this browser"
+                }
+              >
+                {copyImageStatus === "copied"
+                  ? "Copied!"
+                  : copyImageStatus === "failed"
+                    ? "Copy failed"
+                    : "Copy image"}
+              </button>
+
+              <button
+                style={btnGhost}
+                disabled={
+                  !shareCaption || !(navigator as any)?.clipboard?.writeText
+                }
+                onClick={async () => {
+                  if (!shareCaption) return;
+                  try {
+                    await (navigator as any).clipboard.writeText(shareCaption);
+                    setCopyCaptionStatus("copied");
+                    window.setTimeout(() => setCopyCaptionStatus("idle"), 1500);
+                  } catch {
+                    setCopyCaptionStatus("failed");
+                  }
+                }}
+                title={(navigator as any)?.clipboard?.writeText ? "Copy caption" : "Copy caption not supported"}
+              >
+                {copyCaptionStatus === "copied"
+                  ? "Copied caption!"
+                  : copyCaptionStatus === "failed"
+                    ? "Copy caption failed"
+                    : "Copy caption"}
+              </button>
+
+              <button
+                style={btnGhost}
+                onClick={() => {
+                  const url = "https://www.tiktok.com/upload?lang=en";
+                  const w = window.open(url, "_blank", "noopener,noreferrer");
+                  if (!w) window.open("https://www.tiktok.com/", "_blank", "noopener,noreferrer");
+                }}
+              >
+                Open TikTok (web)
+              </button>
+
+              <button
+                style={btnGhost}
+                disabled={!shareBlob || !navigator.share}
+                onClick={async () => {
+                  if (!shareBlob) return;
+                  if (!navigator.share) return;
+                  const file = new File([shareBlob], shareFilename || "shelf.png", { type: "image/png" });
+                  if (navigator.canShare?.({ files: [file] })) {
+                    try {
+                      await navigator.share({
+                        title: "ShelfieEase",
+                        text: shareCaption || "Sharing my Shelfie",
+                        files: [file],
+                      });
+                    } catch {
+                      // ignore
+                    }
+                  }
+                }}
+                title="Open system share (optional)"
+              >
+                Open system share
+              </button>
+
+              <button
+                style={btnGhost}
+                onClick={() => setShareModalOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -607,7 +892,7 @@ export default function LibraryPage() {
                         }}
                         onClick={() => handleChangeStatus(b.id, status)}
                       >
-                        <span>{status}</span>
+                        <span>{status === "Finished" ? "Read" : status}</span>
                         {b.status === status && <span style={{ fontSize: 10 }}>✓</span>}
                       </button>
                     ))}
@@ -625,14 +910,24 @@ export default function LibraryPage() {
                 </>
               )}
 
-              <Cover isbn13={b.isbn13} coverUrl={b.coverUrl || ""} title={b.title} authors={b.authors || []} />
+              <Cover
+                isbn13={b.isbn13}
+                coverUrl={b.coverUrl || ""}
+                title={b.title}
+                authors={b.authors || []}
+                onBadCover={() => handleCoverError(b.id)}
+              />
 
               <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
                 <div style={title}>{b.title}</div>
                 {b.authors?.length ? <div style={author}>by {b.authors.join(", ")}</div> : null}
 
                 <div style={metaRow}>
-                  <span style={badgeFor(b.status || "TBR")}>{(b.status || "TBR")}</span>
+                  {(() => {
+                    const s = b.status || "TBR";
+                    const label = s === "Finished" ? "Read" : s;
+                    return <span style={badgeFor(s)}>{label}</span>;
+                  })()}
                   <span style={isbn}>ISBN {b.isbn13}</span>
                 </div>
               </div>
@@ -651,120 +946,246 @@ function toHttps(url: string) {
   return url.startsWith("http://") ? url.replace("http://", "https://") : url;
 }
 
+type ShareCardVariant = "aesthetic" | "bold";
+type ShareCardTokens = {
+  cardBg: string;
+  cardShadow: string;
+  titleSize: number;
+  titleShadow: string;
+  tileBorder: string;
+  tileShadow: string;
+  tileFilter: string;
+  pillBg: string;
+  pillBorder: string;
+  statNumberSize: number;
+  statLabelSize: number;
+};
+
+function getShareCardTokens(variant: ShareCardVariant): ShareCardTokens {
+  if (variant === "bold") {
+    return {
+      // Bold: higher contrast, thicker borders, larger type, less glow/blur.
+      cardBg:
+        "radial-gradient(1100px 900px at 18% 12%, rgba(255,73,240,0.30), rgba(255,73,240,0) 55%), radial-gradient(1100px 900px at 88% 18%, rgba(109,94,252,0.36), rgba(109,94,252,0) 60%), linear-gradient(135deg, rgba(109,94,252,0.30), rgba(255,73,240,0.18) 45%, rgba(0,0,0,0.97) 78%), #06060a",
+      cardShadow:
+        "0 28px 96px rgba(0,0,0,0.75), 0 0 0 2px rgba(255,255,255,0.07) inset, 0 0 36px rgba(255,73,240,0.06)",
+      titleSize: 88,
+      titleShadow: "0 20px 46px rgba(0,0,0,0.70)",
+      tileBorder: "2px solid rgba(255,255,255,0.18)",
+      tileShadow: "0 20px 58px rgba(0,0,0,0.62)",
+      tileFilter: "contrast(1.10) saturate(1.10)",
+      pillBg: "rgba(255,255,255,0.09)",
+      pillBorder: "2px solid rgba(255,255,255,0.14)",
+      statNumberSize: 30,
+      statLabelSize: 14,
+    };
+  }
+
+  return {
+    // Aesthetic: softer shadows, thinner borders, slightly smaller title.
+    cardBg:
+      "radial-gradient(1100px 900px at 18% 12%, rgba(255,73,240,0.24), rgba(255,73,240,0) 55%), radial-gradient(1100px 900px at 88% 18%, rgba(109,94,252,0.30), rgba(109,94,252,0) 60%), linear-gradient(135deg, rgba(109,94,252,0.20), rgba(255,73,240,0.12) 45%, rgba(0,0,0,0.92) 78%), #090910",
+    cardShadow:
+      "0 24px 88px rgba(0,0,0,0.68), 0 0 0 1px rgba(255,255,255,0.06) inset, 0 0 70px rgba(255,73,240,0.10)",
+    titleSize: 78,
+    titleShadow: "0 18px 40px rgba(0,0,0,0.58)",
+    tileBorder: "1px solid rgba(255,255,255,0.14)",
+    tileShadow: "0 18px 50px rgba(0,0,0,0.55)",
+    tileFilter: "none",
+    pillBg: "rgba(255,255,255,0.06)",
+    pillBorder: "1px solid rgba(255,255,255,0.12)",
+    statNumberSize: 26,
+    statLabelSize: 14,
+  };
+}
+
+function ShareCardPreview({ variant }: { variant: ShareCardVariant }) {
+  const tokens = getShareCardTokens(variant);
+  const isBold = variant === "bold";
+
+  return (
+    <div
+      aria-label="Share card preview"
+      title={variant === "bold" ? "Bold preview" : "Aesthetic preview"}
+      style={{
+        width: 140,
+        height: 250,
+        borderRadius: 14,
+        overflow: "hidden",
+        position: "relative",
+        background: tokens.cardBg,
+        boxShadow: "0 14px 36px rgba(0,0,0,0.55)",
+        border: isBold ? "2px solid rgba(255,255,255,0.10)" : "1px solid rgba(255,255,255,0.08)",
+        flex: "0 0 auto",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0) 45%, rgba(0,0,0,0.58) 100%)",
+          pointerEvents: "none",
+        }}
+      />
+
+      <div style={{ position: "relative", padding: 10, display: "grid", gap: 10 }}>
+        <div
+          style={{
+            color: "#fff",
+            fontWeight: 950,
+            fontSize: isBold ? 13 : 12,
+            lineHeight: 1.05,
+            textShadow: tokens.titleShadow,
+            letterSpacing: isBold ? -0.4 : -0.3,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          📚 Shelfie
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 6 }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              style={{
+                aspectRatio: "2 / 3",
+                borderRadius: 10,
+                border: tokens.tileBorder,
+                boxShadow: "0 8px 18px rgba(0,0,0,0.45)",
+                background: "rgba(255,255,255,0.06)",
+              }}
+            />
+          ))}
+        </div>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {["Total", "TBR", "Read"].map((label) => (
+            <div
+              key={label}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "5px 7px",
+                borderRadius: 999,
+                background: tokens.pillBg,
+                border: tokens.pillBorder,
+                color: "rgba(255,255,255,0.85)",
+                fontWeight: 900,
+                fontSize: 10,
+              }}
+            >
+              <span style={{ fontWeight: 980, fontSize: isBold ? 12 : 11, lineHeight: 1 }}>0</span>
+              <span>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const ShareCard = React.forwardRef<
   HTMLDivElement,
   {
+    mode?: "share" | "shelfie";
     shelf: Shelf;
-    books: Book[];
+    coverUrls: string[];
+    variant: ShareCardVariant;
     stats: { total: number; tbr: number; reading: number; read: number };
   }
->(({ shelf, books, stats }, ref) => {
+>(({ mode: modeProp, shelf, coverUrls, variant, stats }, ref) => {
+  const mode = modeProp ?? "share";
   // 9:16 ratio - typical mobile story size
   const width = 1080;
   const height = 1920;
 
-  const cardRadius = 56;
+  const cardRadius = 24;
+  const isBold = variant === "bold";
+  const tokens = getShareCardTokens(variant);
 
-  function safeTitle(t?: string) {
-    const v = (t || "").trim();
-    return v ? v : "Unknown";
-  }
+  const titleText = `${shelf.emoji || "📚"} ${shelf.name}`;
 
-  function coverCandidate(book: Book) {
-    if (book.coverUrl) return toHttps(book.coverUrl);
-    return `https://covers.openlibrary.org/b/isbn/${book.isbn13}-L.jpg?default=false`;
-  }
+  const coverCount = coverUrls.filter(Boolean).length;
+  const useTwoByTwo = coverCount <= 4;
 
-  const tiles = books.slice(0, 6);
-  const collagePlacements = [
-    { left: 78, top: 420, rotate: -10, z: 2 },
-    { left: 392, top: 380, rotate: 4, z: 4 },
-    { left: 706, top: 430, rotate: 10, z: 3 },
-    { left: 140, top: 860, rotate: -6, z: 1 },
-    { left: 470, top: 840, rotate: 2, z: 5 },
-    { left: 790, top: 900, rotate: 8, z: 2 },
-  ] as const;
+  // Render 4 slots for 2x2, else 6 slots for 3x2
+  const slotCount = useTwoByTwo ? 4 : 6;
 
-  const ShareCoverTile = ({
-    book,
-    style,
-  }: {
-    book: Book;
-    style: React.CSSProperties;
-  }) => {
-    const [imgOk, setImgOk] = React.useState(true);
-    const title = safeTitle(book.title);
+  const slots: Array<string | null> = Array.from({ length: slotCount }, (_, i) => coverUrls[i] || null);
 
+  const CoverTile = ({ src, index }: { src: string | null; index: number }) => {
+    const tilt = useTwoByTwo ? 0.22 : 0.35;
     return (
       <div
         style={{
-          width: 300,
-          height: 450,
-          borderRadius: 26,
+          width: "100%",
+          aspectRatio: "2 / 3",
+          borderRadius: 18,
           overflow: "hidden",
-          position: "absolute",
-          boxShadow: "0 22px 70px rgba(0,0,0,0.55)",
-          border: "2px solid rgba(255,255,255,0.10)",
+          position: "relative",
+          border: tokens.tileBorder,
+          boxShadow: tokens.tileShadow,
           background:
-            "linear-gradient(135deg, rgba(109,94,252,0.28), rgba(255,73,240,0.14) 55%, rgba(0,0,0,0.25)), #101014",
-          ...style,
+            "radial-gradient(700px 500px at 15% 15%, rgba(255,73,240,0.22), rgba(255,73,240,0) 55%), radial-gradient(700px 500px at 85% 20%, rgba(109,94,252,0.26), rgba(109,94,252,0) 60%), linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0)), #0f0f14",
+          transform: isBold ? "none" : index % 2 === 0 ? `rotate(-${tilt}deg)` : `rotate(${tilt}deg)`,
         }}
       >
-        {/* Always render a placeholder behind the image (covers missing/CORS/404 nicely) */}
+        {/* Placeholder tile (always rendered behind the image).
+            If the cover is missing OR fails, CoverImg renders null and this stays visible. */}
         <div
           style={{
             position: "absolute",
             inset: 0,
             display: "flex",
-            alignItems: "flex-end",
-            padding: 18,
+            flexDirection: "column",
+            justifyContent: "flex-end",
+            gap: 10,
+            padding: 16,
             boxSizing: "border-box",
-            background:
-              "radial-gradient(800px 600px at 20% 15%, rgba(255,73,240,0.24), rgba(255,73,240,0) 55%), radial-gradient(900px 700px at 80% 20%, rgba(109,94,252,0.32), rgba(109,94,252,0) 60%), linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0)), #0f0f12",
           }}
         >
-          <div style={{ width: "100%" }}>
-            <div
-              style={{
-                fontSize: 18,
-                fontWeight: 950,
-                color: "#fff",
-                lineHeight: 1.15,
-                textShadow: "0 10px 22px rgba(0,0,0,0.55)",
-                display: "-webkit-box",
-                WebkitLineClamp: 3,
-                WebkitBoxOrient: "vertical" as any,
-                overflow: "hidden",
-              }}
-            >
-              {title}
-            </div>
-            <div style={{ marginTop: 10, fontSize: 12, fontWeight: 900, color: "rgba(255,255,255,0.55)" }}>
-              ISBN {book.isbn13}
-            </div>
+          <div style={{ fontSize: 28, lineHeight: 1 }}>📖</div>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 950,
+              color: "rgba(255,255,255,0.92)",
+            }}
+          >
+            No cover
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 850, color: "rgba(255,255,255,0.55)" }}>
+            Add more books to fill the grid
           </div>
         </div>
 
-        {imgOk ? (
-          <img
-            src={coverCandidate(book)}
-            alt={title}
-            crossOrigin="anonymous"
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-            onError={() => setImgOk(false)}
-            onLoad={(e) => {
-              // Also treat tiny "not available" images as missing
-              const img = e.currentTarget;
-              if (img.naturalWidth < 90 || img.naturalHeight < 120) setImgOk(false);
-            }}
-          />
-        ) : null}
+        {/* Cover image (auto hides on error) */}
+        <CoverImg
+          src={src || ""}
+          alt="Book cover"
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            filter: tokens.tileFilter,
+          }}
+        />
+
+        {/* Subtle shine */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0) 35%, rgba(0,0,0,0.20) 100%)",
+            pointerEvents: "none",
+          }}
+        />
       </div>
     );
   };
@@ -777,15 +1198,14 @@ const ShareCard = React.forwardRef<
         height: `${height}px`,
         borderRadius: cardRadius,
         overflow: "hidden",
-        background:
-          "radial-gradient(1200px 900px at 20% 15%, rgba(255,73,240,0.28), rgba(255,73,240,0) 55%), radial-gradient(1200px 900px at 85% 20%, rgba(109,94,252,0.35), rgba(109,94,252,0) 60%), linear-gradient(135deg, rgba(109,94,252,0.22), rgba(255,73,240,0.14) 45%, rgba(0,0,0,0.92) 75%), #0b0b10",
+        background: tokens.cardBg,
         position: "relative",
         display: "flex",
         flexDirection: "column",
-        padding: "86px 70px",
+        padding: "82px 72px",
         boxSizing: "border-box",
         fontFamily: "system-ui, -apple-system, sans-serif",
-        boxShadow: "0 30px 120px rgba(0,0,0,0.65)",
+        boxShadow: tokens.cardShadow,
       }}
     >
       {/* Soft overlay for extra depth */}
@@ -800,141 +1220,113 @@ const ShareCard = React.forwardRef<
       />
 
       {/* Shelf header */}
-      <div style={{ position: "relative", zIndex: 2, marginBottom: 44, textAlign: "center" }}>
-        <div style={{ fontSize: 120, lineHeight: 1, marginBottom: 18 }}>{shelf.emoji || "📚"}</div>
+      <div style={{ position: "relative", zIndex: 2, marginBottom: 34, textAlign: "center" }}>
         <div
           style={{
-            fontSize: 78,
-            fontWeight: 950,
+            fontSize: tokens.titleSize,
+            fontWeight: 980,
             color: "#fff",
-            lineHeight: 1.05,
-            letterSpacing: -0.6,
-            textShadow: "0 18px 38px rgba(0,0,0,0.55)",
+            lineHeight: 1.02,
+            letterSpacing: isBold ? -0.9 : -0.6,
+            textShadow: tokens.titleShadow,
+            padding: "0 10px",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical" as any,
+            overflow: "hidden",
           }}
         >
-          {shelf.name}
+          {titleText}
         </div>
       </div>
 
-      {/* Covers collage (overlapping, BookTok vibe) */}
-      <div style={{ position: "relative", flex: 1, zIndex: 2 }}>
+      {/* Covers collage: 2 rows x 3 columns */}
+      <div style={{ position: "relative", flex: 1, zIndex: 2, display: "flex", alignItems: "center" }}>
         <div
           style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: 40,
-            border: "1px solid rgba(255,255,255,0.08)",
-            background: "rgba(255,255,255,0.03)",
-            backdropFilter: "blur(12px)",
+            width: "100%",
+            maxWidth: useTwoByTwo ? 720 : 900,
+            margin: "0 auto",
+            display: "grid",
+            gridTemplateColumns: useTwoByTwo ? "repeat(2, 1fr)" : "repeat(3, 1fr)",
+            gridTemplateRows: useTwoByTwo ? "repeat(2, auto)" : "repeat(2, auto)",
+            gap: useTwoByTwo ? 18 : 16,
+            justifyContent: "center",
           }}
-        />
-        <div style={{ position: "absolute", inset: 0 }}>
-          {tiles.map((book, i) => {
-            const p = collagePlacements[i] || collagePlacements[collagePlacements.length - 1];
-            return (
-              <ShareCoverTile
-                key={book.id}
-                book={book}
-                style={{
-                  left: p.left,
-                  top: p.top,
-                  transform: `rotate(${p.rotate}deg)`,
-                  zIndex: p.z,
-                }}
-              />
-            );
-          })}
-
-          {/* If there are very few books, add subtle “ghost” cards so it still feels full */}
-          {tiles.length < 3 && (
-            <>
-              <div
-                style={{
-                  width: 300,
-                  height: 450,
-                  borderRadius: 26,
-                  position: "absolute",
-                  left: 210,
-                  top: 760,
-                  transform: "rotate(-8deg)",
-                  border: "2px dashed rgba(255,255,255,0.10)",
-                  background: "rgba(0,0,0,0.15)",
-                  zIndex: 0,
-                }}
-              />
-              <div
-                style={{
-                  width: 300,
-                  height: 450,
-                  borderRadius: 26,
-                  position: "absolute",
-                  left: 570,
-                  top: 760,
-                  transform: "rotate(8deg)",
-                  border: "2px dashed rgba(255,255,255,0.10)",
-                  background: "rgba(0,0,0,0.15)",
-                  zIndex: 0,
-                }}
-              />
-            </>
-          )}
+        >
+          {slots.map((src, i) => (
+            <CoverTile key={`${src || "placeholder"}-${i}`} src={src} index={i} />
+          ))}
         </div>
       </div>
 
-      {/* Stats row */}
+      {/* Stats row: pill badges */}
       <div
         style={{
           position: "relative",
           zIndex: 2,
           display: "flex",
-          justifyContent: "space-between",
-          gap: 16,
-          marginTop: 34,
-          marginBottom: 26,
-          paddingTop: 18,
-          borderTop: "1px solid rgba(255,255,255,0.12)",
+          justifyContent: "center",
+          flexWrap: "wrap",
+          gap: 12,
+          marginTop: 28,
+          marginBottom: 22,
         }}
       >
         {(
           [
-            { label: "Total", value: stats.total, color: "#fff" },
-            { label: "TBR", value: stats.tbr, color: "#d8d8ff" },
-            { label: "Reading", value: stats.reading, color: "#ffe2a3" },
-            { label: "Finished", value: stats.read, color: "#bff7ef" },
+            { label: "Total", value: stats.total, glow: "rgba(255,255,255,0.10)" },
+            { label: "TBR", value: stats.tbr, glow: "rgba(109,94,252,0.18)" },
+            { label: "Reading", value: stats.reading, glow: "rgba(255,226,163,0.16)" },
+            { label: "Read", value: stats.read, glow: "rgba(191,247,239,0.14)" },
           ] as const
         ).map((s) => (
           <div
             key={s.label}
             style={{
-              flex: 1,
-              textAlign: "center",
-              padding: "16px 12px",
-              borderRadius: 22,
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.10)",
+              display: "flex",
+              alignItems: "baseline",
+              gap: 10,
+              padding: "10px 14px",
+              borderRadius: 999,
+              background: tokens.pillBg,
+              border: tokens.pillBorder,
+              boxShadow: `0 14px 40px ${s.glow}`,
             }}
           >
-            <div style={{ fontSize: 44, fontWeight: 950, color: s.color, lineHeight: 1 }}>{s.value}</div>
-            <div style={{ fontSize: 18, color: "rgba(255,255,255,0.75)", fontWeight: 800, marginTop: 8 }}>
+            <div style={{ fontSize: tokens.statNumberSize, fontWeight: 980, color: "#fff", lineHeight: 1 }}>
+              {s.value}
+            </div>
+            <div style={{ fontSize: tokens.statLabelSize, color: "rgba(255,255,255,0.80)", fontWeight: 900 }}>
               {s.label}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Watermark */}
+      {/* Footer: hashtags (left) + watermark (right) */}
       <div
         style={{
           position: "relative",
           zIndex: 2,
-          textAlign: "center",
-          fontSize: 18,
+          marginTop: "auto",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          fontSize: 14,
           color: "rgba(255,255,255,0.35)",
-          fontWeight: 800,
-          letterSpacing: 1.2,
+          fontWeight: 850,
+          letterSpacing: 0.8,
         }}
       >
-        ShelfieEase
+        {mode === "share" ? (
+          <div style={{ opacity: isBold ? 0.55 : 0.45, fontWeight: 900 }}>#BookTok #TBR</div>
+        ) : (
+          <div />
+        )}
+        <div style={{ opacity: 0.7, fontWeight: 950 }}>
+          {mode === "shelfie" ? "ShelfieEase" : "ShelfieEase · Share"}
+        </div>
       </div>
     </div>
   );
@@ -947,14 +1339,17 @@ function Cover({
   coverUrl,
   title,
   authors,
+  onBadCover,
 }: {
   isbn13: string;
   coverUrl: string;
   title: string;
   authors: string[];
+  onBadCover?: () => void;
 }) {
-  const ol = `https://covers.openlibrary.org/b/isbn/${isbn13}-L.jpg?default=false`;
-  const candidates = [coverUrl ? toHttps(coverUrl) : "", ol].filter(Boolean);
+  // IMPORTANT: Do not auto-fallback to Open Library here.
+  // Missing covers should render the placeholder without generating 404 requests.
+  const candidates = [coverUrl ? toHttps(coverUrl) : ""].filter(Boolean);
 
   const [srcIndex, setSrcIndex] = useState(0);
   const src = candidates[srcIndex] || "";
@@ -963,34 +1358,20 @@ function Cover({
 
   return (
     <div style={coverWrap}>
-      {src ? (
-      <img
-          src={src}
-        alt={title}
-        loading="lazy"
-          referrerPolicy="no-referrer"
-        style={coverImg}
-          onError={() => {
-            // Missing covers are normal - fallback to next candidate
-            if (srcIndex + 1 < candidates.length) goNext();
-          }}
-          onLoad={(e) => {
-            // Filter "Image not available" (vaak heel klein)
-          const img = e.currentTarget;
-            if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-              if (img.naturalWidth < 90 || img.naturalHeight < 120) {
-                if (srcIndex + 1 < candidates.length) goNext();
-              }
-            }
-          }}
-        />
-      ) : null}
-
       <div style={coverPlaceholder}>
         <div style={{ fontWeight: 950, fontSize: 16, lineHeight: 1.2 }}>{title || "Unknown"}</div>
         {authors.length ? <div style={{ marginTop: 6, fontSize: 12, color: "#d8d8ff" }}>{authors.join(", ")}</div> : null}
         <div style={{ marginTop: 10, fontSize: 12, color: "#b7b7b7" }}>ISBN {isbn13}</div>
       </div>
+
+      {src ? (
+        <CoverImg
+          src={src}
+          alt={title}
+          style={coverImg}
+          onError={() => onBadCover?.()}
+        />
+      ) : null}
     </div>
   );
 }
@@ -1092,6 +1473,9 @@ const actions: React.CSSProperties = {
   display: "flex",
   gap: 10,
   alignItems: "center",
+  justifyContent: "flex-end",
+  flexWrap: "wrap",
+  rowGap: 10,
 };
 
 const btnPrimary: React.CSSProperties = {
@@ -1103,6 +1487,11 @@ const btnPrimary: React.CSSProperties = {
   fontWeight: 950,
   cursor: "pointer",
   boxShadow: "0 12px 28px rgba(109,94,252,0.35)",
+  height: 40,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  whiteSpace: "nowrap",
 };
 
 const btnGhost: React.CSSProperties = {
@@ -1113,6 +1502,11 @@ const btnGhost: React.CSSProperties = {
   color: "#fff",
   fontWeight: 900,
   cursor: "pointer",
+  height: 40,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  whiteSpace: "nowrap",
 };
 
 const shelfSelector: React.CSSProperties = {
@@ -1410,6 +1804,7 @@ const coverWrap: React.CSSProperties = {
 const coverImg: React.CSSProperties = {
   position: "absolute",
   inset: 0,
+  zIndex: 1,
   width: "100%",
   height: "100%",
   objectFit: "cover",
@@ -1418,6 +1813,8 @@ const coverImg: React.CSSProperties = {
 const coverPlaceholder: React.CSSProperties = {
   position: "absolute",
   inset: 0,
+  zIndex: 0,
+  pointerEvents: "none",
   display: "grid",
   alignContent: "center",
   gap: 2,
