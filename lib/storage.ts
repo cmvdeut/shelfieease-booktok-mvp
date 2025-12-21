@@ -100,9 +100,10 @@ export function ensureDefaultShelf(): Shelf {
 
 export function createShelf(name: string, emoji: string = "📚"): Shelf {
   const emojiValue = normalizeShelfEmoji(emoji);
+  const safeName = name.trim() || "My Shelf";
   const shelf: Shelf = {
     id: crypto.randomUUID(),
-    name: name.trim(),
+    name: safeName,
     emoji: emojiValue,
     createdAt: Date.now(),
   };
@@ -116,7 +117,98 @@ export function createShelf(name: string, emoji: string = "📚"): Shelf {
 export function loadBooks(): Book[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(KEY_BOOKS) || "[]");
+    const raw = JSON.parse(localStorage.getItem(KEY_BOOKS) || "[]") as unknown;
+    if (!Array.isArray(raw)) return [];
+
+    const now = Date.now();
+    const activeShelfId = getActiveShelfId();
+    const defaultShelfId = activeShelfId || ensureDefaultShelf().id;
+
+    const mapStatus = (s: unknown): BookStatus | undefined => {
+      if (s === "TBR" || s === "Reading" || s === "Finished") return s;
+      if (s === "Read" || s === "read" || s === "FINISHED") return "Finished";
+      return undefined;
+    };
+
+    const isRecord = (v: unknown): v is Record<string, unknown> =>
+      Boolean(v) && typeof v === "object" && !Array.isArray(v);
+
+    const cleaned: Book[] = [];
+    let changed = false;
+
+    for (const item of raw) {
+      if (!isRecord(item)) {
+        changed = true;
+        continue;
+      }
+
+      const rawId = item.id;
+      const rawIsbn13 = item.isbn13;
+      const rawIsbn = (item as any).isbn;
+
+      const isbn13 =
+        typeof rawIsbn13 === "string" && rawIsbn13.trim()
+          ? rawIsbn13.trim()
+          : typeof rawIsbn === "string" && rawIsbn.trim()
+            ? rawIsbn.trim()
+            : "";
+
+      if (!isbn13) {
+        // Skip invalid items (no isbn13)
+        changed = true;
+        continue;
+      }
+
+      const id =
+        typeof rawId === "string" && rawId.trim() ? rawId : crypto.randomUUID();
+      if (id !== rawId) changed = true;
+
+      const title = typeof item.title === "string" ? item.title : "";
+      if (title !== item.title) changed = true;
+
+      const authors = Array.isArray(item.authors)
+        ? (item.authors as unknown[]).filter((a): a is string => typeof a === "string")
+        : [];
+      if (!Array.isArray(item.authors)) changed = true;
+
+      const coverUrl = typeof item.coverUrl === "string" ? item.coverUrl : undefined;
+      if (typeof item.coverUrl !== "string" && typeof item.coverUrl !== "undefined") changed = true;
+
+      const status = mapStatus(item.status);
+      if (status !== item.status) {
+        // Also covers the required Read->Finished mapping
+        if (typeof item.status !== "undefined") changed = true;
+      }
+
+      const shelfId =
+        typeof item.shelfId === "string" && item.shelfId.trim()
+          ? item.shelfId
+          : defaultShelfId;
+      if (shelfId !== item.shelfId) changed = true;
+
+      const addedAt =
+        typeof item.addedAt === "number" && Number.isFinite(item.addedAt) ? item.addedAt : now;
+      if (addedAt !== item.addedAt) changed = true;
+
+      const updatedAt =
+        typeof item.updatedAt === "number" && Number.isFinite(item.updatedAt) ? item.updatedAt : now;
+      if (updatedAt !== item.updatedAt) changed = true;
+
+      cleaned.push({
+        id,
+        isbn13,
+        title,
+        authors,
+        coverUrl,
+        status, // only TBR | Reading | Finished (never "Read")
+        shelfId,
+        addedAt,
+        updatedAt,
+      });
+    }
+
+    if (changed) saveBooks(cleaned);
+    return cleaned;
   } catch {
     return [];
   }
@@ -131,8 +223,32 @@ export function upsertBook(book: Book) {
   const idx = books.findIndex((b) => b.isbn13 === book.isbn13 && b.shelfId === book.shelfId);
   const next = [...books];
 
-  if (idx >= 0) next[idx] = { ...next[idx], ...book, updatedAt: Date.now() };
-  else next.unshift(book);
+  const now = Date.now();
+
+  if (idx >= 0) {
+    const existing = next[idx];
+    const incomingCover = book.coverUrl;
+    const coverUrl =
+      incomingCover === "" || typeof incomingCover === "undefined" ? existing.coverUrl : incomingCover;
+
+    next[idx] = {
+      ...existing,
+      ...book,
+      coverUrl,
+      // Preserve addedAt if it exists; always bump updatedAt.
+      addedAt:
+        typeof existing.addedAt === "number" && Number.isFinite(existing.addedAt) ? existing.addedAt : now,
+      updatedAt: now,
+    };
+  } else {
+    next.unshift({
+      ...book,
+      id: book.id && book.id.trim() ? book.id : crypto.randomUUID(),
+      status: book.status || "TBR",
+      addedAt: typeof book.addedAt === "number" && Number.isFinite(book.addedAt) ? book.addedAt : now,
+      updatedAt: now,
+    });
+  }
 
   saveBooks(next);
   return next;

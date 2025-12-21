@@ -1,185 +1,157 @@
 export type LookupResult = {
-  title?: string;
-  authors?: string[];
-  coverUrl?: string;
+  title: string;
+  authors: string[];
+  coverUrl: string; // may be "" -> UI shows placeholder
 };
 
-type OpenLibraryIsbnResponse = {
-  title?: unknown;
-  authors?: Array<{ key?: unknown }> | unknown;
-};
-
-type OpenLibraryAuthorResponse = {
-  name?: unknown;
+type GoogleBooksVolume = {
+  id?: string;
+  volumeInfo?: {
+    title?: string;
+    authors?: string[];
+    imageLinks?: {
+      thumbnail?: string;
+      smallThumbnail?: string;
+      small?: string;
+      medium?: string;
+      large?: string;
+    };
+  };
 };
 
 type GoogleBooksResponse = {
-  items?: Array<{
-    id?: unknown;
-    volumeInfo?: {
-      title?: unknown;
-      authors?: unknown;
-      imageLinks?: {
-        thumbnail?: unknown;
-        smallThumbnail?: unknown;
-      };
-    };
-  }>;
+  items?: GoogleBooksVolume[];
 };
 
-
-export async function lookupByIsbn(isbnRaw: string): Promise<LookupResult> {
-  const isbn = normalizeIsbn(isbnRaw);
-
-  // 1) Open Library metadata
-  const ol = await lookupOpenLibrary(isbn);
-  if (ol.title) return ol;
-
-  // 2) Google Books fallback (covers vaak hier)
-  const gb = await lookupGoogleBooks(isbn);
-  if (gb.title) return gb;
-
-  // 3) Last resort - altijd Open Library cover URL
-  return {
-    title: undefined,
-    authors: [],
-    coverUrl: coverFromOpenLibrary(isbn, "M"),
-  };
-}
-
-function normalizeIsbn(code: string) {
-  return (code || "").replace(/[^\dX]/gi, "");
-}
-
-function toHttps(url?: string) {
+function forceHttps(url: string) {
   if (!url) return "";
   return url.startsWith("http://") ? url.replace("http://", "https://") : url;
 }
 
-function isString(x: unknown): x is string {
-  return typeof x === "string";
+function boostGoogleThumb(url: string) {
+  // Google thumbs often include zoom=1; zoom=2 looks better.
+  if (!url) return "";
+  let u = url;
+  u = forceHttps(u);
+  if (u.includes("zoom=1")) u = u.replace("zoom=1", "zoom=2");
+  // Remove edge=curl if present (adds visual curl effect we don't want)
+  u = u.replace("&edge=curl", "");
+  return u;
 }
 
-function coverFromOpenLibrary(isbn: string, size: "S" | "M" | "L" = "M") {
-  // Open Library Covers API - gratis, geen API key nodig, werkt overal
-  // Formaten: -S (small), -M (medium), -L (large)
-  return `https://covers.openlibrary.org/b/isbn/${isbn}-${size}.jpg`;
-}
+/**
+ * Extract the best available cover URL from a Google Books volume.
+ * Prefers larger images when available.
+ * Returns empty string if no imageLinks available (shows UI placeholder instead).
+ */
+function extractCoverFromVolume(item: GoogleBooksVolume): string {
+  const links = item.volumeInfo?.imageLinks;
+  if (!links) return "";
 
-function getGoogleBooksThumbnailUrl(thumbnailUrl?: string): string {
-  if (!thumbnailUrl) return "";
-  
-  // Google Books thumbnail URLs hebben vaak http://, converteren naar https://
-  const httpsUrl = toHttps(thumbnailUrl);
-  
-  // Soms bevat de URL parameters die we kunnen aanpassen voor betere kwaliteit
-  // Vervang "zoom=1" door "zoom=2" voor hogere resolutie
-  if (httpsUrl.includes("zoom=1")) {
-    return httpsUrl.replace("zoom=1", "zoom=2");
+  // Prefer larger formats, fall back to smaller
+  const candidates = [
+    links.medium,
+    links.small,
+    links.thumbnail,
+    links.smallThumbnail,
+  ].filter(Boolean);
+
+  if (candidates.length > 0) {
+    return boostGoogleThumb(candidates[0] as string);
   }
-  
-  // Voeg zoom parameter toe als die niet bestaat
-  if (httpsUrl.includes("books.google.com") && !httpsUrl.includes("zoom=")) {
-    const separator = httpsUrl.includes("?") ? "&" : "?";
-    return `${httpsUrl}${separator}zoom=2`;
-  }
-  
-  return httpsUrl;
+
+  return "";
 }
 
-async function lookupOpenLibrary(isbn: string): Promise<LookupResult> {
+/**
+ * Convert ISBN-13 to ISBN-10 (only works for 978- prefixed ISBNs)
+ */
+function isbn13to10(isbn13: string): string | null {
+  const clean = isbn13.replace(/[^0-9]/g, "");
+  if (clean.length !== 13 || !clean.startsWith("978")) return null;
+
+  // Take digits 4-12 (the core 9 digits)
+  const core = clean.slice(3, 12);
+
+  // Calculate ISBN-10 check digit
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += parseInt(core[i], 10) * (10 - i);
+  }
+  const remainder = sum % 11;
+  const checkDigit = remainder === 0 ? "0" : remainder === 1 ? "X" : String(11 - remainder);
+
+  return core + checkDigit;
+}
+
+/**
+ * Try Google Books API with a specific ISBN, returns items or empty array
+ */
+async function searchGoogleBooks(isbn: string): Promise<GoogleBooksVolume[]> {
   try {
-    const r = await fetch(`https://openlibrary.org/isbn/${encodeURIComponent(isbn)}.json`);
-    if (!r.ok) {
-      // 404 is normal - not all books are in Open Library
-      return { title: undefined, authors: [], coverUrl: coverFromOpenLibrary(isbn, "M") };
+    const res = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(
+        isbn
+      )}&maxResults=5`
+    );
+    const json = (await res.json()) as GoogleBooksResponse;
+    return json.items || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function lookupByIsbn(isbn13: string): Promise<LookupResult> {
+  const clean = (isbn13 || "").replace(/[^0-9X]/gi, "").trim();
+
+  // Default return
+  let title = "";
+  let authors: string[] = [];
+  let coverUrl = "";
+
+  // --- 1) Google Books metadata + best-effort cover ---
+  // Try ISBN-13 first, then ISBN-10 fallback
+  let items: GoogleBooksVolume[] = [];
+
+  // First try: ISBN-13 (or whatever was passed)
+  items = await searchGoogleBooks(clean);
+
+  // Second try: ISBN-10 if ISBN-13 gave no results
+  if (items.length === 0) {
+    const isbn10 = isbn13to10(clean);
+    if (isbn10) {
+      items = await searchGoogleBooks(isbn10);
+    }
+  }
+
+  // Process results
+  try {
+    // First pass: get metadata from first item
+    if (items.length > 0) {
+      const firstInfo = items[0].volumeInfo;
+      title = firstInfo?.title || "";
+      authors = firstInfo?.authors || [];
     }
 
-    const data = (await r.json()) as OpenLibraryIsbnResponse;
-
-    const title = isString(data.title) ? data.title : undefined;
-
-    const authorKeys: string[] = Array.isArray(data.authors)
-      ? data.authors
-          .map((a) => (isString(a?.key) ? a.key : null))
-          .filter((x): x is string => Boolean(x))
-      : [];
-
-    const authors = await fetchOpenLibraryAuthors(authorKeys);
-
-    return {
-      title,
-      authors,
-      coverUrl: coverFromOpenLibrary(isbn, "M"),
-    };
-  } catch {
-    return { title: undefined, authors: [], coverUrl: coverFromOpenLibrary(isbn, "M") };
-  }
-}
-
-async function fetchOpenLibraryAuthors(keys: string[]): Promise<string[]> {
-  if (!keys.length) return [];
-
-  const res = await Promise.all(
-    keys.slice(0, 3).map(async (key) => {
-      try {
-        const r = await fetch(`https://openlibrary.org${key}.json`);
-        if (!r.ok) return null;
-        const d = (await r.json()) as OpenLibraryAuthorResponse;
-        return isString(d.name) ? d.name : null;
-      } catch {
-        return null;
+    // Second pass: find best cover from any of the results
+    for (const item of items.slice(0, 5)) {
+      const candidateCover = extractCoverFromVolume(item);
+      if (candidateCover) {
+        coverUrl = candidateCover;
+        
+        // If this item also has better metadata, use it
+        const info = item.volumeInfo;
+        if (!title && info?.title) title = info.title;
+        if (authors.length === 0 && info?.authors?.length) {
+          authors = info.authors;
+        }
+        
+        break; // Found a cover, stop looking
       }
-    })
-  );
-
-  return res.filter((x): x is string => Boolean(x));
-}
-
-async function lookupGoogleBooks(isbn: string): Promise<LookupResult> {
-  try {
-    const r = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(isbn)}`
-    );
-    if (!r.ok) return { title: undefined, authors: [], coverUrl: undefined };
-
-    const data = (await r.json()) as GoogleBooksResponse;
-    const item = data.items?.[0];
-    const info = item?.volumeInfo;
-    if (!info) return { title: undefined, authors: [], coverUrl: undefined };
-
-    const title = isString(info.title) ? info.title : undefined;
-
-    const authors =
-      Array.isArray(info.authors) ? (info.authors as unknown[]).filter(isString) : [];
-
-    const volumeId = typeof item?.id === "string" ? item.id : "";
-
-    // Haal Google Books thumbnail op (deze werken vaak beter dan stable API)
-    const rawThumb =
-      (typeof info.imageLinks?.thumbnail === "string" ? info.imageLinks.thumbnail : "") ||
-      (typeof info.imageLinks?.smallThumbnail === "string" ? info.imageLinks.smallThumbnail : "");
-
-    // Verbeter Google Books thumbnail URL voor betere kwaliteit
-    const googleThumbnail = getGoogleBooksThumbnailUrl(rawThumb);
-
-    // Stable Google Books API URL (als fallback)
-    const stableGoogleCover = volumeId
-      ? `https://books.google.com/books/content?id=${encodeURIComponent(
-          volumeId
-        )}&printsec=frontcover&img=1&zoom=2&source=gbs_api`
-      : "";
-
-    // Open Library cover (altijd beschikbaar, beste mobiel compatibiliteit)
-    const openLibraryCover = coverFromOpenLibrary(isbn, "M");
-    
-    // Sla de cover URL op voor referentie, maar we laden altijd direct van Open Library
-    // Dit voorkomt CORS problemen en werkt betrouwbaar op alle devices
-    // We slaan de beste beschikbare URL op (voor toekomstige referentie)
-    const coverUrl = googleThumbnail || openLibraryCover || stableGoogleCover;
-
-    return { title, authors, coverUrl };
+    }
   } catch {
-    return { title: undefined, authors: [], coverUrl: undefined };
+    // ignore errors, return what we have
   }
+
+  return { title, authors, coverUrl };
 }
