@@ -1,11 +1,6 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useRef } from "react";
-import {
-  Html5Qrcode,
-  Html5QrcodeSupportedFormats,
-  Html5QrcodeScannerState,
-} from "html5-qrcode";
 
 export type ScannerProps = {
   onDetected: (code: string) => void;
@@ -13,7 +8,7 @@ export type ScannerProps = {
 
 export function Scanner({ onDetected }: ScannerProps) {
   const regionId = useMemo(() => `qr-region-${Math.random().toString(16).slice(2)}`, []);
-  const qrRef = useRef<Html5Qrcode | null>(null);
+  const qrRef = useRef<any | null>(null);
   const stoppingRef = useRef(false);
 
   useEffect(() => {
@@ -23,6 +18,9 @@ export function Scanner({ onDetected }: ScannerProps) {
       if (!mounted || stoppingRef.current) return;
 
       try {
+        const mod = await import("html5-qrcode");
+        const { Html5Qrcode, Html5QrcodeSupportedFormats, Html5QrcodeScannerState } = mod;
+
         const qr = new Html5Qrcode(regionId, {
           formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13],
           verbose: false,
@@ -87,4 +85,3 @@ export function Scanner({ onDetected }: ScannerProps) {
 }
 
 export default Scanner;
-
