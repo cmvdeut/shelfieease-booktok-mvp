@@ -1,3 +1,5 @@
+import { ClientErrorTrap } from "@/components/ClientErrorTrap";
+
 export const metadata = {
   title: "ShelfieEase",
   description: "Scan books. Build your shelf. Share the vibe."
@@ -18,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           color: "#fff"
         }}
       >
+        <ClientErrorTrap />
         {children}
         <script
           dangerouslySetInnerHTML={{
