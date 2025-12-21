@@ -11,13 +11,13 @@ export default function Page() {
       <div className="flex flex-col gap-2.5">
         <Link
           href="/scan"
-          className="w-full px-3 py-3 rounded-[14px] bg-[#6d5efc] text-white font-bold text-center no-underline hover:bg-[#5d4eec] transition-colors"
+          className="w-full px-3 py-3 rounded-[14px] bg-[#6d5efc] text-white font-bold text-center no-underline hover:bg-[#5d4eec] transition-colors shadow-lg shadow-[#6d5efc]/20 active:scale-[0.98]"
         >
           Scan a book
         </Link>
         <Link
           href="/library"
-          className="w-full px-3 py-3 rounded-[14px] bg-[#2a2a32] text-white font-bold text-center no-underline hover:bg-[#3a3a42] transition-colors"
+          className="w-full px-3 py-3 rounded-[14px] bg-[#2a2a32] text-white font-bold text-center no-underline hover:bg-[#3a3a42] transition-colors shadow-md active:scale-[0.98]"
         >
           My Shelf
         </Link>
