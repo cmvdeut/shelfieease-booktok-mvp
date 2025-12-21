@@ -50,6 +50,15 @@ export default function DebugPage() {
     >
       <h1 style={{ color: "#ff4444", marginTop: 0 }}>Debug: Error Logs</h1>
 
+      <div style={{ marginBottom: "24px", padding: "12px", backgroundColor: "#1a1a1a", borderRadius: "4px" }}>
+        <h2 style={{ color: "#888", marginTop: 0, marginBottom: "8px" }}>Navigation</h2>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <a href="/" style={{ color: "#6d5efc", textDecoration: "underline" }}>Home</a>
+          <a href="/scan" style={{ color: "#6d5efc", textDecoration: "underline" }}>Scan</a>
+          <a href="/library" style={{ color: "#6d5efc", textDecoration: "underline" }}>Library</a>
+        </div>
+      </div>
+
       {earlyError ? (
         <div style={{ marginBottom: "24px" }}>
           <h2 style={{ color: "#ff8888" }}>Early Error (localStorage)</h2>

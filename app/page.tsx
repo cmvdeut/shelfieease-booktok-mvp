@@ -24,7 +24,7 @@ export default function HomePage() {
           </Link>
 
           <Link
-            href="/shelf"
+            href="/library"
             className="inline-flex items-center justify-center rounded-2xl px-5 py-4 text-lg font-semibold
                        bg-white/10 ring-1 ring-white/15 shadow
                        active:scale-[0.99]"
