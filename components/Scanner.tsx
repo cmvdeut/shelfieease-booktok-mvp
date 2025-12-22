@@ -1,30 +1,63 @@
-﻿"use client";
+// DEBUG: onClose prop toegevoegd
+
+"use client";
 
 import React, { useEffect, useMemo, useRef } from "react";
 
 export type ScannerProps = {
   onDetected: (code: string) => void;
+  onClose?: () => void;
 };
 
-export function Scanner({ onDetected }: ScannerProps) {
-  const regionId = useMemo(() => `qr-region-${Math.random().toString(16).slice(2)}`, []);
-  const qrRef = useRef<any | null>(null);
-  const stoppingRef = useRef(false);
+export function Scanner({ onDetected, onClose }: ScannerProps) {
+  const regionId = useMemo(
+    () => `qr-region-${Math.random().toString(16).slice(2)}`,
+    []
+  );
+
+  const qrRef = useRef<import("html5-qrcode").Html5Qrcode | null>(null);
+  const startingRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  // Stop/clear helper (veilig)
+  const stopAndClear = async () => {
+    const qr = qrRef.current;
+    qrRef.current = null;
+
+    if (!qr) return;
+
+    try {
+      await qr.stop();
+    } catch {
+      // ignore
+    }
+
+    try {
+      qr.clear();
+    } catch {
+      // ignore
+    }
+  };
 
   useEffect(() => {
-    let mounted = true;
+    mountedRef.current = true;
 
     async function start() {
-      if (!mounted || stoppingRef.current) return;
+      if (!mountedRef.current) return;
+      if (startingRef.current) return;
+      if (qrRef.current) return;
+
+      startingRef.current = true;
 
       try {
         const mod = await import("html5-qrcode");
-        const { Html5Qrcode, Html5QrcodeSupportedFormats, Html5QrcodeScannerState } = mod;
+        const { Html5Qrcode, Html5QrcodeSupportedFormats } = mod;
 
         const qr = new Html5Qrcode(regionId, {
           formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13],
           verbose: false,
         });
+
         qrRef.current = qr;
 
         await qr.start(
@@ -36,51 +69,63 @@ export function Scanner({ onDetected }: ScannerProps) {
             disableFlip: true,
           },
           async (decodedText) => {
-            if (!mounted) return;
+            if (!mountedRef.current) return;
+
             const text = decodedText.trim();
-            try {
-              const state = qr.getState?.();
-              if (state === Html5QrcodeScannerState.SCANNING || state === Html5QrcodeScannerState.PAUSED) {
-                await qr.stop();
-              }
-            } catch {
-              // ignore
-            }
+
+            // Stop camera asap, then callback
+            await stopAndClear();
             onDetected(text);
           },
-          () => {}
+          () => {
+            // onScanFailure: bewust leeg
+          }
         );
-      } catch (e: any) {
+      } catch (e) {
         console.error("Scanner error:", e);
+        // Als start faalt, ruim op
+        await stopAndClear();
+      } finally {
+        startingRef.current = false;
       }
     }
 
-    start();
+    void start();
 
     return () => {
-      mounted = false;
-      stoppingRef.current = true;
-      const qr = qrRef.current;
-      if (qr) {
-        qr.stop().catch(() => {});
-      }
-      qrRef.current = null;
-      stoppingRef.current = false;
+      mountedRef.current = false;
+      void stopAndClear();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [regionId, onDetected]);
 
   return (
-    <div
-      id={regionId}
-      style={{
-        width: "100%",
-        height: 200,
-        borderRadius: 16,
-        overflow: "hidden",
-        background: "#111",
-        border: "1px solid #2a2a32",
-      }}
-    />
+    <div className="w-full">
+      <div className="flex justify-end gap-2 mb-3">
+        <button
+          type="button"
+          className="px-3 py-2 rounded-lg border text-sm"
+          onClick={async () => {
+            await stopAndClear();
+            onClose?.();
+          }}
+        >
+          Terug
+        </button>
+      </div>
+
+      <div
+        id={regionId}
+        style={{
+          width: "100%",
+          height: 200,
+          borderRadius: 16,
+          overflow: "hidden",
+          background: "#111",
+          border: "1px solid #2a2a32",
+        }}
+      />
+    </div>
   );
 }
 
