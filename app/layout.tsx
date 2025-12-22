@@ -1,3 +1,5 @@
+import "./globals.css";
+
 import Script from "next/script";
 import { ClientErrorTrap } from "@/components/ClientErrorTrap";
 
