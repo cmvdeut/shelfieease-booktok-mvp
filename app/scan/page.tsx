@@ -19,10 +19,8 @@ export default function ScanPage() {
     (isbn: string) => {
       setLastScan(isbn);
 
-      // ⬇️ Pas dit aan naar jouw bestaande flow:
-      // bijv. router.push(`/add?isbn=${isbn}`) of direct add-to-shelf in localStorage.
-      router.push(`/library?isbn=${isbn}`);
-
+      // Navigate to library with ISBN parameter
+      router.push(`/library?isbn=${encodeURIComponent(isbn)}`);
     },
     [router]
   );
@@ -30,7 +28,7 @@ export default function ScanPage() {
   const submitManual = useCallback(() => {
     const v = manualNormalized;
     if (!v) return;
-    router.push(`/add?isbn=${encodeURIComponent(v)}`);
+    router.push(`/library?isbn=${encodeURIComponent(v)}`);
   }, [manualNormalized, router]);
 
   return (

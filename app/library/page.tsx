@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useMemo, useState, useRef, Suspense, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -26,109 +26,6 @@ import { lookupByIsbn } from "@/lib/lookup";
 import { CoverImg } from "@/components/CoverImg";
 import { toBlob } from "html-to-image";
 
-/**
- * Next.js build fix:
- * useSearchParams() must be wrapped in Suspense.
- * We isolate query param logic in a tiny component rendered inside <Suspense>.
- */
-function AddFromIsbnParam({ onAdded, onToast }: { onAdded: () => void; onToast: (message: string) => void }) {
-  const router = useRouter();
-  const processedRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    // Gebruik window.location.search in plaats van useSearchParams om build issues te voorkomen
-    const params = new URLSearchParams(window.location.search);
-    const rawIsbn = params.get("isbn");
-    if (!rawIsbn) return;
-    
-    // Normaliseer ISBN: alleen cijfers en X behouden
-    const normalizedIsbn = rawIsbn.replace(/[^0-9X]/gi, "").trim();
-    
-    // Voorkom dat hetzelfde ISBN meerdere keren wordt verwerkt
-    if (processedRef.current === normalizedIsbn) {
-      return;
-    }
-    processedRef.current = normalizedIsbn;
-
-    if (!normalizedIsbn) {
-      console.error("Invalid ISBN:", rawIsbn);
-      router.replace("/library");
-      return;
-    }
-
-    let cancelled = false;
-
-    (async () => {
-      try {
-        console.log("Looking up ISBN:", normalizedIsbn);
-        const data = await lookupByIsbn(normalizedIsbn);
-        if (!data || cancelled) {
-          console.log("Lookup cancelled or no data");
-          return;
-        }
-
-        console.log("Lookup result:", data);
-
-        // lookupByIsbn retourneert { title, authors, coverUrl }
-        const title = String(data.title || "Unknown title");
-        const authors = Array.isArray(data.authors) ? data.authors : [];
-        const coverUrl = String(data.coverUrl || "");
-
-        // Ensure default shelves exist
-        const allShelves = ensureDefaultShelves();
-        
-        // Probeer "Wanna Haves" shelf te vinden, anders gebruik actieve shelf
-        const wannaHavesShelf = findShelfByName(allShelves, "Wanna Haves");
-        const activeShelfId = getActiveShelfId();
-        const shelfId = wannaHavesShelf?.id || activeShelfId || ensureDefaultShelf().id;
-        
-        const now = Date.now();
-
-        const book: Book = {
-          id: normalizedIsbn,
-          isbn13: normalizedIsbn,
-          title,
-          authors,
-          coverUrl,
-          shelfId,
-          status: "TBR" as BookStatus,
-          addedAt: now,
-          updatedAt: now,
-        };
-
-        console.log("Adding book:", book);
-        const updatedBooks = upsertBook(book);
-        console.log("Book added, total books now:", updatedBooks.length);
-        
-        // Refresh de boeken lijst direct
-        onAdded();
-        
-        // Toon toast notificatie
-        onToast("Boek toegevoegd aan je shelf ✨");
-        
-        // Wacht even zodat React state kan updaten
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        
-        // URL opschonen zodat refresh niet opnieuw toevoegt
-        if (!cancelled) {
-          processedRef.current = null; // Reset zodat hetzelfde ISBN later opnieuw kan worden toegevoegd
-          router.replace("/library");
-        }
-      } catch (e) {
-        console.error("Failed to add book from ISBN:", e);
-        // Bij error ook URL opschonen en ref resetten
-        processedRef.current = null;
-        router.replace("/library");
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [router, onAdded, onToast]);
-
-  return null;
-}
 
 export default function LibraryPage() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -136,6 +33,14 @@ export default function LibraryPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeShelfId, setActiveShelfIdState] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [pendingIsbn, setPendingIsbn] = useState<string | null>(null);
+  const [pendingData, setPendingData] = useState<{ title?: string; authors?: string[]; coverUrl?: string } | null>(null);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
+  const [targetShelfId, setTargetShelfId] = useState<string | null>(null);
+  const [newShelfName, setNewShelfName] = useState("");
+  const [newShelfEmoji, setNewShelfEmoji] = useState("📚");
+  const [showNewShelfInAddModal, setShowNewShelfInAddModal] = useState(false);
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -170,6 +75,52 @@ export default function LibraryPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const actionMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const shareCardRef = useRef<HTMLDivElement>(null);
+  const handledIsbnRef = useRef<string | null>(null);
+
+  // Handle ISBN query parameter - open modal instead of auto-adding
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const rawIsbn = params.get("isbn");
+    if (!rawIsbn) return;
+
+    // Normaliseer ISBN: alleen cijfers en X behouden
+    const normalizedIsbn = rawIsbn.replace(/[^0-9X]/gi, "").trim();
+    if (!normalizedIsbn) {
+      window.history.replaceState(null, "", "/library");
+      return;
+    }
+
+    // Voorkom dat hetzelfde ISBN meerdere keren wordt verwerkt
+    if (handledIsbnRef.current === normalizedIsbn) {
+      return;
+    }
+    handledIsbnRef.current = normalizedIsbn;
+
+    setPendingIsbn(normalizedIsbn);
+    setAddModalOpen(true);
+    setAddLoading(true);
+    setTargetShelfId(getActiveShelfId() || ensureDefaultShelf().id);
+
+    (async () => {
+      try {
+        const data = await lookupByIsbn(normalizedIsbn);
+        setPendingData({
+          title: data.title || "Onbekend",
+          authors: data.authors || [],
+          coverUrl: data.coverUrl || "",
+        });
+      } catch (e) {
+        console.error("Failed to lookup ISBN:", e);
+        setPendingData({
+          title: "Onbekend",
+          authors: [],
+          coverUrl: "",
+        });
+      } finally {
+        setAddLoading(false);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     // Ensure default shelves exist
@@ -358,6 +309,61 @@ export default function LibraryPage() {
     setSuggestedEmoji(null);
   }
 
+  function handleCreateShelfInAddModal() {
+    const nameTrimmed = newShelfName.trim();
+    if (!nameTrimmed || nameTrimmed.length > 24) return;
+
+    const emojiTrimmed = newShelfEmoji.trim() || "📚";
+    const shelf = createShelf(nameTrimmed, emojiTrimmed);
+    const updatedShelves = loadShelves();
+    setShelves(updatedShelves);
+    setTargetShelfId(shelf.id);
+    setShowNewShelfInAddModal(false);
+    setNewShelfName("");
+    setNewShelfEmoji("📚");
+  }
+
+  function handleAddBookToShelf() {
+    if (!pendingIsbn || !targetShelfId) return;
+
+    const now = Date.now();
+    const book: Book = {
+      id: pendingIsbn,
+      isbn13: pendingIsbn,
+      title: pendingData?.title || "Onbekend",
+      authors: pendingData?.authors || [],
+      coverUrl: pendingData?.coverUrl || "",
+      shelfId: targetShelfId,
+      status: "TBR" as BookStatus,
+      addedAt: now,
+      updatedAt: now,
+    };
+
+    upsertBook(book);
+    handleBookAdded();
+    showToast("Boek toegevoegd aan je shelf ✨");
+    
+    // Reset state and clean URL
+    setAddModalOpen(false);
+    setPendingIsbn(null);
+    setPendingData(null);
+    setTargetShelfId(null);
+    handledIsbnRef.current = null;
+    window.history.replaceState(null, "", "/library");
+  }
+
+  function handleCancelAddBook() {
+    setAddModalOpen(false);
+    setPendingIsbn(null);
+    setPendingData(null);
+    setTargetShelfId(null);
+    setShowNewShelfInAddModal(false);
+    setNewShelfName("");
+    setNewShelfEmoji("📚");
+    handledIsbnRef.current = null;
+    window.history.replaceState(null, "", "/library");
+  }
+
   function handleMoveBook(bookId: string, targetShelfId: string) {
     updateBook(bookId, { shelfId: targetShelfId });
     const updated = loadBooks();
@@ -529,13 +535,6 @@ What should I add next? 👀
 
   return (
     <main style={page}>
-      {/* ✅ Suspense wrapper to satisfy Next build for useSearchParams */}
-      <Suspense fallback={null}>
-        <AddFromIsbnParam
-          onAdded={handleBookAdded}
-          onToast={showToast}
-        />
-      </Suspense>
 
       {/* Shelf Header with blurred background */}
       <div style={shelfHeader}>
@@ -959,6 +958,202 @@ What should I add next? 👀
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Book Modal */}
+      {addModalOpen && (
+        <div
+          style={{ ...modalOverlay, zIndex: 3000 }}
+          onClick={handleCancelAddBook}
+        >
+          <div style={modal} onClick={(e) => e.stopPropagation()}>
+            <h2 style={modalTitle}>Boek toevoegen</h2>
+            
+            {addLoading ? (
+              <div style={{ padding: "20px 0", textAlign: "center", color: "#cfcfe6" }}>
+                Bezig met ophalen...
+              </div>
+            ) : (
+              <>
+                {pendingData && (
+                  <div style={{ 
+                    marginBottom: 24, 
+                    display: "flex", 
+                    flexDirection: "column", 
+                    alignItems: "center",
+                    maxWidth: 280,
+                    margin: "0 auto 24px"
+                  }}>
+                    {/* Compact cover */}
+                    <div style={{ marginBottom: 12, width: "100%" }}>
+                      {pendingData.coverUrl ? (
+                        <CoverImg
+                          src={pendingData.coverUrl}
+                          alt={pendingData.title}
+                          style={{ 
+                            width: "100%",
+                            maxWidth: 280,
+                            height: "auto",
+                            aspectRatio: "2/3",
+                            maxHeight: 160,
+                            borderRadius: 10,
+                            margin: "0 auto",
+                            display: "block",
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
+                          }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: "100%",
+                          maxWidth: 280,
+                          aspectRatio: "2/3",
+                          maxHeight: 160,
+                          borderRadius: 10,
+                          background: "linear-gradient(135deg, rgba(109,94,252,0.2), rgba(255,73,240,0.1))",
+                          border: "1px solid #2a2a32",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#8f8fa3",
+                          fontSize: 12
+                        }}>
+                          Geen cover
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Compact title - max 2 lines with ellipsis */}
+                    <div style={{ 
+                      textAlign: "center", 
+                      marginBottom: 6,
+                      width: "100%"
+                    }}>
+                      <div style={{ 
+                        fontSize: 16, 
+                        fontWeight: 800, 
+                        color: "#fff", 
+                        marginBottom: 4,
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        lineHeight: 1.3,
+                        minHeight: "2.6em"
+                      }}>
+                        {pendingData.title || "Onbekend"}
+                      </div>
+                      
+                      {/* Authors - 1 line, smaller font */}
+                      {pendingData.authors && pendingData.authors.length > 0 && (
+                        <div style={{ 
+                          fontSize: 12, 
+                          color: "#cfcfe6",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 1,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          lineHeight: 1.4
+                        }}>
+                          {pendingData.authors.join(", ")}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {!showNewShelfInAddModal ? (
+                  <>
+                    <div style={formGroup}>
+                      <label style={formLabel}>Kies een shelf</label>
+                      <select
+                        value={targetShelfId || ""}
+                        onChange={(e) => setTargetShelfId(e.target.value)}
+                        style={formInput}
+                      >
+                        {shelves.map((shelf) => (
+                          <option key={shelf.id} value={shelf.id}>
+                            {shelf.emoji} {shelf.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ marginTop: 12, marginBottom: 20 }}>
+                      <button
+                        style={btnGhost}
+                        onClick={() => setShowNewShelfInAddModal(true)}
+                      >
+                        + Nieuwe shelf
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div style={modalForm}>
+                    <div style={formGroup}>
+                      <label style={formLabel}>Naam</label>
+                      <input
+                        type="text"
+                        value={newShelfName}
+                        onChange={(e) => setNewShelfName(e.target.value.slice(0, 24))}
+                        placeholder="My Shelf"
+                        maxLength={24}
+                        style={formInput}
+                        autoFocus
+                      />
+                    </div>
+                    <div style={formGroup}>
+                      <label style={formLabel}>Emoji</label>
+                      <input
+                        type="text"
+                        value={newShelfEmoji}
+                        onChange={(e) => setNewShelfEmoji(e.target.value.slice(0, 2) || "📚")}
+                        placeholder="📚"
+                        maxLength={2}
+                        style={formInput}
+                      />
+                    </div>
+                    <div style={modalActions}>
+                      <button
+                        style={btnPrimary}
+                        onClick={handleCreateShelfInAddModal}
+                        disabled={!newShelfName.trim()}
+                      >
+                        Maak shelf
+                      </button>
+                      <button
+                        style={btnGhost}
+                        onClick={() => {
+                          setShowNewShelfInAddModal(false);
+                          setNewShelfName("");
+                          setNewShelfEmoji("📚");
+                        }}
+                      >
+                        Terug
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {!showNewShelfInAddModal && (
+                  <div style={modalActions}>
+                    <button style={btnGhost} onClick={handleCancelAddBook}>
+                      Annuleren
+                    </button>
+                    <button
+                      style={btnPrimary}
+                      onClick={handleAddBookToShelf}
+                      disabled={!targetShelfId}
+                    >
+                      Zet in deze shelf
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}
@@ -1501,7 +1696,7 @@ function Cover({
   return (
     <div style={coverWrap}>
       <div style={coverPlaceholder}>
-        <div style={{ fontWeight: 950, fontSize: 16, lineHeight: 1.2 }}>{title || "Unknown"}</div>
+        <div style={{ fontWeight: 950, fontSize: 15, lineHeight: 1.2 }}>{title || "Unknown"}</div>
         {authors.length ? <div style={{ marginTop: 6, fontSize: 12, color: "#d8d8ff" }}>{authors.join(", ")}</div> : null}
         <div style={{ marginTop: 10, fontSize: 12, color: "#b7b7b7" }}>ISBN {isbn13}</div>
       </div>
@@ -1927,8 +2122,8 @@ const grid: React.CSSProperties = {
 const card: React.CSSProperties = {
   background: "#14141a",
   border: "1px solid #2a2a32",
-  borderRadius: 22,
-  padding: 12,
+  borderRadius: 18,
+  padding: 10,
   boxShadow: "0 14px 34px rgba(0,0,0,0.45)",
   animation: "popIn 420ms ease both",
 };
@@ -1936,7 +2131,7 @@ const card: React.CSSProperties = {
 const coverWrap: React.CSSProperties = {
   position: "relative",
   width: "100%",
-  borderRadius: 18,
+  borderRadius: 14,
   overflow: "hidden",
   border: "1px solid #2a2a32",
   background: "#101014",
@@ -1967,13 +2162,13 @@ const coverPlaceholder: React.CSSProperties = {
 };
 
 const title: React.CSSProperties = {
-  fontSize: 16,
+  fontSize: 15,
   fontWeight: 950,
   lineHeight: 1.2,
 };
 
 const author: React.CSSProperties = {
-  fontSize: 13,
+  fontSize: 12,
   color: "#d8d8ff",
   fontWeight: 700,
 };
