@@ -979,12 +979,12 @@ What should I add next? 👀
               <>
                 {pendingData && (
                   <div style={{ 
-                    marginBottom: 24, 
+                    marginBottom: 20, 
                     display: "flex", 
                     flexDirection: "column", 
                     alignItems: "center",
-                    maxWidth: 280,
-                    margin: "0 auto 24px"
+                    maxWidth: 240,
+                    margin: "0 auto 20px"
                   }}>
                     {/* Compact cover */}
                     <div style={{ marginBottom: 12, width: "100%" }}>
@@ -994,10 +994,10 @@ What should I add next? 👀
                           alt={pendingData.title}
                           style={{ 
                             width: "100%",
-                            maxWidth: 280,
+                            maxWidth: 240,
                             height: "auto",
                             aspectRatio: "2/3",
-                            maxHeight: 160,
+                            maxHeight: 140,
                             borderRadius: 10,
                             margin: "0 auto",
                             display: "block",
@@ -1007,9 +1007,9 @@ What should I add next? 👀
                       ) : (
                         <div style={{
                           width: "100%",
-                          maxWidth: 280,
+                          maxWidth: 240,
                           aspectRatio: "2/3",
-                          maxHeight: 160,
+                          maxHeight: 140,
                           borderRadius: 10,
                           background: "linear-gradient(135deg, rgba(109,94,252,0.2), rgba(255,73,240,0.1))",
                           border: "1px solid #2a2a32",
@@ -1921,8 +1921,8 @@ const modal: React.CSSProperties = {
   background: "#15151c",
   border: "1px solid #2a2a32",
   borderRadius: 22,
-  padding: 24,
-  maxWidth: 400,
+  padding: 20,
+  maxWidth: 340,
   width: "100%",
   boxShadow: "0 20px 60px rgba(0,0,0,0.8)",
 };
