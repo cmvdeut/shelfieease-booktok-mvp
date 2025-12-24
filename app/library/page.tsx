@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useMemo, useState, useRef, Suspense } from "react";
+import React, { useEffect, useMemo, useState, useRef, Suspense, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -33,15 +33,23 @@ import { toBlob } from "html-to-image";
  */
 function AddFromIsbnParam({ onAdded, onToast }: { onAdded: () => void; onToast: (message: string) => void }) {
   const router = useRouter();
+  const processedRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Gebruik window.location.search in plaats van useSearchParams om build issues te voorkomen
     const params = new URLSearchParams(window.location.search);
     const rawIsbn = params.get("isbn");
     if (!rawIsbn) return;
-
+    
     // Normaliseer ISBN: alleen cijfers en X behouden
     const normalizedIsbn = rawIsbn.replace(/[^0-9X]/gi, "").trim();
+    
+    // Voorkom dat hetzelfde ISBN meerdere keren wordt verwerkt
+    if (processedRef.current === normalizedIsbn) {
+      return;
+    }
+    processedRef.current = normalizedIsbn;
+
     if (!normalizedIsbn) {
       console.error("Invalid ISBN:", rawIsbn);
       router.replace("/library");
@@ -103,11 +111,13 @@ function AddFromIsbnParam({ onAdded, onToast }: { onAdded: () => void; onToast: 
         
         // URL opschonen zodat refresh niet opnieuw toevoegt
         if (!cancelled) {
+          processedRef.current = null; // Reset zodat hetzelfde ISBN later opnieuw kan worden toegevoegd
           router.replace("/library");
         }
       } catch (e) {
         console.error("Failed to add book from ISBN:", e);
-        // Bij error ook URL opschonen
+        // Bij error ook URL opschonen en ref resetten
+        processedRef.current = null;
         router.replace("/library");
       }
     })();
@@ -127,10 +137,18 @@ export default function LibraryPage() {
   const [activeShelfId, setActiveShelfIdState] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  function showToast(message: string) {
+  const showToast = useCallback((message: string) => {
     setToast(message);
     window.setTimeout(() => setToast(null), 2200);
-  }
+  }, []);
+
+  const handleBookAdded = useCallback(() => {
+    console.log("onAdded callback called, reloading books");
+    // Force reload from localStorage
+    const updatedBooks = loadBooks();
+    console.log("Loaded books:", updatedBooks.length, updatedBooks);
+    setBooks([...updatedBooks]); // Spread om nieuwe array referentie te forceren
+  }, []);
   const [showNewShelfModal, setShowNewShelfModal] = useState(false);
   const [showShelfDropdown, setShowShelfDropdown] = useState(false);
   const [name, setName] = useState("");
@@ -514,13 +532,7 @@ What should I add next? 👀
       {/* ✅ Suspense wrapper to satisfy Next build for useSearchParams */}
       <Suspense fallback={null}>
         <AddFromIsbnParam
-          onAdded={() => {
-            console.log("onAdded callback called, reloading books");
-            // Force reload from localStorage
-            const updatedBooks = loadBooks();
-            console.log("Loaded books:", updatedBooks.length, updatedBooks);
-            setBooks([...updatedBooks]); // Spread om nieuwe array referentie te forceren
-          }}
+          onAdded={handleBookAdded}
           onToast={showToast}
         />
       </Suspense>
