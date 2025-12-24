@@ -79,13 +79,22 @@ function AddFromIsbnParam({ onAdded }: { onAdded: () => void }) {
         };
 
         console.log("Adding book:", book);
-        upsertBook(book);
-        console.log("Book added, refreshing list");
+        const updatedBooks = upsertBook(book);
+        console.log("Book added, total books now:", updatedBooks.length);
+        
+        // Refresh de boeken lijst direct
         onAdded();
+        
+        // Wacht even zodat React state kan updaten
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        
+        // URL opschonen zodat refresh niet opnieuw toevoegt
+        if (!cancelled) {
+          router.replace("/library");
+        }
       } catch (e) {
         console.error("Failed to add book from ISBN:", e);
-      } finally {
-        // URL opschonen zodat refresh niet opnieuw toevoegt
+        // Bij error ook URL opschonen
         router.replace("/library");
       }
     })();
@@ -484,7 +493,15 @@ What should I add next? 👀
     <main style={page}>
       {/* ✅ Suspense wrapper to satisfy Next build for useSearchParams */}
       <Suspense fallback={null}>
-        <AddFromIsbnParam onAdded={() => setBooks(loadBooks())} />
+        <AddFromIsbnParam
+          onAdded={() => {
+            console.log("onAdded callback called, reloading books");
+            // Force reload from localStorage
+            const updatedBooks = loadBooks();
+            console.log("Loaded books:", updatedBooks.length, updatedBooks);
+            setBooks([...updatedBooks]); // Spread om nieuwe array referentie te forceren
+          }}
+        />
       </Suspense>
 
       {/* Shelf Header with blurred background */}
@@ -549,7 +566,7 @@ What should I add next? 👀
                   <span>+</span>
                   <span>New shelf</span>
                 </button>
-              </div>
+        </div>
             )}
           </div>
 
@@ -664,9 +681,9 @@ What should I add next? 👀
             {sharing ? "Generating…" : "Share Shelfie"}
           </button>
 
-          <Link href="/scan">
-            <button style={btnPrimary}>+ Scan</button>
-          </Link>
+        <Link href="/scan">
+          <button style={btnPrimary}>+ Scan</button>
+        </Link>
         </div>
       </div>
 
@@ -1922,7 +1939,7 @@ function badgeFor(status: string): React.CSSProperties {
     fontWeight: 950,
     padding: "6px 10px",
     borderRadius: 999,
-    border: "1px solid #2a2a32",
+  border: "1px solid #2a2a32",
   };
 
   if (status === "Finished") return { ...base, background: "rgba(79, 209, 197, 0.18)", color: "#bff7ef" };
