@@ -1,0 +1,10 @@
+{
+  "name": "ShelfieEase",
+  "short_name": "ShelfieEase",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0b10",
+  "theme_color": "#6d5efc",
+  "icons": []
+}
+
