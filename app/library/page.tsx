@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import React, { useEffect, useMemo, useState, useRef, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import {
   loadBooks,
@@ -29,12 +29,13 @@ import { toBlob } from "html-to-image";
  * useSearchParams() must be wrapped in Suspense.
  * We isolate query param logic in a tiny component rendered inside <Suspense>.
  */
-function AddFromIsbnParam({ onAdded }: { onAdded: () => void }) {
-  const searchParams = useSearchParams();
+function AddFromIsbnParam({ onAdded, onToast }: { onAdded: () => void; onToast: (message: string) => void }) {
   const router = useRouter();
 
   useEffect(() => {
-    const rawIsbn = searchParams.get("isbn");
+    // Gebruik window.location.search in plaats van useSearchParams om build issues te voorkomen
+    const params = new URLSearchParams(window.location.search);
+    const rawIsbn = params.get("isbn");
     if (!rawIsbn) return;
 
     // Normaliseer ISBN: alleen cijfers en X behouden
@@ -85,6 +86,9 @@ function AddFromIsbnParam({ onAdded }: { onAdded: () => void }) {
         // Refresh de boeken lijst direct
         onAdded();
         
+        // Toon toast notificatie
+        onToast("Boek toegevoegd aan je shelf ✨");
+        
         // Wacht even zodat React state kan updaten
         await new Promise((resolve) => setTimeout(resolve, 300));
         
@@ -102,7 +106,7 @@ function AddFromIsbnParam({ onAdded }: { onAdded: () => void }) {
     return () => {
       cancelled = true;
     };
-  }, [searchParams, router, onAdded]);
+  }, [router, onAdded, onToast]);
 
   return null;
 }
@@ -112,6 +116,12 @@ export default function LibraryPage() {
   const [shelves, setShelves] = useState<Shelf[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [activeShelfId, setActiveShelfIdState] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  function showToast(message: string) {
+    setToast(message);
+    window.setTimeout(() => setToast(null), 2200);
+  }
   const [showNewShelfModal, setShowNewShelfModal] = useState(false);
   const [showShelfDropdown, setShowShelfDropdown] = useState(false);
   const [name, setName] = useState("");
@@ -501,6 +511,7 @@ What should I add next? 👀
             console.log("Loaded books:", updatedBooks.length, updatedBooks);
             setBooks([...updatedBooks]); // Spread om nieuwe array referentie te forceren
           }}
+          onToast={showToast}
         />
       </Suspense>
 
@@ -669,7 +680,7 @@ What should I add next? 👀
             </button>
           </div>
 
-          <ShareCardPreview variant={shareStyle} />
+          
 
           <button
             style={btnGhost}
@@ -1055,6 +1066,31 @@ What should I add next? 👀
 
       {/* CSS voor animaties + glow */}
       <style>{css}</style>
+
+      {/* Toast notification */}
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 18,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "rgba(20,20,26,0.92)",
+            border: "1px solid rgba(255,255,255,0.10)",
+            padding: "12px 14px",
+            borderRadius: 14,
+            fontWeight: 800,
+            zIndex: 99999,
+            backdropFilter: "blur(10px)",
+            pointerEvents: "none",
+            color: "#fff",
+            fontSize: 14,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {toast}
+        </div>
+      )}
     </main>
   );
 }
