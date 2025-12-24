@@ -1,4 +1,6 @@
 "use client";
+import { useSearchParams, useRouter } from "next/navigation";
+import { upsertBook } from "@/lib/storage";
 
 import Link from "next/link";
 import React, { useEffect, useMemo, useState, useRef } from "react";
@@ -8,6 +10,8 @@ import { CoverImg } from "@/components/CoverImg";
 import { toBlob } from "html-to-image";
 
 export default function LibraryPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [books, setBooks] = useState<Book[]>([]);
   const [shelves, setShelves] = useState<Shelf[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -34,60 +38,67 @@ export default function LibraryPage() {
   const shareCardRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
-    // Ensure default shelf exists
-    ensureDefaultShelf();
-    
-    // Load shelves
-    const allShelves = loadShelves();
-    setShelves(allShelves);
-    
-    // Get active shelf ID
-    const activeId = getActiveShelfId();
-    setActiveShelfIdState(activeId);
-    
-    // Load books and migrate any without shelfId to default shelf
-    const allBooks = loadBooks();
-    const defaultShelfId = getActiveShelfId() || ensureDefaultShelf().id;
-
-    // If we previously confirmed an Open Library cover is missing, strip any stale
-    // `default=false` Open Library coverUrl to avoid repeated 404 console spam.
-    const hasOlMissingFlag = (isbn13: string) => {
+    const isbn = searchParams.get("isbn");
+    if (!isbn) return;
+  
+    let cancelled = false;
+  
+    (async () => {
       try {
-        return Boolean(localStorage.getItem(`se:olCoverMissing:${isbn13}`));
-      } catch {
-        return false;
+        const data = await lookupByIsbn(isbn);
+        if (!data || cancelled) return;
+  
+        // kies shelf: huidige actieve of default
+        const shelfId = getActiveShelfId() || ensureDefaultShelf().id;
+  
+        // maak een volledig Book object (geen spread van lookup result)
+        const now = Date.now();
+
+        // lookupByIsbn kan andere key-namen hebben; normaliseer veilig
+        const d = data as any;
+        
+        const isbn13 = String(d.isbn13 ?? d.isbn ?? d.isbn_13 ?? isbn);
+        const title = String(d.title ?? d.name ?? "Unknown title");
+        const authors = Array.isArray(d.authors)
+          ? d.authors
+          : Array.isArray(d.author)
+            ? d.author
+            : [];
+        const coverUrl = String(d.coverUrl ?? d.cover_url ?? d.cover ?? "");
+        
+        // Bouw een Book (zonder createdAt, want die geeft bij jou errors)
+        const book = {
+          id: isbn13,
+          isbn13,
+          title,
+          authors,
+          coverUrl,
+          shelfId,
+          status: "TBR",
+          updatedAt: now,
+        } as Book;
+        
+        upsertBook(book);
+        setBooks(loadBooks()); 
+  
+        upsertBook(book);
+  
+        // UI sync: herlaad books state zodat je ‘m direct ziet
+        const updated = loadBooks();
+        setBooks(updated);
+      } catch (e) {
+        console.error("Failed to add book from ISBN:", e);
+      } finally {
+        // URL opschonen zodat refresh niet opnieuw toevoegt
+        router.replace("/library");
       }
+    })();
+  
+    return () => {
+      cancelled = true;
     };
-    const stripStaleOpenLibraryCover = (b: Book) => {
-      if (!b.coverUrl) return b;
-      if (!b.isbn13) return b;
-      if (!b.coverUrl.includes("covers.openlibrary.org")) return b;
-      if (!b.coverUrl.includes("default=false")) return b;
-      if (!hasOlMissingFlag(b.isbn13)) return b;
-      return { ...b, coverUrl: "" };
-    };
-    let didStrip = false;
-    const cleanedBooks = allBooks.map((b) => {
-      const next = stripStaleOpenLibraryCover(b);
-      if (next !== b) didStrip = true;
-      return next;
-    });
-    
-    const needsMigration = cleanedBooks.some((b) => !b.shelfId);
-    if (needsMigration) {
-      const migrated = cleanedBooks.map((b) => ({
-        ...b,
-        shelfId: b.shelfId || defaultShelfId,
-        updatedAt: b.updatedAt || Date.now(),
-      }));
-      saveBooks(migrated);
-      setBooks(migrated);
-    } else {
-      // Persist cleanup if we changed anything
-      if (didStrip) saveBooks(cleanedBooks);
-      setBooks(cleanedBooks);
-    }
-  }, []);
+  }, [searchParams, router]);
+  
 
   // Close dropdown when clicking outside
   useEffect(() => {
