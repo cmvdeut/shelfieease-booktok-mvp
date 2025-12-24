@@ -1187,97 +1187,125 @@ What should I add next? 👀
         </div>
       ) : (
         <div style={grid}>
-          {activeBooks.map((b, idx) => (
-            <div key={b.id} style={{ ...card, animationDelay: `${idx * 35}ms`, position: "relative" }}>
-              <button
-                style={actionButton}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActionMenuBookId(actionMenuBookId === b.id ? null : b.id);
-                }}
-              >
-                ⋯
-              </button>
+          {activeBooks.map((b, idx) => {
+            const isRecentlyAdded = idx === 0; // First card is the most recently added
+            const cardStyle = isRecentlyAdded ? cardCompact : card;
+            const buttonStyle = isRecentlyAdded ? actionButtonCompact : actionButton;
+            const titleStyle = isRecentlyAdded ? titleCompact : title;
+            const authorStyle = isRecentlyAdded ? authorCompact : author;
+            const coverWrapStyle = isRecentlyAdded ? coverWrapCompact : coverWrap;
 
-              {actionMenuBookId === b.id && (
-                <>
-                  <div style={actionMenuOverlay} onClick={() => setActionMenuBookId(null)} />
-                  <div
-                    ref={(el) => {
-                      actionMenuRefs.current[b.id] = el;
-                    }}
-                    style={actionMenu}
-                  >
-                    <div style={actionMenuHandle} />
-                    <div style={actionMenuSection}>
-                      <div style={actionMenuLabel}>Move to shelf</div>
-                      {shelves.map((shelf) => (
-                        <button
-                          key={shelf.id}
-                          style={{
-                            ...actionMenuItem,
-                            ...(shelf.id === b.shelfId ? actionMenuItemActive : {}),
-                          }}
-                          onClick={() => handleMoveBook(b.id, shelf.id)}
-                        >
-                          <span>{shelf.emoji}</span>
-                          <span>{shelf.name}</span>
-                          {shelf.id === b.shelfId && <span style={{ fontSize: 10 }}>✓</span>}
-                        </button>
-                      ))}
+            return (
+              <div key={b.id} style={{ ...cardStyle, animationDelay: `${idx * 35}ms`, position: "relative" }}>
+                <button
+                  style={buttonStyle}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActionMenuBookId(actionMenuBookId === b.id ? null : b.id);
+                  }}
+                >
+                  ⋯
+                </button>
+
+                {actionMenuBookId === b.id && (
+                  <>
+                    <div style={actionMenuOverlay} onClick={() => setActionMenuBookId(null)} />
+                    <div
+                      ref={(el) => {
+                        actionMenuRefs.current[b.id] = el;
+                      }}
+                      style={actionMenu}
+                    >
+                      <div style={actionMenuHandle} />
+                      <div style={actionMenuSection}>
+                        <div style={actionMenuLabel}>Move to shelf</div>
+                        {shelves.map((shelf) => (
+                          <button
+                            key={shelf.id}
+                            style={{
+                              ...actionMenuItem,
+                              ...(shelf.id === b.shelfId ? actionMenuItemActive : {}),
+                            }}
+                            onClick={() => handleMoveBook(b.id, shelf.id)}
+                          >
+                            <span>{shelf.emoji}</span>
+                            <span>{shelf.name}</span>
+                            {shelf.id === b.shelfId && <span style={{ fontSize: 10 }}>✓</span>}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div style={actionMenuDivider} />
+
+                      <div style={actionMenuSection}>
+                        <div style={actionMenuLabel}>Change status</div>
+                        {(["TBR", "Reading", "Finished"] as BookStatus[]).map((status) => (
+                          <button
+                            key={status}
+                            style={{
+                              ...actionMenuItem,
+                              ...(b.status === status ? actionMenuItemActive : {}),
+                            }}
+                            onClick={() => handleChangeStatus(b.id, status)}
+                          >
+                            <span>{status === "Finished" ? "Read" : status}</span>
+                            {b.status === status && <span style={{ fontSize: 10 }}>✓</span>}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div style={actionMenuDivider} />
+
+                      <button style={{ ...actionMenuItem, color: "#ff6b6b" }} onClick={() => setShowDeleteConfirm(b.id)}>
+                        <span>Delete book</span>
+                      </button>
                     </div>
+                  </>
+                )}
 
-                    <div style={actionMenuDivider} />
-
-                    <div style={actionMenuSection}>
-                      <div style={actionMenuLabel}>Change status</div>
-                      {(["TBR", "Reading", "Finished"] as BookStatus[]).map((status) => (
-                        <button
-                          key={status}
-                          style={{
-                            ...actionMenuItem,
-                            ...(b.status === status ? actionMenuItemActive : {}),
-                          }}
-                          onClick={() => handleChangeStatus(b.id, status)}
-                        >
-                          <span>{status === "Finished" ? "Read" : status}</span>
-                          {b.status === status && <span style={{ fontSize: 10 }}>✓</span>}
-                        </button>
-                      ))}
+                {isRecentlyAdded ? (
+                  <div style={coverWrapStyle}>
+                    <div style={coverPlaceholderCompact}>
+                      <div style={{ fontWeight: 950, fontSize: 13, lineHeight: 1.2 }}>{b.title || "Unknown"}</div>
+                      {b.authors?.length ? (
+                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>{b.authors[0]}</div>
+                      ) : null}
                     </div>
-
-                    <div style={actionMenuDivider} />
-
-                    <button style={{ ...actionMenuItem, color: "#ff6b6b" }} onClick={() => setShowDeleteConfirm(b.id)}>
-                      <span>Delete book</span>
-                    </button>
+                    {b.coverUrl ? (
+                      <CoverImg
+                        src={toHttps(b.coverUrl)}
+                        alt={b.title}
+                        style={coverImg}
+                        onError={() => handleCoverError(b.id)}
+                      />
+                    ) : null}
                   </div>
-                </>
-              )}
+                ) : (
+                  <Cover
+                    isbn13={b.isbn13}
+                    coverUrl={b.coverUrl || ""}
+                    title={b.title}
+                    authors={b.authors || []}
+                    onBadCover={() => handleCoverError(b.id)}
+                  />
+                )}
 
-              <Cover
-                isbn13={b.isbn13}
-                coverUrl={b.coverUrl || ""}
-                title={b.title}
-                authors={b.authors || []}
-                onBadCover={() => handleCoverError(b.id)}
-              />
-
-              <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
-                <div style={title}>{b.title}</div>
-                {b.authors?.length ? <div style={author}>by {b.authors.join(", ")}</div> : null}
+                <div style={{ display: "grid", gap: isRecentlyAdded ? 4 : 6, marginTop: isRecentlyAdded ? 8 : 10 }}>
+                  <div style={titleStyle}>{b.title}</div>
+                  {b.authors?.length ? <div style={authorStyle}>by {b.authors.join(", ")}</div> : null}
 
                 <div style={metaRow}>
-                  {(() => {
-                    const s = b.status || "TBR";
-                    const label = s === "Finished" ? "Read" : s;
-                    return <span style={badgeFor(s)}>{label}</span>;
-                  })()}
-                  <span style={isbn}>ISBN {b.isbn13}</span>
+                    {(() => {
+                      const s = b.status || "TBR";
+                      const label = s === "Finished" ? "Read" : s;
+                      return <span style={badgeFor(s)}>{label}</span>;
+                    })()}
+                    {!isRecentlyAdded && <span style={isbn}>ISBN {b.isbn13}</span>}
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -2028,6 +2056,27 @@ const actionButton: React.CSSProperties = {
   backdropFilter: "blur(8px)",
 };
 
+const actionButtonCompact: React.CSSProperties = {
+  position: "absolute",
+  top: 6,
+  right: 6,
+  width: 28,
+  height: 28,
+  borderRadius: 6,
+  border: "1px solid #2a2a32",
+  background: "rgba(21, 21, 28, 0.7)",
+  color: "#fff",
+  fontSize: 16,
+  fontWeight: 900,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 10,
+  backdropFilter: "blur(8px)",
+  opacity: 0.85,
+};
+
 const actionMenu: React.CSSProperties = {
   position: "fixed",
   bottom: 0,
@@ -2128,6 +2177,15 @@ const card: React.CSSProperties = {
   animation: "popIn 420ms ease both",
 };
 
+const cardCompact: React.CSSProperties = {
+  background: "#14141a",
+  border: "1px solid #2a2a32",
+  borderRadius: 14,
+  padding: 7.5, // ~25% reduction from 10px
+  boxShadow: "0 8px 20px rgba(0,0,0,0.25)", // Softer shadow
+  animation: "popIn 420ms ease both",
+};
+
 const coverWrap: React.CSSProperties = {
   position: "relative",
   width: "100%",
@@ -2135,6 +2193,17 @@ const coverWrap: React.CSSProperties = {
   overflow: "hidden",
   border: "1px solid #2a2a32",
   background: "#101014",
+  aspectRatio: "2 / 3",
+};
+
+const coverWrapCompact: React.CSSProperties = {
+  position: "relative",
+  width: "100%",
+  borderRadius: 10,
+  overflow: "hidden",
+  border: "1px solid #2a2a32",
+  background: "#101014",
+  height: 120, // Fixed height 110-130px range
   aspectRatio: "2 / 3",
 };
 
@@ -2161,16 +2230,52 @@ const coverPlaceholder: React.CSSProperties = {
     "linear-gradient(135deg, rgba(109,94,252,0.22), rgba(255,73,240,0.10) 45%, rgba(0,0,0,0) 70%), #101014",
 };
 
+const coverPlaceholderCompact: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  zIndex: 0,
+  pointerEvents: "none",
+  display: "grid",
+  alignContent: "center",
+  gap: 2,
+  padding: 10,
+  textAlign: "left",
+  background:
+    "linear-gradient(135deg, rgba(109,94,252,0.22), rgba(255,73,240,0.10) 45%, rgba(0,0,0,0) 70%), #101014",
+};
+
 const title: React.CSSProperties = {
   fontSize: 15,
   fontWeight: 950,
   lineHeight: 1.2,
 };
 
+const titleCompact: React.CSSProperties = {
+  fontSize: 14,
+  fontWeight: 950,
+  lineHeight: 1.3,
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
 const author: React.CSSProperties = {
   fontSize: 12,
   color: "#d8d8ff",
   fontWeight: 700,
+};
+
+const authorCompact: React.CSSProperties = {
+  fontSize: 12,
+  color: "#d8d8ff",
+  fontWeight: 700,
+  display: "-webkit-box",
+  WebkitLineClamp: 1,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
 
 const metaRow: React.CSSProperties = {
