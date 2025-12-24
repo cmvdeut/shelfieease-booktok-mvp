@@ -34,43 +34,53 @@ function AddFromIsbnParam({ onAdded }: { onAdded: () => void }) {
   const router = useRouter();
 
   useEffect(() => {
-    const isbn = searchParams.get("isbn");
-    if (!isbn) return;
+    const rawIsbn = searchParams.get("isbn");
+    if (!rawIsbn) return;
+
+    // Normaliseer ISBN: alleen cijfers en X behouden
+    const normalizedIsbn = rawIsbn.replace(/[^0-9X]/gi, "").trim();
+    if (!normalizedIsbn) {
+      console.error("Invalid ISBN:", rawIsbn);
+      router.replace("/library");
+      return;
+    }
 
     let cancelled = false;
 
     (async () => {
       try {
-        const data = await lookupByIsbn(isbn);
-        if (!data || cancelled) return;
+        console.log("Looking up ISBN:", normalizedIsbn);
+        const data = await lookupByIsbn(normalizedIsbn);
+        if (!data || cancelled) {
+          console.log("Lookup cancelled or no data");
+          return;
+        }
 
-        // lookupByIsbn kan andere keys hebben; normaliseer veilig
-        const d = data as any;
+        console.log("Lookup result:", data);
 
-        const isbn13 = String(d.isbn13 ?? d.isbn ?? d.isbn_13 ?? isbn);
-        const title = String(d.title ?? d.name ?? "Unknown title");
-        const authors = Array.isArray(d.authors)
-          ? d.authors
-          : Array.isArray(d.author)
-            ? d.author
-            : [];
-        const coverUrl = String(d.coverUrl ?? d.cover_url ?? d.cover ?? "");
+        // lookupByIsbn retourneert { title, authors, coverUrl }
+        const title = String(data.title || "Unknown title");
+        const authors = Array.isArray(data.authors) ? data.authors : [];
+        const coverUrl = String(data.coverUrl || "");
 
         const shelfId = getActiveShelfId() || ensureDefaultShelf().id;
         const now = Date.now();
 
-        const book = {
-          id: isbn13,
-          isbn13,
+        const book: Book = {
+          id: normalizedIsbn,
+          isbn13: normalizedIsbn,
           title,
           authors,
           coverUrl,
           shelfId,
-          status: "TBR",
+          status: "TBR" as BookStatus,
+          addedAt: now,
           updatedAt: now,
-        } as Book;
+        };
 
+        console.log("Adding book:", book);
         upsertBook(book);
+        console.log("Book added, refreshing list");
         onAdded();
       } catch (e) {
         console.error("Failed to add book from ISBN:", e);
