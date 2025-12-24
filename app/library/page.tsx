@@ -1201,14 +1201,10 @@ What should I add next? 👀
         <div style={grid}>
           {activeBooks.map((b, idx) => {
             const isRecent = b.id === recentBookId;
-            const cardStyle = isRecent ? cardCompact : card;
-            const titleStyle = isRecent ? titleCompact : title;
-            const authorStyle = isRecent ? authorCompact : author;
-            const coverWrapStyle = isRecent ? coverWrapCompact : coverWrap;
             const buttonStyle = isRecent ? actionButtonCompact : actionButton;
 
             return (
-              <div key={b.id} style={{ ...cardStyle, animationDelay: `${idx * 35}ms`, position: "relative" }}>
+              <div key={b.id} style={{ ...card, animationDelay: `${idx * 35}ms`, position: "relative" }}>
                 {/* Action menu button - only show when details are expanded OR not recent */}
                 {(!isRecent || showRecentDetails) && (
                   <button
@@ -1280,37 +1276,18 @@ What should I add next? 👀
                 )}
 
                 {/* Cover */}
-                {isRecent ? (
-                  <div style={coverWrapStyle}>
-                    <div style={coverPlaceholderCompact}>
-                      <div style={{ fontWeight: 950, fontSize: 13, lineHeight: 1.2 }}>{b.title || "Unknown"}</div>
-                      {b.authors?.length ? (
-                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>{b.authors[0]}</div>
-                      ) : null}
-                    </div>
-                    {b.coverUrl ? (
-                      <CoverImg
-                        src={toHttps(b.coverUrl)}
-                        alt={b.title}
-                        style={coverImg}
-                        onError={() => handleCoverError(b.id)}
-                      />
-                    ) : null}
-                  </div>
-                ) : (
-                  <Cover
-                    isbn13={b.isbn13}
-                    coverUrl={b.coverUrl || ""}
-                    title={b.title}
-                    authors={b.authors || []}
-                    onBadCover={() => handleCoverError(b.id)}
-                  />
-                )}
+                <Cover
+                  isbn13={b.isbn13}
+                  coverUrl={b.coverUrl || ""}
+                  title={b.title}
+                  authors={b.authors || []}
+                  onBadCover={() => handleCoverError(b.id)}
+                />
 
                 {/* Content */}
-                <div style={{ display: "grid", gap: isRecent ? 4 : 6, marginTop: isRecent ? 8 : 10 }}>
-                  <div style={titleStyle}>{b.title}</div>
-                  {b.authors?.length ? <div style={authorStyle}>by {b.authors.join(", ")}</div> : null}
+              <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
+                  <div style={title}>{b.title}</div>
+                  {b.authors?.length ? <div style={author}>by {b.authors.join(", ")}</div> : null}
 
                   {/* Confirmation message for recent book when collapsed */}
                   {isRecent && !showRecentDetails && (
@@ -1321,14 +1298,14 @@ What should I add next? 👀
 
                   {/* Details section - only show when expanded OR not recent */}
                   {(!isRecent || showRecentDetails) && (
-                    <div style={metaRow}>
+                <div style={metaRow}>
                       {(() => {
                         const s = b.status || "TBR";
                         const label = s === "Finished" ? "Read" : s;
                         return <span style={badgeFor(s)}>{label}</span>;
                       })()}
                       <span style={isbn}>ISBN {b.isbn13}</span>
-                    </div>
+                </div>
                   )}
 
                   {/* Toggle button for recent book */}
@@ -1355,8 +1332,8 @@ What should I add next? 👀
                       {showRecentDetails ? "Verberg details" : "Toon details"}
                     </button>
                   )}
-                </div>
               </div>
+            </div>
             );
           })}
         </div>
@@ -2230,15 +2207,6 @@ const card: React.CSSProperties = {
   animation: "popIn 420ms ease both",
 };
 
-const cardCompact: React.CSSProperties = {
-  background: "#14141a",
-  border: "1px solid #2a2a32",
-  borderRadius: 14,
-  padding: 7.5, // ~25% reduction from 10px
-  boxShadow: "0 8px 20px rgba(0,0,0,0.25)", // Softer shadow
-  animation: "popIn 420ms ease both",
-};
-
 const coverWrap: React.CSSProperties = {
   position: "relative",
   width: "100%",
@@ -2246,17 +2214,6 @@ const coverWrap: React.CSSProperties = {
   overflow: "hidden",
   border: "1px solid #2a2a32",
   background: "#101014",
-  aspectRatio: "2 / 3",
-};
-
-const coverWrapCompact: React.CSSProperties = {
-  position: "relative",
-  width: "100%",
-  borderRadius: 10,
-  overflow: "hidden",
-  border: "1px solid #2a2a32",
-  background: "#101014",
-  height: 120, // Fixed height 110-130px range
   aspectRatio: "2 / 3",
 };
 
@@ -2283,30 +2240,11 @@ const coverPlaceholder: React.CSSProperties = {
     "linear-gradient(135deg, rgba(109,94,252,0.22), rgba(255,73,240,0.10) 45%, rgba(0,0,0,0) 70%), #101014",
 };
 
-const coverPlaceholderCompact: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  zIndex: 0,
-  pointerEvents: "none",
-  display: "grid",
-  alignContent: "center",
-  gap: 2,
-  padding: 10,
-  textAlign: "left",
-  background:
-    "linear-gradient(135deg, rgba(109,94,252,0.22), rgba(255,73,240,0.10) 45%, rgba(0,0,0,0) 70%), #101014",
-};
 
 const title: React.CSSProperties = {
   fontSize: 15,
   fontWeight: 950,
   lineHeight: 1.2,
-};
-
-const titleCompact: React.CSSProperties = {
-  fontSize: 14,
-  fontWeight: 950,
-  lineHeight: 1.3,
   display: "-webkit-box",
   WebkitLineClamp: 2,
   WebkitBoxOrient: "vertical",
@@ -2315,12 +2253,6 @@ const titleCompact: React.CSSProperties = {
 };
 
 const author: React.CSSProperties = {
-  fontSize: 12,
-  color: "#d8d8ff",
-  fontWeight: 700,
-};
-
-const authorCompact: React.CSSProperties = {
   fontSize: 12,
   color: "#d8d8ff",
   fontWeight: 700,
