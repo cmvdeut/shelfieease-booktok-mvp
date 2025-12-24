@@ -71,6 +71,8 @@ export default function LibraryPage() {
   const [shareCaption, setShareCaption] = useState("");
   const [copyImageStatus, setCopyImageStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [copyCaptionStatus, setCopyCaptionStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [recentBookId, setRecentBookId] = useState<string | null>(null);
+  const [showRecentDetails, setShowRecentDetails] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const actionMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -218,6 +220,9 @@ export default function LibraryPage() {
     setActiveShelfId(shelfId);
     setActiveShelfIdState(shelfId);
     setShowShelfDropdown(false);
+    // Reset recent book state when switching shelves
+    setRecentBookId(null);
+    setShowRecentDetails(false);
   }
 
   function suggestEmojiFromName(name: string): string | null {
@@ -307,6 +312,9 @@ export default function LibraryPage() {
     setEmoji("📚");
     setEmojiTouched(false);
     setSuggestedEmoji(null);
+    // Reset recent book state when creating new shelf (which becomes active)
+    setRecentBookId(null);
+    setShowRecentDetails(false);
   }
 
   function handleCreateShelfInAddModal() {
@@ -342,6 +350,10 @@ export default function LibraryPage() {
     upsertBook(book);
     handleBookAdded();
     showToast("Boek toegevoegd aan je shelf ✨");
+    
+    // Set recent book ID and start collapsed
+    setRecentBookId(book.id);
+    setShowRecentDetails(false);
     
     // Reset state and clean URL
     setAddModalOpen(false);
@@ -1188,26 +1200,30 @@ What should I add next? 👀
       ) : (
         <div style={grid}>
           {activeBooks.map((b, idx) => {
-            const isRecentlyAdded = idx === 0; // First card is the most recently added
-            const cardStyle = isRecentlyAdded ? cardCompact : card;
-            const buttonStyle = isRecentlyAdded ? actionButtonCompact : actionButton;
-            const titleStyle = isRecentlyAdded ? titleCompact : title;
-            const authorStyle = isRecentlyAdded ? authorCompact : author;
-            const coverWrapStyle = isRecentlyAdded ? coverWrapCompact : coverWrap;
+            const isRecent = b.id === recentBookId;
+            const cardStyle = isRecent ? cardCompact : card;
+            const titleStyle = isRecent ? titleCompact : title;
+            const authorStyle = isRecent ? authorCompact : author;
+            const coverWrapStyle = isRecent ? coverWrapCompact : coverWrap;
+            const buttonStyle = isRecent ? actionButtonCompact : actionButton;
 
             return (
               <div key={b.id} style={{ ...cardStyle, animationDelay: `${idx * 35}ms`, position: "relative" }}>
-                <button
-                  style={buttonStyle}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActionMenuBookId(actionMenuBookId === b.id ? null : b.id);
-                  }}
-                >
-                  ⋯
-                </button>
+                {/* Action menu button - only show when details are expanded OR not recent */}
+                {(!isRecent || showRecentDetails) && (
+                  <button
+                    style={buttonStyle}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActionMenuBookId(actionMenuBookId === b.id ? null : b.id);
+                    }}
+                  >
+                    ⋯
+                  </button>
+                )}
 
-                {actionMenuBookId === b.id && (
+                {/* Action menu - only show when details are expanded OR not recent */}
+                {(!isRecent || showRecentDetails) && actionMenuBookId === b.id && (
                   <>
                     <div style={actionMenuOverlay} onClick={() => setActionMenuBookId(null)} />
                     <div
@@ -1263,7 +1279,8 @@ What should I add next? 👀
                   </>
                 )}
 
-                {isRecentlyAdded ? (
+                {/* Cover */}
+                {isRecent ? (
                   <div style={coverWrapStyle}>
                     <div style={coverPlaceholderCompact}>
                       <div style={{ fontWeight: 950, fontSize: 13, lineHeight: 1.2 }}>{b.title || "Unknown"}</div>
@@ -1290,20 +1307,56 @@ What should I add next? 👀
                   />
                 )}
 
-                <div style={{ display: "grid", gap: isRecentlyAdded ? 4 : 6, marginTop: isRecentlyAdded ? 8 : 10 }}>
+                {/* Content */}
+                <div style={{ display: "grid", gap: isRecent ? 4 : 6, marginTop: isRecent ? 8 : 10 }}>
                   <div style={titleStyle}>{b.title}</div>
                   {b.authors?.length ? <div style={authorStyle}>by {b.authors.join(", ")}</div> : null}
 
-                <div style={metaRow}>
-                    {(() => {
-                      const s = b.status || "TBR";
-                      const label = s === "Finished" ? "Read" : s;
-                      return <span style={badgeFor(s)}>{label}</span>;
-                    })()}
-                    {!isRecentlyAdded && <span style={isbn}>ISBN {b.isbn13}</span>}
+                  {/* Confirmation message for recent book when collapsed */}
+                  {isRecent && !showRecentDetails && (
+                    <div style={{ fontSize: 11, color: "#8f8fa3", fontWeight: 700, marginTop: 2 }}>
+                      ✓ Toegevoegd aan shelf
+                    </div>
+                  )}
+
+                  {/* Details section - only show when expanded OR not recent */}
+                  {(!isRecent || showRecentDetails) && (
+                    <div style={metaRow}>
+                      {(() => {
+                        const s = b.status || "TBR";
+                        const label = s === "Finished" ? "Read" : s;
+                        return <span style={badgeFor(s)}>{label}</span>;
+                      })()}
+                      <span style={isbn}>ISBN {b.isbn13}</span>
+                    </div>
+                  )}
+
+                  {/* Toggle button for recent book */}
+                  {isRecent && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowRecentDetails(!showRecentDetails);
+                      }}
+                      style={{
+                        marginTop: 4,
+                        padding: 0,
+                        border: 0,
+                        background: "transparent",
+                        color: "#cfcfe6",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        textAlign: "left",
+                        opacity: 0.8,
+                        textDecoration: "none",
+                      }}
+                    >
+                      {showRecentDetails ? "Verberg details" : "Toon details"}
+                    </button>
+                  )}
                 </div>
               </div>
-            </div>
             );
           })}
         </div>
