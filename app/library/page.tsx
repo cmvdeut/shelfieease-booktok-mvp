@@ -1,17 +1,94 @@
 "use client";
-import { useSearchParams, useRouter } from "next/navigation";
-import { upsertBook } from "@/lib/storage";
 
 import Link from "next/link";
-import React, { useEffect, useMemo, useState, useRef } from "react";
-import { loadBooks, saveBooks, getActiveShelfId, setActiveShelfId, ensureDefaultShelf, loadShelves, createShelf, updateBook, deleteBook, type Book, type Shelf, type BookStatus } from "@/lib/storage";
+import React, { useEffect, useMemo, useState, useRef, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+
+import {
+  loadBooks,
+  saveBooks,
+  getActiveShelfId,
+  setActiveShelfId,
+  ensureDefaultShelf,
+  loadShelves,
+  createShelf,
+  updateBook,
+  deleteBook,
+  upsertBook,
+  type Book,
+  type Shelf,
+  type BookStatus,
+} from "@/lib/storage";
+
 import { lookupByIsbn } from "@/lib/lookup";
 import { CoverImg } from "@/components/CoverImg";
 import { toBlob } from "html-to-image";
 
-export default function LibraryPage() {
+/**
+ * Next.js build fix:
+ * useSearchParams() must be wrapped in Suspense.
+ * We isolate query param logic in a tiny component rendered inside <Suspense>.
+ */
+function AddFromIsbnParam({ onAdded }: { onAdded: () => void }) {
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  useEffect(() => {
+    const isbn = searchParams.get("isbn");
+    if (!isbn) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const data = await lookupByIsbn(isbn);
+        if (!data || cancelled) return;
+
+        // lookupByIsbn kan andere keys hebben; normaliseer veilig
+        const d = data as any;
+
+        const isbn13 = String(d.isbn13 ?? d.isbn ?? d.isbn_13 ?? isbn);
+        const title = String(d.title ?? d.name ?? "Unknown title");
+        const authors = Array.isArray(d.authors)
+          ? d.authors
+          : Array.isArray(d.author)
+            ? d.author
+            : [];
+        const coverUrl = String(d.coverUrl ?? d.cover_url ?? d.cover ?? "");
+
+        const shelfId = getActiveShelfId() || ensureDefaultShelf().id;
+        const now = Date.now();
+
+        const book = {
+          id: isbn13,
+          isbn13,
+          title,
+          authors,
+          coverUrl,
+          shelfId,
+          status: "TBR",
+          updatedAt: now,
+        } as Book;
+
+        upsertBook(book);
+        onAdded();
+      } catch (e) {
+        console.error("Failed to add book from ISBN:", e);
+      } finally {
+        // URL opschonen zodat refresh niet opnieuw toevoegt
+        router.replace("/library");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, router, onAdded]);
+
+  return null;
+}
+
+export default function LibraryPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [shelves, setShelves] = useState<Shelf[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -33,72 +110,66 @@ export default function LibraryPage() {
   const [shareCaption, setShareCaption] = useState("");
   const [copyImageStatus, setCopyImageStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [copyCaptionStatus, setCopyCaptionStatus] = useState<"idle" | "copied" | "failed">("idle");
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const actionMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const shareCardRef = useRef<HTMLDivElement>(null);
-  
-  useEffect(() => {
-    const isbn = searchParams.get("isbn");
-    if (!isbn) return;
-  
-    let cancelled = false;
-  
-    (async () => {
-      try {
-        const data = await lookupByIsbn(isbn);
-        if (!data || cancelled) return;
-  
-        // kies shelf: huidige actieve of default
-        const shelfId = getActiveShelfId() || ensureDefaultShelf().id;
-  
-        // maak een volledig Book object (geen spread van lookup result)
-        const now = Date.now();
 
-        // lookupByIsbn kan andere key-namen hebben; normaliseer veilig
-        const d = data as any;
-        
-        const isbn13 = String(d.isbn13 ?? d.isbn ?? d.isbn_13 ?? isbn);
-        const title = String(d.title ?? d.name ?? "Unknown title");
-        const authors = Array.isArray(d.authors)
-          ? d.authors
-          : Array.isArray(d.author)
-            ? d.author
-            : [];
-        const coverUrl = String(d.coverUrl ?? d.cover_url ?? d.cover ?? "");
-        
-        // Bouw een Book (zonder createdAt, want die geeft bij jou errors)
-        const book = {
-          id: isbn13,
-          isbn13,
-          title,
-          authors,
-          coverUrl,
-          shelfId,
-          status: "TBR",
-          updatedAt: now,
-        } as Book;
-        
-        upsertBook(book);
-        setBooks(loadBooks()); 
-  
-        upsertBook(book);
-  
-        // UI sync: herlaad books state zodat je ‘m direct ziet
-        const updated = loadBooks();
-        setBooks(updated);
-      } catch (e) {
-        console.error("Failed to add book from ISBN:", e);
-      } finally {
-        // URL opschonen zodat refresh niet opnieuw toevoegt
-        router.replace("/library");
+  useEffect(() => {
+    // Ensure default shelf exists
+    ensureDefaultShelf();
+
+    // Load shelves
+    const allShelves = loadShelves();
+    setShelves(allShelves);
+
+    // Get active shelf ID
+    const activeId = getActiveShelfId();
+    setActiveShelfIdState(activeId);
+
+    // Load books and migrate any without shelfId to default shelf
+    const allBooks = loadBooks();
+    const defaultShelfId = getActiveShelfId() || ensureDefaultShelf().id;
+
+    // If we previously confirmed an Open Library cover is missing, strip any stale
+    // `default=false` Open Library coverUrl to avoid repeated 404 console spam.
+    const hasOlMissingFlag = (isbn13: string) => {
+      try {
+        return Boolean(localStorage.getItem(`se:olCoverMissing:${isbn13}`));
+      } catch {
+        return false;
       }
-    })();
-  
-    return () => {
-      cancelled = true;
     };
-  }, [searchParams, router]);
-  
+    const stripStaleOpenLibraryCover = (b: Book) => {
+      if (!b.coverUrl) return b;
+      if (!b.isbn13) return b;
+      if (!b.coverUrl.includes("covers.openlibrary.org")) return b;
+      if (!b.coverUrl.includes("default=false")) return b;
+      if (!hasOlMissingFlag(b.isbn13)) return b;
+      return { ...b, coverUrl: "" };
+    };
+    let didStrip = false;
+    const cleanedBooks = allBooks.map((b) => {
+      const next = stripStaleOpenLibraryCover(b);
+      if (next !== b) didStrip = true;
+      return next;
+    });
+
+    const needsMigration = cleanedBooks.some((b) => !b.shelfId);
+    if (needsMigration) {
+      const migrated = cleanedBooks.map((b) => ({
+        ...b,
+        shelfId: b.shelfId || defaultShelfId,
+        updatedAt: b.updatedAt || Date.now(),
+      }));
+      saveBooks(migrated);
+      setBooks(migrated);
+    } else {
+      // Persist cleanup if we changed anything
+      if (didStrip) saveBooks(cleanedBooks);
+      setBooks(cleanedBooks);
+    }
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -131,10 +202,9 @@ export default function LibraryPage() {
     const tbr = activeBooks.filter((b) => (b.status ?? "TBR") === "TBR").length;
     const reading = activeBooks.filter((b) => (b.status ?? "TBR") === "Reading").length;
     const read = activeBooks.filter((b) => (b.status ?? "TBR") === "Finished").length;
-   
+
     return { total: activeBooks.length, tbr, reading, read };
   }, [activeBooks]);
-  
 
   function handleShelfSelect(shelfId: string) {
     setActiveShelfId(shelfId);
@@ -216,10 +286,10 @@ export default function LibraryPage() {
   function handleCreateShelf() {
     const nameTrimmed = name.trim();
     if (!nameTrimmed || nameTrimmed.length > 24) return;
-    
+
     // Validate emoji - fallback to 📚 if empty
     const emojiTrimmed = emoji.trim() || "📚";
-    
+
     const shelf = createShelf(nameTrimmed, emojiTrimmed);
     const updatedShelves = loadShelves();
     setShelves(updatedShelves);
@@ -286,7 +356,7 @@ export default function LibraryPage() {
 
   async function handleShareShelf() {
     if (!shareCardRef.current || !activeShelf) return;
-    
+
     setSharing(true);
     try {
       const title = `${activeShelf.emoji || "📚"} ${activeShelf.name}`;
@@ -354,7 +424,7 @@ What should I add next? 👀
 
       if (isMobile && navigator.share) {
         const file = new File([blob], filename, { type: "image/png" });
-        if (navigator.canShare?.({ files: [file] })) {
+        if ((navigator as any).canShare?.({ files: [file] })) {
           try {
             await navigator.share({
               title,
@@ -368,7 +438,7 @@ What should I add next? 👀
         }
       }
 
-      // Desktop (or fallback): show options modal (download / copy / links / optional share sheet)
+      // Desktop (or fallback): show options modal
       setShareModalOpen(true);
     } catch (error) {
       console.error("Failed to generate share card:", error);
@@ -389,7 +459,7 @@ What should I add next? 👀
   }
 
   const activeShelf = shelves.find((s) => s.id === activeShelfId);
-  
+
   // Get first few covers for blurred background
   const shelfCovers = useMemo(() => {
     return activeBooks
@@ -402,39 +472,46 @@ What should I add next? 👀
 
   return (
     <main style={page}>
+      {/* ✅ Suspense wrapper to satisfy Next build for useSearchParams */}
+      <Suspense fallback={null}>
+        <AddFromIsbnParam onAdded={() => setBooks(loadBooks())} />
+      </Suspense>
+
       {/* Shelf Header with blurred background */}
       <div style={shelfHeader}>
         {shelfCovers.length > 0 && (
-          <div style={{
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              backgroundImage: `url(${shelfCovers[0]})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              filter: "blur(40px) brightness(0.4)",
+              transform: "scale(1.1)",
+              zIndex: 0,
+            }}
+          />
+        )}
+        <div
+          style={{
             position: "absolute",
             inset: 0,
-            backgroundImage: `url(${shelfCovers[0]})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            filter: "blur(40px) brightness(0.4)",
-            transform: "scale(1.1)",
+            background:
+              shelfCovers.length > 0
+                ? "linear-gradient(135deg, rgba(109,94,252,0.35), rgba(255,73,240,0.20) 45%, rgba(0,0,0,0.7) 70%)"
+                : "linear-gradient(135deg, rgba(109,94,252,0.22), rgba(255,73,240,0.10) 45%, rgba(0,0,0,0) 70%), #121218",
             zIndex: 0,
-          }} />
-        )}
-        <div style={{
-          position: "absolute",
-          inset: 0,
-          background: shelfCovers.length > 0
-            ? "linear-gradient(135deg, rgba(109,94,252,0.35), rgba(255,73,240,0.20) 45%, rgba(0,0,0,0.7) 70%)"
-            : "linear-gradient(135deg, rgba(109,94,252,0.22), rgba(255,73,240,0.10) 45%, rgba(0,0,0,0) 70%), #121218",
-          zIndex: 0,
-        }} />
+          }}
+        />
         <div style={{ ...shelfHeaderContent, position: "relative", zIndex: 10000 }}>
           <div style={{ position: "relative", display: "inline-block" }} ref={dropdownRef}>
-            <button
-              style={shelfSelector}
-              onClick={() => setShowShelfDropdown(!showShelfDropdown)}
-            >
+            <button style={shelfSelector} onClick={() => setShowShelfDropdown(!showShelfDropdown)}>
               <span style={{ fontSize: 24 }}>{activeShelf?.emoji || "📚"}</span>
               <span style={{ fontSize: 20, fontWeight: 950 }}>{activeShelf?.name || "My Shelf"}</span>
               <span style={{ fontSize: 12, opacity: 0.7 }}>▼</span>
             </button>
-            
+
             {showShelfDropdown && (
               <div style={dropdown}>
                 {shelves.map((shelf) => (
@@ -462,10 +539,10 @@ What should I add next? 👀
                   <span>+</span>
                   <span>New shelf</span>
                 </button>
-        </div>
+              </div>
             )}
           </div>
-          
+
           <div style={shelfStats}>
             <div style={statItem}>
               <span style={statNumber}>{stats.total}</span>
@@ -486,10 +563,18 @@ What should I add next? 👀
           </div>
         </div>
 
-        <div style={{ ...actions, position: "relative", zIndex: 1, pointerEvents: showShelfDropdown ? "none" : "auto" }}>
+        <div
+          style={{
+            ...actions,
+            position: "relative",
+            zIndex: 1,
+            pointerEvents: showShelfDropdown ? "none" : "auto",
+          }}
+        >
           <button style={btnGhost} onClick={refreshCovers} disabled={refreshing}>
             {refreshing ? "Refreshing…" : "Refresh covers"}
           </button>
+
           <div
             style={{
               display: "flex",
@@ -510,7 +595,10 @@ What should I add next? 👀
               style={{
                 padding: "8px 10px",
                 borderRadius: 999,
-                border: shareStyle === "aesthetic" ? "1px solid rgba(255,255,255,0.20)" : "1px solid transparent",
+                border:
+                  shareStyle === "aesthetic"
+                    ? "1px solid rgba(255,255,255,0.20)"
+                    : "1px solid transparent",
                 cursor: "pointer",
                 fontWeight: 950,
                 fontSize: 12,
@@ -534,7 +622,10 @@ What should I add next? 👀
               style={{
                 padding: "8px 10px",
                 borderRadius: 999,
-                border: shareStyle === "bold" ? "1px solid rgba(255,255,255,0.18)" : "1px solid transparent",
+                border:
+                  shareStyle === "bold"
+                    ? "1px solid rgba(255,255,255,0.18)"
+                    : "1px solid transparent",
                 cursor: "pointer",
                 fontWeight: 950,
                 fontSize: 12,
@@ -550,7 +641,9 @@ What should I add next? 👀
               Bold
             </button>
           </div>
+
           <ShareCardPreview variant={shareStyle} />
+
           <button
             style={btnGhost}
             onClick={handleShareShelf}
@@ -560,10 +653,11 @@ What should I add next? 👀
           >
             {sharing ? "Generating…" : "Share Shelfie"}
           </button>
-        <Link href="/scan">
-          <button style={btnPrimary}>+ Scan</button>
-        </Link>
-      </div>
+
+          <Link href="/scan">
+            <button style={btnPrimary}>+ Scan</button>
+          </Link>
+        </div>
       </div>
 
       {/* Hidden Share Card for rendering */}
@@ -640,9 +734,7 @@ What should I add next? 👀
 
               <button
                 style={btnGhost}
-                disabled={
-                  !shareCaption || !(navigator as any)?.clipboard?.writeText
-                }
+                disabled={!shareCaption || !(navigator as any)?.clipboard?.writeText}
                 onClick={async () => {
                   if (!shareCaption) return;
                   try {
@@ -680,7 +772,7 @@ What should I add next? 👀
                   if (!shareBlob) return;
                   if (!navigator.share) return;
                   const file = new File([shareBlob], shareFilename || "shelf.png", { type: "image/png" });
-                  if (navigator.canShare?.({ files: [file] })) {
+                  if ((navigator as any).canShare?.({ files: [file] })) {
                     try {
                       await navigator.share({
                         title: "ShelfieEase",
@@ -697,10 +789,7 @@ What should I add next? 👀
                 Open system share
               </button>
 
-              <button
-                style={btnGhost}
-                onClick={() => setShareModalOpen(false)}
-              >
+              <button style={btnGhost} onClick={() => setShareModalOpen(false)}>
                 Close
               </button>
             </div>
@@ -709,13 +798,16 @@ What should I add next? 👀
       )}
 
       {showNewShelfModal && (
-        <div style={modalOverlay} onClick={() => {
-          setShowNewShelfModal(false);
-          setEmojiTouched(false);
-          setName("");
-          setEmoji("📚");
-          setSuggestedEmoji(null);
-        }}>
+        <div
+          style={modalOverlay}
+          onClick={() => {
+            setShowNewShelfModal(false);
+            setEmojiTouched(false);
+            setName("");
+            setEmoji("📚");
+            setSuggestedEmoji(null);
+          }}
+        >
           <div style={modal} onClick={(e) => e.stopPropagation()}>
             <h2 style={modalTitle}>New Shelf</h2>
             <div style={modalForm}>
@@ -734,25 +826,23 @@ What should I add next? 👀
                   style={formInput}
                   autoFocus
                 />
-                <div style={formHint}>
-                  {name.length}/24
-                </div>
+                <div style={formHint}>{name.length}/24</div>
                 {suggestedEmoji && !emojiTouched && (
                   <div style={{ marginTop: 6, fontSize: 12, color: "#b7b7b7" }}>
                     Suggested emoji: <span style={{ fontSize: 16 }}>{suggestedEmoji}</span>
                   </div>
                 )}
               </div>
+
               <div style={formGroup}>
                 <label style={formLabel}>Emoji</label>
                 <div style={emojiPicker}>
                   {(() => {
                     const defaultEmojis = ["📚", "✨", "🔥", "💖", "🧙", "🗡️", "🌙", "🧋", "😭", "🕯️", "🏰", "🐉"];
-                    // If suggested emoji exists, place it first and remove duplicates
                     const emojisToShow = suggestedEmoji
                       ? [suggestedEmoji, ...defaultEmojis.filter((e) => e !== suggestedEmoji)]
                       : defaultEmojis;
-                    
+
                     return emojisToShow.map((emojiOption) => (
                       <button
                         key={emojiOption}
@@ -771,17 +861,16 @@ What should I add next? 👀
                     ));
                   })()}
                 </div>
+
                 <input
                   type="text"
                   value={emoji}
                   onChange={(e) => {
                     setEmojiTouched(true);
                     const val = e.target.value.slice(0, 2);
-                    // Emoji is required: if cleared, immediately revert to 📚
                     setEmoji(val.trim() ? val : "📚");
                   }}
                   onBlur={(e) => {
-                    // Only set default if empty when user leaves field
                     if (!e.target.value.trim()) {
                       setEmoji("📚");
                     }
@@ -791,21 +880,21 @@ What should I add next? 👀
                   maxLength={2}
                 />
               </div>
+
               <div style={modalActions}>
-                <button style={btnGhost} onClick={() => {
-                  setShowNewShelfModal(false);
-                  setEmojiTouched(false);
-                  setName("");
-                  setEmoji("📚");
-                  setSuggestedEmoji(null);
-                }}>
+                <button
+                  style={btnGhost}
+                  onClick={() => {
+                    setShowNewShelfModal(false);
+                    setEmojiTouched(false);
+                    setName("");
+                    setEmoji("📚");
+                    setSuggestedEmoji(null);
+                  }}
+                >
                   Cancel
                 </button>
-                <button
-                  style={btnPrimary}
-                  onClick={handleCreateShelf}
-                  disabled={!name.trim()}
-                >
+                <button style={btnPrimary} onClick={handleCreateShelf} disabled={!name.trim()}>
                   Create
                 </button>
               </div>
@@ -818,9 +907,7 @@ What should I add next? 👀
         <div style={modalOverlay} onClick={() => setShowDeleteConfirm(null)}>
           <div style={modal} onClick={(e) => e.stopPropagation()}>
             <h2 style={modalTitle}>Delete book?</h2>
-            <p style={{ color: "#cfcfe6", margin: "0 0 24px" }}>
-              This action cannot be undone.
-            </p>
+            <p style={{ color: "#cfcfe6", margin: "0 0 24px" }}>This action cannot be undone.</p>
             <div style={modalActions}>
               <button style={btnGhost} onClick={() => setShowDeleteConfirm(null)}>
                 Cancel
@@ -838,9 +925,7 @@ What should I add next? 👀
 
       {activeBooks.length === 0 ? (
         <div style={emptyCard}>
-          <p style={{ color: "#cfcfe6", marginTop: 0, fontWeight: 700 }}>
-            No books yet. Time to scan 📚✨
-          </p>
+          <p style={{ color: "#cfcfe6", marginTop: 0, fontWeight: 700 }}>No books yet. Time to scan 📚✨</p>
           <Link href="/scan">
             <button style={btnPrimary}>Scan your first book</button>
           </Link>
@@ -858,13 +943,10 @@ What should I add next? 👀
               >
                 ⋯
               </button>
-              
+
               {actionMenuBookId === b.id && (
                 <>
-                  <div
-                    style={actionMenuOverlay}
-                    onClick={() => setActionMenuBookId(null)}
-                  />
+                  <div style={actionMenuOverlay} onClick={() => setActionMenuBookId(null)} />
                   <div
                     ref={(el) => {
                       actionMenuRefs.current[b.id] = el;
@@ -874,49 +956,46 @@ What should I add next? 👀
                     <div style={actionMenuHandle} />
                     <div style={actionMenuSection}>
                       <div style={actionMenuLabel}>Move to shelf</div>
-                    {shelves.map((shelf) => (
-                      <button
-                        key={shelf.id}
-                        style={{
-                          ...actionMenuItem,
-                          ...(shelf.id === b.shelfId ? actionMenuItemActive : {}),
-                        }}
-                        onClick={() => handleMoveBook(b.id, shelf.id)}
-                      >
-                        <span>{shelf.emoji}</span>
-                        <span>{shelf.name}</span>
-                        {shelf.id === b.shelfId && <span style={{ fontSize: 10 }}>✓</span>}
-                      </button>
-                    ))}
-                  </div>
-                  
-                  <div style={actionMenuDivider} />
-                  
-                  <div style={actionMenuSection}>
-                    <div style={actionMenuLabel}>Change status</div>
-                    {(["TBR", "Reading", "Finished"] as BookStatus[]).map((status) => (
-                      <button
-                        key={status}
-                        style={{
-                          ...actionMenuItem,
-                          ...(b.status === status ? actionMenuItemActive : {}),
-                        }}
-                        onClick={() => handleChangeStatus(b.id, status)}
-                      >
-                        <span>{status === "Finished" ? "Read" : status}</span>
-                        {b.status === status && <span style={{ fontSize: 10 }}>✓</span>}
-                      </button>
-                    ))}
-                  </div>
-                  
-                  <div style={actionMenuDivider} />
-                  
-                  <button
-                    style={{ ...actionMenuItem, color: "#ff6b6b" }}
-                    onClick={() => setShowDeleteConfirm(b.id)}
-                  >
-                    <span>Delete book</span>
-                  </button>
+                      {shelves.map((shelf) => (
+                        <button
+                          key={shelf.id}
+                          style={{
+                            ...actionMenuItem,
+                            ...(shelf.id === b.shelfId ? actionMenuItemActive : {}),
+                          }}
+                          onClick={() => handleMoveBook(b.id, shelf.id)}
+                        >
+                          <span>{shelf.emoji}</span>
+                          <span>{shelf.name}</span>
+                          {shelf.id === b.shelfId && <span style={{ fontSize: 10 }}>✓</span>}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div style={actionMenuDivider} />
+
+                    <div style={actionMenuSection}>
+                      <div style={actionMenuLabel}>Change status</div>
+                      {(["TBR", "Reading", "Finished"] as BookStatus[]).map((status) => (
+                        <button
+                          key={status}
+                          style={{
+                            ...actionMenuItem,
+                            ...(b.status === status ? actionMenuItemActive : {}),
+                          }}
+                          onClick={() => handleChangeStatus(b.id, status)}
+                        >
+                          <span>{status === "Finished" ? "Read" : status}</span>
+                          {b.status === status && <span style={{ fontSize: 10 }}>✓</span>}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div style={actionMenuDivider} />
+
+                    <button style={{ ...actionMenuItem, color: "#ff6b6b" }} onClick={() => setShowDeleteConfirm(b.id)}>
+                      <span>Delete book</span>
+                    </button>
                   </div>
                 </>
               )}
@@ -975,7 +1054,6 @@ type ShareCardTokens = {
 function getShareCardTokens(variant: ShareCardVariant): ShareCardTokens {
   if (variant === "bold") {
     return {
-      // Bold: higher contrast, thicker borders, larger type, less glow/blur.
       cardBg:
         "radial-gradient(1100px 900px at 18% 12%, rgba(255,73,240,0.30), rgba(255,73,240,0) 55%), radial-gradient(1100px 900px at 88% 18%, rgba(109,94,252,0.36), rgba(109,94,252,0) 60%), linear-gradient(135deg, rgba(109,94,252,0.30), rgba(255,73,240,0.18) 45%, rgba(0,0,0,0.97) 78%), #06060a",
       cardShadow:
@@ -993,7 +1071,6 @@ function getShareCardTokens(variant: ShareCardVariant): ShareCardTokens {
   }
 
   return {
-    // Aesthetic: softer shadows, thinner borders, slightly smaller title.
     cardBg:
       "radial-gradient(1100px 900px at 18% 12%, rgba(255,73,240,0.24), rgba(255,73,240,0) 55%), radial-gradient(1100px 900px at 88% 18%, rgba(109,94,252,0.30), rgba(109,94,252,0) 60%), linear-gradient(135deg, rgba(109,94,252,0.20), rgba(255,73,240,0.12) 45%, rgba(0,0,0,0.92) 78%), #090910",
     cardShadow:
@@ -1109,7 +1186,6 @@ const ShareCard = React.forwardRef<
   }
 >(({ mode: modeProp, shelf, coverUrls, variant, stats }, ref) => {
   const mode = modeProp ?? "share";
-  // 9:16 ratio - typical mobile story size
   const width = 1080;
   const height = 1920;
 
@@ -1121,8 +1197,6 @@ const ShareCard = React.forwardRef<
 
   const coverCount = coverUrls.filter(Boolean).length;
   const useTwoByTwo = coverCount <= 4;
-
-  // Render 4 slots for 2x2, else 6 slots for 3x2
   const slotCount = useTwoByTwo ? 4 : 6;
 
   const slots: Array<string | null> = Array.from({ length: slotCount }, (_, i) => coverUrls[i] || null);
@@ -1144,8 +1218,6 @@ const ShareCard = React.forwardRef<
           transform: isBold ? "none" : index % 2 === 0 ? `rotate(-${tilt}deg)` : `rotate(${tilt}deg)`,
         }}
       >
-        {/* Placeholder tile (always rendered behind the image).
-            If the cover is missing OR fails, CoverImg renders null and this stays visible. */}
         <div
           style={{
             position: "absolute",
@@ -1159,21 +1231,12 @@ const ShareCard = React.forwardRef<
           }}
         >
           <div style={{ fontSize: 28, lineHeight: 1 }}>📖</div>
-          <div
-            style={{
-              fontSize: 14,
-              fontWeight: 950,
-              color: "rgba(255,255,255,0.92)",
-            }}
-          >
-            No cover
-          </div>
+          <div style={{ fontSize: 14, fontWeight: 950, color: "rgba(255,255,255,0.92)" }}>No cover</div>
           <div style={{ fontSize: 12, fontWeight: 850, color: "rgba(255,255,255,0.55)" }}>
             Add more books to fill the grid
           </div>
         </div>
 
-        {/* Cover image (auto hides on error) */}
         <CoverImg
           src={src || ""}
           alt="Book cover"
@@ -1187,7 +1250,6 @@ const ShareCard = React.forwardRef<
           }}
         />
 
-        {/* Subtle shine */}
         <div
           style={{
             position: "absolute",
@@ -1219,18 +1281,15 @@ const ShareCard = React.forwardRef<
         boxShadow: tokens.cardShadow,
       }}
     >
-      {/* Soft overlay for extra depth */}
       <div
         style={{
           position: "absolute",
           inset: 0,
-          background:
-            "linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0) 35%, rgba(0,0,0,0.55) 100%)",
+          background: "linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0) 35%, rgba(0,0,0,0.55) 100%)",
           pointerEvents: "none",
         }}
       />
 
-      {/* Shelf header */}
       <div style={{ position: "relative", zIndex: 2, marginBottom: 34, textAlign: "center" }}>
         <div
           style={{
@@ -1251,7 +1310,6 @@ const ShareCard = React.forwardRef<
         </div>
       </div>
 
-      {/* Covers collage: 2 rows x 3 columns */}
       <div style={{ position: "relative", flex: 1, zIndex: 2, display: "flex", alignItems: "center" }}>
         <div
           style={{
@@ -1260,7 +1318,7 @@ const ShareCard = React.forwardRef<
             margin: "0 auto",
             display: "grid",
             gridTemplateColumns: useTwoByTwo ? "repeat(2, 1fr)" : "repeat(3, 1fr)",
-            gridTemplateRows: useTwoByTwo ? "repeat(2, auto)" : "repeat(2, auto)",
+            gridTemplateRows: "repeat(2, auto)",
             gap: useTwoByTwo ? 18 : 16,
             justifyContent: "center",
           }}
@@ -1271,7 +1329,6 @@ const ShareCard = React.forwardRef<
         </div>
       </div>
 
-      {/* Stats row: pill badges */}
       <div
         style={{
           position: "relative",
@@ -1315,7 +1372,6 @@ const ShareCard = React.forwardRef<
         ))}
       </div>
 
-      {/* Footer: hashtags (left) + watermark (right) */}
       <div
         style={{
           position: "relative",
@@ -1330,14 +1386,8 @@ const ShareCard = React.forwardRef<
           letterSpacing: 0.8,
         }}
       >
-        {mode === "share" ? (
-          <div style={{ opacity: isBold ? 0.55 : 0.45, fontWeight: 900 }}>#BookTok #TBR</div>
-        ) : (
-          <div />
-        )}
-        <div style={{ opacity: 0.7, fontWeight: 950 }}>
-          {mode === "shelfie" ? "ShelfieEase" : "ShelfieEase · Share"}
-        </div>
+        {mode === "share" ? <div style={{ opacity: isBold ? 0.55 : 0.45, fontWeight: 900 }}>#BookTok #TBR</div> : <div />}
+        <div style={{ opacity: 0.7, fontWeight: 950 }}>{mode === "shelfie" ? "ShelfieEase" : "ShelfieEase · Share"}</div>
       </div>
     </div>
   );
@@ -1358,14 +1408,10 @@ function Cover({
   authors: string[];
   onBadCover?: () => void;
 }) {
-  // IMPORTANT: Do not auto-fallback to Open Library here.
-  // Missing covers should render the placeholder without generating 404 requests.
   const candidates = [coverUrl ? toHttps(coverUrl) : ""].filter(Boolean);
 
   const [srcIndex, setSrcIndex] = useState(0);
   const src = candidates[srcIndex] || "";
-
-  const goNext = () => setSrcIndex((i) => (i + 1 < candidates.length ? i + 1 : i));
 
   return (
     <div style={coverWrap}>
@@ -1866,7 +1912,7 @@ function badgeFor(status: string): React.CSSProperties {
     fontWeight: 950,
     padding: "6px 10px",
     borderRadius: 999,
-  border: "1px solid #2a2a32",
+    border: "1px solid #2a2a32",
   };
 
   if (status === "Finished") return { ...base, background: "rgba(79, 209, 197, 0.18)", color: "#bff7ef" };
