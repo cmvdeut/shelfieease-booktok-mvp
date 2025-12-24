@@ -75,27 +75,76 @@ export function setActiveShelfId(shelfId: string) {
   localStorage.setItem(KEY_ACTIVE_SHELF, shelfId);
 }
 
-export function ensureDefaultShelf(): Shelf {
+/**
+ * Find a shelf by name (case-insensitive)
+ */
+function findShelfByNameInternal(shelves: Shelf[], name: string): Shelf | undefined {
+  const normalized = name.trim().toLowerCase();
+  return shelves.find((s) => s.name.trim().toLowerCase() === normalized);
+}
+
+/**
+ * Ensure default shelves exist: "My Shelf" (📚) and "Wanna Haves" (🛍️)
+ * Only creates missing shelves, doesn't modify existing ones.
+ * Doesn't change active shelf.
+ */
+export function ensureDefaultShelves(): Shelf[] {
   const shelves = loadShelves();
-  if (shelves.length === 0) {
-    const defaultShelf: Shelf = {
-      id: crypto.randomUUID(),
-      name: "My Shelf",
-      emoji: "📚",
-      createdAt: Date.now(),
-    };
-    saveShelves([defaultShelf]);
-    setActiveShelfId(defaultShelf.id);
-    return defaultShelf;
+  const defaultShelves = [
+    { name: "My Shelf", emoji: "📚" },
+    { name: "Wanna Haves", emoji: "🛍️" },
+  ];
+
+  let changed = false;
+  const updatedShelves = [...shelves];
+
+  for (const defaultShelf of defaultShelves) {
+    // Check if shelf with this name already exists
+    if (!findShelfByNameInternal(updatedShelves, defaultShelf.name)) {
+      const newShelf: Shelf = {
+        id: crypto.randomUUID(),
+        name: defaultShelf.name,
+        emoji: defaultShelf.emoji,
+        createdAt: Date.now(),
+      };
+      updatedShelves.push(newShelf);
+      changed = true;
+    }
   }
-  
-  // Ensure active shelf is set
+
+  if (changed) {
+    saveShelves(updatedShelves);
+  }
+
+  // Ensure active shelf is set (but don't change it if it's already valid)
   const activeId = getActiveShelfId();
-  if (!activeId || !shelves.find((s) => s.id === activeId)) {
-    setActiveShelfId(shelves[0].id);
+  if (!activeId || !updatedShelves.find((s) => s.id === activeId)) {
+    // Only set active shelf if it's invalid or missing
+    const firstShelf = findShelfByNameInternal(updatedShelves, "My Shelf") || updatedShelves[0];
+    if (firstShelf) {
+      setActiveShelfId(firstShelf.id);
+    }
   }
-  
-  return shelves.find((s) => s.id === getActiveShelfId()) || shelves[0];
+
+  return updatedShelves;
+}
+
+/**
+ * @deprecated Use ensureDefaultShelves() instead
+ * Kept for backward compatibility
+ */
+export function ensureDefaultShelf(): Shelf {
+  const shelves = ensureDefaultShelves();
+  const activeId = getActiveShelfId();
+  return shelves.find((s) => s.id === activeId) || findShelfByNameInternal(shelves, "My Shelf") || shelves[0];
+}
+
+/**
+ * Find shelf by name (case-insensitive) - exported for use in components
+ */
+export function findShelfByName(shelves: Shelf[], name: string): Shelf | undefined {
+  const normalized = name.trim().toLowerCase();
+  return shelves.find((s) => s.name.trim().toLowerCase() === normalized);
 }
 
 export function createShelf(name: string, emoji: string = "📚"): Shelf {
@@ -122,6 +171,7 @@ export function loadBooks(): Book[] {
 
     const now = Date.now();
     const activeShelfId = getActiveShelfId();
+    ensureDefaultShelves(); // Ensure default shelves exist
     const defaultShelfId = activeShelfId || ensureDefaultShelf().id;
 
     const mapStatus = (s: unknown): BookStatus | undefined => {

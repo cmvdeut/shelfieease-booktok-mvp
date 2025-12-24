@@ -10,11 +10,13 @@ import {
   getActiveShelfId,
   setActiveShelfId,
   ensureDefaultShelf,
+  ensureDefaultShelves,
   loadShelves,
   createShelf,
   updateBook,
   deleteBook,
   upsertBook,
+  findShelfByName,
   type Book,
   type Shelf,
   type BookStatus,
@@ -64,7 +66,14 @@ function AddFromIsbnParam({ onAdded, onToast }: { onAdded: () => void; onToast: 
         const authors = Array.isArray(data.authors) ? data.authors : [];
         const coverUrl = String(data.coverUrl || "");
 
-        const shelfId = getActiveShelfId() || ensureDefaultShelf().id;
+        // Ensure default shelves exist
+        const allShelves = ensureDefaultShelves();
+        
+        // Probeer "Wanna Haves" shelf te vinden, anders gebruik actieve shelf
+        const wannaHavesShelf = findShelfByName(allShelves, "Wanna Haves");
+        const activeShelfId = getActiveShelfId();
+        const shelfId = wannaHavesShelf?.id || activeShelfId || ensureDefaultShelf().id;
+        
         const now = Date.now();
 
         const book: Book = {
@@ -145,8 +154,8 @@ export default function LibraryPage() {
   const shareCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Ensure default shelf exists
-    ensureDefaultShelf();
+    // Ensure default shelves exist
+    ensureDefaultShelves();
 
     // Load shelves
     const allShelves = loadShelves();
@@ -157,6 +166,7 @@ export default function LibraryPage() {
     setActiveShelfIdState(activeId);
 
     // Load books and migrate any without shelfId to default shelf
+    ensureDefaultShelves(); // Ensure default shelves exist
     const allBooks = loadBooks();
     const defaultShelfId = getActiveShelfId() || ensureDefaultShelf().id;
 
