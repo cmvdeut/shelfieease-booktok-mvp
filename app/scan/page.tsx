@@ -21,7 +21,8 @@ export default function ScanPage() {
 
       // ⬇️ Pas dit aan naar jouw bestaande flow:
       // bijv. router.push(`/add?isbn=${isbn}`) of direct add-to-shelf in localStorage.
-      router.push(`/add?isbn=${encodeURIComponent(isbn)}`);
+      router.push(`/library?isbn=${isbn}`);
+
     },
     [router]
   );
