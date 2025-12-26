@@ -49,7 +49,7 @@ export default function LibraryPage() {
 
   const showToast = useCallback((message: string) => {
     setToast(message);
-    window.setTimeout(() => setToast(null), 2200);
+    window.setTimeout(() => setToast(null), 2000);
   }, []);
 
   const handleBookAdded = useCallback(() => {
@@ -1585,20 +1585,22 @@ What should I add next? 👀
         <div
           style={{
             position: "fixed",
-            bottom: 18,
+            bottom: 20,
             left: "50%",
             transform: "translateX(-50%)",
-            background: "rgba(20,20,26,0.92)",
-            border: "1px solid rgba(255,255,255,0.10)",
-            padding: "12px 14px",
-            borderRadius: 14,
-            fontWeight: 800,
+            background: "var(--panel)",
+            border: "1px solid var(--border)",
+            padding: "12px 20px",
+            borderRadius: 16,
+            fontWeight: 700,
             zIndex: 99999,
-            backdropFilter: "blur(10px)",
+            backdropFilter: "blur(12px)",
             pointerEvents: "none",
-            color: "#fff",
+            color: "var(--text)",
             fontSize: 14,
             whiteSpace: "nowrap",
+            boxShadow: `0 8px 24px var(--shadow)`,
+            opacity: 0.95,
           }}
         >
           {toast}
