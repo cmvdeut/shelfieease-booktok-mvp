@@ -713,15 +713,18 @@ What should I add next? 👀
             {refreshing ? "Refreshing…" : "Refresh covers"}
           </button>
 
-          <button
-            style={btnGhost}
-            onClick={handleShareShelf}
-            disabled={sharing || !activeShelf || activeBooks.length === 0}
-            aria-label={sharing ? "Generating share image" : "Share Shelfie"}
-            title={sharing ? "Generating…" : "Share Shelfie"}
-          >
-            {sharing ? "Generating…" : "Share Shelfie"}
-          </button>
+          {/* Only show Share Shelfie if total books >= 2 and add modal is not open */}
+          {stats.total >= 2 && !addModalOpen && (
+            <button
+              style={btnGhost}
+              onClick={handleShareShelf}
+              disabled={sharing || !activeShelf || activeBooks.length === 0}
+              aria-label={sharing ? "Generating share image" : "Share Shelfie"}
+              title={sharing ? "Generating…" : "Share Shelfie"}
+            >
+              {sharing ? "Generating…" : "Share Shelfie"}
+            </button>
+          )}
 
         <Link href="/scan">
           <button style={btnPrimary}>+ Scan</button>
