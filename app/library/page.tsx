@@ -462,6 +462,32 @@ export default function LibraryPage() {
     setBooks(updated);
   }
 
+  async function handleSearchCover(bookId: string) {
+    const book = books.find((b) => b.id === bookId);
+    if (!book) return;
+
+    setActionMenuBookId(null);
+    
+    try {
+      const data = await lookupByIsbn(book.isbn13);
+      updateBook(bookId, {
+        coverUrl: data.coverUrl || "",
+        updatedAt: Date.now(),
+      });
+      const updated = loadBooks();
+      setBooks(updated);
+      
+      if (data.coverUrl) {
+        showToast("Cover gevonden ✨");
+      } else {
+        showToast("Geen cover gevonden");
+      }
+    } catch (error) {
+      console.error("Failed to search cover:", error);
+      showToast("Fout bij zoeken cover");
+    }
+  }
+
   async function refreshCovers() {
     setRefreshing(true);
     try {
@@ -1500,6 +1526,15 @@ What should I add next? 👀
                           </button>
                         ))}
                       </div>
+
+                      <div style={actionMenuDivider} />
+
+                      <button
+                        style={actionMenuItem}
+                        onClick={() => handleSearchCover(b.id)}
+                      >
+                        <span>🔍 Zoek cover</span>
+                      </button>
 
                       <div style={actionMenuDivider} />
 
