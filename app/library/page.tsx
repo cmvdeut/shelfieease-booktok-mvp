@@ -273,6 +273,9 @@ export default function LibraryPage() {
     return { total: activeBooks.length, tbr, reading, read };
   }, [activeBooks]);
 
+  // Show Share Shelfie only if total books >= 2 and add modal is not open
+  const showShareButton = stats.total >= 2 && !addModalOpen;
+
   function handleShelfSelect(shelfId: string) {
     setActiveShelfId(shelfId);
     setActiveShelfIdState(shelfId);
@@ -456,10 +459,22 @@ export default function LibraryPage() {
   }
 
   function handleCoverError(bookId: string) {
-    // If a cover URL is broken / "image not available", clear it so we show our placeholder.
-    updateBook(bookId, { coverUrl: "", updatedAt: Date.now() });
-    const updated = loadBooks();
-    setBooks(updated);
+    const book = books.find((b) => b.id === bookId);
+    if (!book) return;
+    
+    console.warn("Cover image error for book:", book.title, "URL:", book.coverUrl);
+    
+    // Only clear non-Open Library URLs (they might be broken)
+    // For Open Library, we keep the URL even if it's a placeholder
+    // because the placeholder is better than nothing
+    if (book.coverUrl && !book.coverUrl.includes("covers.openlibrary.org")) {
+      console.log("Clearing broken cover URL (not Open Library)");
+      updateBook(bookId, { coverUrl: "", updatedAt: Date.now() });
+      const updated = loadBooks();
+      setBooks(updated);
+    } else {
+      console.log("Keeping Open Library URL (even if placeholder)");
+    }
   }
 
   async function handleSearchCover(bookId: string) {
@@ -470,15 +485,38 @@ export default function LibraryPage() {
     
     try {
       const data = await lookupByIsbn(book.isbn13);
-      updateBook(bookId, {
-        coverUrl: data.coverUrl || "",
-        updatedAt: Date.now(),
-      });
-      const updated = loadBooks();
-      setBooks(updated);
+      const newCoverUrl = data.coverUrl || "";
+      const now = Date.now();
       
-      if (data.coverUrl) {
+      console.log("Searching cover for book:", book.title, "ISBN:", book.isbn13);
+      console.log("Found cover URL:", newCoverUrl);
+      
+      // Update book in storage
+      updateBook(bookId, {
+        coverUrl: newCoverUrl,
+        updatedAt: now,
+      });
+      
+      // Force state update by creating a new array reference with updated book
+      const updated = loadBooks();
+      // Ensure the updated book has the latest values
+      const updatedBook = updated.find((b) => b.id === bookId);
+      if (updatedBook) {
+        updatedBook.coverUrl = newCoverUrl;
+        updatedBook.updatedAt = now;
+        console.log("Updated book cover URL:", updatedBook.coverUrl, "updatedAt:", updatedBook.updatedAt);
+      }
+      
+      // Create a completely new array to force React to re-render
+      setBooks(updated.map(b => b.id === bookId ? { ...b, coverUrl: newCoverUrl, updatedAt: now } : b));
+      
+      if (newCoverUrl) {
         showToast("Cover gevonden ✨");
+        // Force another re-render after image has time to load
+        setTimeout(() => {
+          const refreshed = loadBooks();
+          setBooks(refreshed.map(b => b.id === bookId ? { ...b, coverUrl: newCoverUrl, updatedAt: now } : b));
+        }, 300);
       } else {
         showToast("Geen cover gevonden");
       }
@@ -740,7 +778,7 @@ What should I add next? 👀
           </button>
 
           {/* Only show Share Shelfie if total books >= 2 and add modal is not open */}
-          {stats.total >= 2 && !addModalOpen && (
+          {showShareButton && (
             <button
               style={btnGhost}
               onClick={handleShareShelf}
@@ -1441,6 +1479,10 @@ What should I add next? 👀
       ) : (
         <div style={grid}>
           {visibleBooks.map((b, idx) => {
+            // Debug: log coverUrl for books
+            if (idx === 0 && b.coverUrl) {
+              console.log("Rendering book with cover:", b.title, "coverUrl:", b.coverUrl);
+            }
             const isRecentlyAdded = idx === 0; // First card is the most recently added
             const cardStyle = isRecentlyAdded ? cardCompact : card;
             const buttonStyle = isRecentlyAdded ? actionButtonCompact : actionButton;
@@ -1547,28 +1589,25 @@ What should I add next? 👀
 
                 {isRecentlyAdded ? (
                   <div style={coverWrapStyle}>
-                    <div style={coverPlaceholderCompact}>
-                      <div style={{ fontWeight: 950, fontSize: 13, lineHeight: 1.2 }}>{b.title || "Unknown"}</div>
-                      {b.authors?.length ? (
-                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>{b.authors[0]}</div>
-                      ) : null}
-                    </div>
-                    {b.coverUrl ? (
+                    {b.coverUrl && (
                       <CoverImg
+                        key={`cover-${b.id}-${b.coverUrl}-${b.updatedAt || 0}`}
                         src={toHttps(b.coverUrl)}
                         alt={b.title}
                         style={coverImg}
                         onError={() => handleCoverError(b.id)}
                       />
-                    ) : null}
+                    )}
                   </div>
                 ) : (
                   <Cover
+                    key={`cover-${b.id}-${b.coverUrl || ""}-${b.updatedAt || 0}`}
                     isbn13={b.isbn13}
                     coverUrl={b.coverUrl || ""}
                     title={b.title}
                     authors={b.authors || []}
                     onBadCover={() => handleCoverError(b.id)}
+                    updatedAt={b.updatedAt}
                   />
                 )}
 
@@ -2017,34 +2056,29 @@ function Cover({
   title,
   authors,
   onBadCover,
+  updatedAt,
 }: {
   isbn13: string;
   coverUrl: string;
   title: string;
   authors: string[];
   onBadCover?: () => void;
+  updatedAt?: number;
 }) {
   const candidates = [coverUrl ? toHttps(coverUrl) : ""].filter(Boolean);
-
-  const [srcIndex, setSrcIndex] = useState(0);
-  const src = candidates[srcIndex] || "";
+  const src = candidates[0] || "";
 
   return (
     <div style={coverWrap}>
-      <div style={coverPlaceholder}>
-        <div style={{ fontWeight: 950, fontSize: 15, lineHeight: 1.2 }}>{title || "Unknown"}</div>
-        {authors.length ? <div style={{ marginTop: 6, fontSize: 12, color: "#d8d8ff" }}>{authors.join(", ")}</div> : null}
-        <div style={{ marginTop: 10, fontSize: 12, color: "#b7b7b7" }}>ISBN {isbn13}</div>
-      </div>
-
-      {src ? (
+      {src && (
         <CoverImg
+          key={`cover-img-${coverUrl}-${updatedAt || 0}`}
           src={src}
           alt={title}
           style={coverImg}
           onError={() => onBadCover?.()}
         />
-      ) : null}
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { useState } from "react";
 
 export function CoverImg({
   src,
@@ -13,19 +13,46 @@ export function CoverImg({
   style?: React.CSSProperties;
   onError?: () => void;
 }) {
-  if (!src) {
+  const [hasError, setHasError] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  if (!src || hasError) {
     return null;
   }
 
+  const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    console.error("CoverImg error for URL:", src, e);
+    setHasError(true);
+    onError?.();
+  };
+
+  const handleLoad = () => {
+    console.log("CoverImg loaded successfully:", src);
+    setIsLoaded(true);
+  };
+
+  // Use native img tag for better control and to avoid Next.js Image wrapper issues
+  const imageStyle: React.CSSProperties = {
+    ...style,
+    position: "absolute",
+    inset: 0,
+    zIndex: 2, // Higher z-index to ensure it's above placeholder
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    opacity: isLoaded ? 1 : 0, // Fade in when loaded
+    display: "block",
+    transition: "opacity 0.2s ease-in-out",
+  };
+
   return (
-    <Image
+    <img
       src={src}
       alt={alt}
-      width={300}
-      height={400}
-      style={style}
-      onError={onError}
-      unoptimized
+      style={imageStyle}
+      onError={handleError}
+      onLoad={handleLoad}
+      loading="lazy"
     />
   );
 }
