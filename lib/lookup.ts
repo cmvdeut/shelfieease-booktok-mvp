@@ -113,21 +113,10 @@ async function tryOpenLibraryCover(isbn: string): Promise<string> {
   // Try large size first for best quality
   const url = `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(isbn)}-L.jpg`;
   
-  try {
-    // Check if the image exists by making a HEAD request
-    const res = await fetch(url, { method: "HEAD" });
-    
-    // Open Library returns 200 even for placeholders, but we can check Content-Type
-    // If it's an image, use it. Open Library placeholders are also images, but
-    // that's okay - better than nothing.
-    if (res.ok && res.headers.get("content-type")?.startsWith("image/")) {
-      return url;
-    }
-  } catch {
-    // Ignore errors, return empty string
-  }
-  
-  return "";
+  // Open Library always returns an image (even if it's a placeholder)
+  // We'll return the URL and let the image component's onError handler deal with placeholders/broken images
+  // This is simpler and more efficient than checking first
+  return url;
 }
 
 export async function lookupByIsbn(isbn13: string): Promise<LookupResult> {
@@ -184,17 +173,22 @@ export async function lookupByIsbn(isbn13: string): Promise<LookupResult> {
 
   // --- 2) Open Library fallback if Google Books didn't provide a cover ---
   if (!coverUrl) {
+    console.log("No Google Books cover found, trying Open Library...");
     // Try with ISBN-13 first
     coverUrl = await tryOpenLibraryCover(clean);
+    console.log("Open Library ISBN-13 result:", coverUrl || "none");
     
     // If that didn't work and we have an ISBN-10, try that
     if (!coverUrl) {
       const isbn10 = isbn13to10(clean);
       if (isbn10) {
+        console.log("Trying Open Library with ISBN-10:", isbn10);
         coverUrl = await tryOpenLibraryCover(isbn10);
+        console.log("Open Library ISBN-10 result:", coverUrl || "none");
       }
     }
   }
 
+  console.log("Final lookup result - title:", title, "authors:", authors, "coverUrl:", coverUrl || "none");
   return { title, authors, coverUrl };
 }
