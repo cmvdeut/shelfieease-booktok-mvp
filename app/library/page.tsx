@@ -982,15 +982,58 @@ What should I add next? 👀
         </div>
       )}
 
-      {/* Add Book Modal */}
+      {/* Add Book Modal - Mobile-first bottom sheet */}
       {addModalOpen && (
         <div
-          style={{ ...modalOverlay, zIndex: 3000 }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "center",
+          }}
           onClick={handleCancelAddBook}
         >
-          <div style={modal} onClick={(e) => e.stopPropagation()}>
-            <h2 style={modalTitle}>Boek toevoegen</h2>
-            
+          <div
+            style={{
+              background: "var(--bg)",
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              width: "100%",
+              maxWidth: 480,
+              maxHeight: "85vh",
+              overflowY: "auto",
+              padding: "24px 20px",
+              boxShadow: "0 -8px 32px var(--shadow)",
+              display: "flex",
+              flexDirection: "column",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Sheet handle */}
+            <div
+              style={{
+                width: 40,
+                height: 4,
+                background: "var(--border)",
+                borderRadius: 2,
+                margin: "0 auto 20px",
+              }}
+            />
+
+            <h2
+              style={{
+                margin: "0 0 20px",
+                fontSize: 22,
+                fontWeight: 800,
+                color: "var(--text)",
+              }}
+            >
+              Boek toevoegen
+            </h2>
+
             {addLoading ? (
               <div style={{ padding: "20px 0", textAlign: "center", color: "var(--muted)" }}>
                 Bezig met ophalen...
@@ -998,31 +1041,37 @@ What should I add next? 👀
             ) : (
               <>
                 {pendingData && (
-                  <div style={{ 
-                    marginBottom: 20,
-                    padding: "16px",
-                    borderRadius: 12,
-                    background: "var(--panel2)",
-                    border: "1px solid var(--border)",
-                  }}>
+                  <div
+                    style={{
+                      marginBottom: 24,
+                      padding: "12px 16px",
+                      borderRadius: 12,
+                      background: "var(--panel2)",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
                     {/* Title */}
-                    <div style={{ 
-                      fontSize: 18, 
-                      fontWeight: 800, 
-                      color: "var(--text)", 
-                      marginBottom: 6,
-                      lineHeight: 1.3,
-                    }}>
+                    <div
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 700,
+                        color: "var(--text)",
+                        marginBottom: 4,
+                        lineHeight: 1.4,
+                      }}
+                    >
                       {pendingData.title || "Onbekend"}
                     </div>
-                    
+
                     {/* Authors */}
                     {pendingData.authors && pendingData.authors.length > 0 && (
-                      <div style={{ 
-                        fontSize: 14, 
-                        color: "var(--muted)",
-                        lineHeight: 1.4
-                      }}>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          color: "var(--muted)",
+                          lineHeight: 1.4,
+                        }}
+                      >
                         {pendingData.authors.join(", ")}
                       </div>
                     )}
@@ -1031,12 +1080,17 @@ What should I add next? 👀
 
                 {!showNewShelfInAddModal ? (
                   <>
-                    <div style={formGroup}>
-                      <label style={formLabel}>Kies een shelf</label>
+                    <div style={{ ...formGroup, marginBottom: 20 }}>
+                      <label style={{ ...formLabel, color: "var(--text)" }}>Kies een shelf</label>
                       <select
                         value={targetShelfId || ""}
                         onChange={(e) => setTargetShelfId(e.target.value)}
-                        style={formInput}
+                        style={{
+                          ...formInput,
+                          border: "1px solid var(--border)",
+                          background: "var(--panel2)",
+                          color: "var(--text)",
+                        }}
                       >
                         {shelves.map((shelf) => (
                           <option key={shelf.id} value={shelf.id}>
@@ -1046,50 +1100,112 @@ What should I add next? 👀
                       </select>
                     </div>
 
-                    <div style={{ marginTop: 12, marginBottom: 20 }}>
+                    <div style={{ marginBottom: 24 }}>
                       <button
-                        style={btnGhost}
+                        style={{
+                          ...btnGhost,
+                          width: "100%",
+                          justifyContent: "center",
+                        }}
                         onClick={() => setShowNewShelfInAddModal(true)}
                       >
                         + Nieuwe shelf
+                      </button>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 12,
+                        paddingTop: 16,
+                        borderTop: "1px solid var(--border)",
+                        marginTop: "auto",
+                      }}
+                    >
+                      <button
+                        style={{
+                          ...btnGhost,
+                          flex: 1,
+                          justifyContent: "center",
+                        }}
+                        onClick={handleCancelAddBook}
+                      >
+                        Annuleren
+                      </button>
+                      <button
+                        style={{
+                          ...btnPrimary,
+                          flex: 1,
+                          justifyContent: "center",
+                        }}
+                        onClick={handleAddBookToShelf}
+                        disabled={!targetShelfId}
+                      >
+                        Zet in deze shelf
                       </button>
                     </div>
                   </>
                 ) : (
                   <div style={modalForm}>
                     <div style={formGroup}>
-                      <label style={formLabel}>Naam</label>
+                      <label style={{ ...formLabel, color: "var(--text)" }}>Naam</label>
                       <input
                         type="text"
                         value={newShelfName}
                         onChange={(e) => setNewShelfName(e.target.value.slice(0, 24))}
                         placeholder="My Shelf"
                         maxLength={24}
-                        style={formInput}
+                        style={{
+                          ...formInput,
+                          border: "1px solid var(--border)",
+                          background: "var(--panel2)",
+                          color: "var(--text)",
+                        }}
                         autoFocus
                       />
                     </div>
                     <div style={formGroup}>
-                      <label style={formLabel}>Emoji</label>
+                      <label style={{ ...formLabel, color: "var(--text)" }}>Emoji</label>
                       <input
                         type="text"
                         value={newShelfEmoji}
                         onChange={(e) => setNewShelfEmoji(e.target.value.slice(0, 2) || "📚")}
                         placeholder="📚"
                         maxLength={2}
-                        style={formInput}
+                        style={{
+                          ...formInput,
+                          border: "1px solid var(--border)",
+                          background: "var(--panel2)",
+                          color: "var(--text)",
+                        }}
                       />
                     </div>
-                    <div style={modalActions}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 12,
+                        paddingTop: 16,
+                        borderTop: "1px solid var(--border)",
+                        marginTop: 8,
+                      }}
+                    >
                       <button
-                        style={btnPrimary}
+                        style={{
+                          ...btnPrimary,
+                          flex: 1,
+                          justifyContent: "center",
+                        }}
                         onClick={handleCreateShelfInAddModal}
                         disabled={!newShelfName.trim()}
                       >
                         Maak shelf
                       </button>
                       <button
-                        style={btnGhost}
+                        style={{
+                          ...btnGhost,
+                          flex: 1,
+                          justifyContent: "center",
+                        }}
                         onClick={() => {
                           setShowNewShelfInAddModal(false);
                           setNewShelfName("");
@@ -1099,21 +1215,6 @@ What should I add next? 👀
                         Terug
                       </button>
                     </div>
-                  </div>
-                )}
-
-                {!showNewShelfInAddModal && (
-                  <div style={modalActions}>
-                    <button style={btnGhost} onClick={handleCancelAddBook}>
-                      Annuleren
-                    </button>
-                    <button
-                      style={btnPrimary}
-                      onClick={handleAddBookToShelf}
-                      disabled={!targetShelfId}
-                    >
-                      Zet in deze shelf
-                    </button>
                   </div>
                 )}
               </>
