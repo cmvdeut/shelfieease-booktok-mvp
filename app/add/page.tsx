@@ -15,3 +15,4 @@ export default function AddPage({
   redirect(`/library?isbn=${encodeURIComponent(isbn)}`);
 }
 
+

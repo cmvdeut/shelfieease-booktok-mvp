@@ -32,19 +32,37 @@ export default function ScanPage() {
   }, [manualNormalized, router]);
 
   return (
-    <div className="min-h-[100dvh] px-4 pt-4 pb-10">
+    <div style={{ minHeight: "100dvh", padding: "16px 16px 40px", background: "var(--bg)", color: "var(--text)" }}>
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 mb-4">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
         <button
-          className="px-3 py-2 rounded-lg border text-sm"
+          style={{
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: "1px solid var(--border)",
+            background: "var(--panel)",
+            color: "var(--text)",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
           onClick={() => router.push("/")}
           type="button"
         >
           ← Home
         </button>
-        <div className="text-sm opacity-70">Scan ISBN</div>
+        <div style={{ fontSize: 14, color: "var(--muted)" }}>Scan ISBN</div>
         <button
-          className="px-3 py-2 rounded-lg border text-sm"
+          style={{
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: "1px solid var(--border)",
+            background: "var(--panel)",
+            color: "var(--text)",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
           onClick={() => router.push("/library")}
           type="button"
         >
@@ -59,34 +77,56 @@ export default function ScanPage() {
           onClose={() => router.push("/")}
         />
         {lastScan ? (
-          <div className="mt-3 text-xs opacity-70">
-            Laatste scan: <span className="font-medium">{lastScan}</span>
+          <div style={{ marginTop: 12, fontSize: 12, color: "var(--muted)" }}>
+            Laatste scan: <span style={{ fontWeight: 600 }}>{lastScan}</span>
           </div>
         ) : null}
       </div>
 
       {/* Handmatige fallback */}
-      <div className="rounded-2xl border p-4">
-        <div className="text-sm font-medium mb-2">Of voer ISBN handmatig in</div>
+      <div style={{
+        borderRadius: 16,
+        border: "1px solid var(--border)",
+        background: "var(--panel)",
+        padding: 16,
+      }}>
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: "var(--text)" }}>Of voer ISBN handmatig in</div>
 
-        <div className="flex gap-2">
+        <div style={{ display: "flex", gap: 8 }}>
           <input
             value={manual}
             onChange={(e) => setManual(e.target.value)}
             inputMode="numeric"
             placeholder="Bijv. 9789022591260"
-            className="w-full rounded-xl border px-3 py-2 text-sm"
+            style={{
+              width: "100%",
+              borderRadius: 12,
+              border: "1px solid var(--border)",
+              background: "var(--panel2)",
+              padding: "8px 12px",
+              fontSize: 14,
+              color: "var(--text)",
+            }}
           />
           <button
             onClick={submitManual}
-            className="px-3 py-2 rounded-xl bg-black text-white text-sm"
+            style={{
+              padding: "8px 12px",
+              borderRadius: 12,
+              background: "linear-gradient(135deg, var(--accent1), var(--accent2))",
+              color: "var(--text)",
+              fontSize: 14,
+              fontWeight: 600,
+              border: 0,
+              cursor: "pointer",
+            }}
             type="button"
           >
             Zoek
           </button>
         </div>
 
-        <div className="mt-2 text-xs opacity-70">
+        <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)" }}>
           Tip: kopieer ook gerust een ISBN uit de productpagina van een boek.
         </div>
       </div>
