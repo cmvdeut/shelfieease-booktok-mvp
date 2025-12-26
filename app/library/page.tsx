@@ -32,6 +32,7 @@ import { toBlob } from "html-to-image";
 
 
 export default function LibraryPage() {
+  const router = useRouter();
   const [books, setBooks] = useState<Book[]>([]);
   const [shelves, setShelves] = useState<Shelf[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -94,7 +95,7 @@ export default function LibraryPage() {
     // Normaliseer ISBN: alleen cijfers en X behouden
     const normalizedIsbn = rawIsbn.replace(/[^0-9X]/gi, "").trim();
     if (!normalizedIsbn) {
-      window.history.replaceState(null, "", "/library");
+      router.replace("/library");
       return;
     }
 
@@ -128,7 +129,7 @@ export default function LibraryPage() {
         setAddLoading(false);
       }
     })();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     // Ensure default shelves exist
@@ -410,7 +411,7 @@ export default function LibraryPage() {
     setPendingData(null);
     setTargetShelfId(null);
     handledIsbnRef.current = null;
-    window.history.replaceState(null, "", "/library");
+    router.replace("/library");
   }
 
   function handleCancelAddBook() {
@@ -422,7 +423,7 @@ export default function LibraryPage() {
     setNewShelfName("");
     setNewShelfEmoji("📚");
     handledIsbnRef.current = null;
-    window.history.replaceState(null, "", "/library");
+    router.replace("/library");
   }
 
   function handleMoveBook(bookId: string, targetShelfId: string) {
@@ -998,89 +999,33 @@ What should I add next? 👀
               <>
                 {pendingData && (
                   <div style={{ 
-                    marginBottom: 20, 
-                    display: "flex", 
-                    flexDirection: "column", 
-                    alignItems: "center",
-                    maxWidth: 240,
-                    margin: "0 auto 20px"
+                    marginBottom: 20,
+                    padding: "16px",
+                    borderRadius: 12,
+                    background: "var(--panel2)",
+                    border: "1px solid var(--border)",
                   }}>
-                    {/* Compact cover */}
-                    <div style={{ marginBottom: 12, width: "100%" }}>
-                      {pendingData.coverUrl ? (
-                        <CoverImg
-                          src={pendingData.coverUrl}
-                          alt={pendingData.title}
-                          style={{ 
-                            width: "100%",
-                            maxWidth: 240,
-                            height: "auto",
-                            aspectRatio: "2/3",
-                            maxHeight: 140,
-                            borderRadius: 10,
-                            margin: "0 auto",
-                            display: "block",
-                            boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
-                          }}
-                        />
-                      ) : (
-                        <div style={{
-                          width: "100%",
-                          maxWidth: 240,
-                          aspectRatio: "2/3",
-                          maxHeight: 140,
-                          borderRadius: 10,
-                          background: "linear-gradient(135deg, rgba(109,94,252,0.2), rgba(255,73,240,0.1))",
-                          border: "1px solid #2a2a32",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#8f8fa3",
-                          fontSize: 12
-                        }}>
-                          Geen cover
-                        </div>
-                      )}
+                    {/* Title */}
+                    <div style={{ 
+                      fontSize: 18, 
+                      fontWeight: 800, 
+                      color: "var(--text)", 
+                      marginBottom: 6,
+                      lineHeight: 1.3,
+                    }}>
+                      {pendingData.title || "Onbekend"}
                     </div>
                     
-                    {/* Compact title - max 2 lines with ellipsis */}
-                    <div style={{ 
-                      textAlign: "center", 
-                      marginBottom: 6,
-                      width: "100%"
-                    }}>
+                    {/* Authors */}
+                    {pendingData.authors && pendingData.authors.length > 0 && (
                       <div style={{ 
-                        fontSize: 16, 
-                        fontWeight: 800, 
-                        color: "#fff", 
-                        marginBottom: 4,
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        lineHeight: 1.3,
-                        minHeight: "2.6em"
+                        fontSize: 14, 
+                        color: "var(--muted)",
+                        lineHeight: 1.4
                       }}>
-                        {pendingData.title || "Onbekend"}
+                        {pendingData.authors.join(", ")}
                       </div>
-                      
-                      {/* Authors - 1 line, smaller font */}
-                      {pendingData.authors && pendingData.authors.length > 0 && (
-                        <div style={{ 
-                          fontSize: 12, 
-                          color: "#cfcfe6",
-                          display: "-webkit-box",
-                          WebkitLineClamp: 1,
-                          WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          lineHeight: 1.4
-                        }}>
-                          {pendingData.authors.join(", ")}
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
                 )}
 
@@ -1503,7 +1448,7 @@ What should I add next? 👀
                       <span>{bookShelf.emoji}</span>
                       <span>{bookShelf.name}</span>
                     </div>
-                  )}
+                )}
 
                 <div style={metaRow}>
                     {(() => {
