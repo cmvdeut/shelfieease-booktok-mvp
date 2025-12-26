@@ -1454,25 +1454,6 @@ What should I add next? 👀
 
                       <div style={actionMenuDivider} />
 
-                      <div style={actionMenuSection}>
-                        <div style={actionMenuLabel}>Book format</div>
-                        {(["physical", "ebook"] as BookFormat[]).map((format) => (
-                          <button
-                            key={format}
-                            style={{
-                              ...actionMenuItem,
-                              ...((b.format || "physical") === format ? actionMenuItemActive : {}),
-                            }}
-                            onClick={() => handleChangeFormat(b.id, format)}
-                          >
-                            <span>{format === "ebook" ? "📱 E-book" : "📖 Physical book"}</span>
-                            {(b.format || "physical") === format && <span style={{ fontSize: 10 }}>✓</span>}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div style={actionMenuDivider} />
-
                       <button style={{ ...actionMenuItem, color: "var(--accent1)" }} onClick={() => setShowDeleteConfirm(b.id)}>
                         <span>Delete book</span>
                       </button>
