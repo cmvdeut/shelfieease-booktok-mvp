@@ -19,8 +19,8 @@ export default function ScanPage() {
     (isbn: string) => {
       setLastScan(isbn);
 
-      // Navigate to library with ISBN parameter
-      router.push(`/library?isbn=${encodeURIComponent(isbn)}`);
+      // Navigate to library with addIsbn parameter
+      router.push(`/library?addIsbn=${encodeURIComponent(isbn)}`);
     },
     [router]
   );
@@ -28,7 +28,7 @@ export default function ScanPage() {
   const submitManual = useCallback(() => {
     const v = manualNormalized;
     if (!v) return;
-    router.push(`/library?isbn=${encodeURIComponent(v)}`);
+    router.push(`/library?addIsbn=${encodeURIComponent(v)}`);
   }, [manualNormalized, router]);
 
   return (

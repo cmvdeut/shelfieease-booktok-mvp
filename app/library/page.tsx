@@ -85,10 +85,10 @@ export default function LibraryPage() {
   const shareCardRef = useRef<HTMLDivElement>(null);
   const handledIsbnRef = useRef<string | null>(null);
 
-  // Handle ISBN query parameter - open modal instead of auto-adding
+  // Handle addIsbn query parameter - open modal instead of auto-adding
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const rawIsbn = params.get("isbn");
+    const rawIsbn = params.get("addIsbn");
     if (!rawIsbn) return;
 
     // Normaliseer ISBN: alleen cijfers en X behouden
