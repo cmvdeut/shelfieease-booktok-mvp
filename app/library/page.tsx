@@ -618,9 +618,7 @@ What should I add next? 👀
             inset: 0,
             background:
               typeof document !== "undefined" && document.documentElement.dataset.mood === "calm"
-                ? shelfCovers.length > 0
-                  ? `linear-gradient(135deg, color-mix(in srgb, var(--accent1) 15%, transparent), color-mix(in srgb, var(--accent2) 8%, transparent) 45%, rgba(0,0,0,0.2) 70%)`
-                  : "var(--panel)"
+                ? "var(--panel)" // Calm mood: no gradients, just plain panel color
                 : typeof document !== "undefined" && document.documentElement.dataset.mood === "bold"
                 ? shelfCovers.length > 0
                   ? "linear-gradient(135deg, rgba(255,138,0,0.15), rgba(255,138,0,0.08) 45%, rgba(0,0,0,0.85) 70%)"
