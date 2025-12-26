@@ -1,9 +1,12 @@
 export type BookStatus = "TBR" | "Reading" | "Finished";
 
+export type Mood = "aesthetic" | "bold" | "calm";
+
 export type Shelf = {
   id: string;
   name: string;
   emoji: string;
+  mood?: Mood;
   createdAt: number;
 };
 
@@ -47,10 +50,16 @@ export function loadShelves(): Shelf[] {
       const nextEmoji = normalizeShelfEmoji((s as any).emoji);
       if (s.emoji !== nextEmoji) changed = true;
 
+      // Backward compatibility: if shelf has no mood, add "aesthetic" and mark as changed
+      const currentMood = s.mood;
+      let nextMood: Mood = currentMood === "aesthetic" || currentMood === "bold" || currentMood === "calm" ? currentMood : "aesthetic";
+      if (currentMood !== nextMood) changed = true;
+
       shelves.push({
         id: s.id,
         name: s.name,
         emoji: nextEmoji,
+        mood: nextMood,
         createdAt: s.createdAt,
       });
     }
@@ -100,15 +109,26 @@ export function ensureDefaultShelves(): Shelf[] {
 
   for (const defaultShelf of defaultShelves) {
     // Check if shelf with this name already exists
-    if (!findShelfByNameInternal(updatedShelves, defaultShelf.name)) {
+    const existingShelf = findShelfByNameInternal(updatedShelves, defaultShelf.name);
+    if (!existingShelf) {
       const newShelf: Shelf = {
         id: crypto.randomUUID(),
         name: defaultShelf.name,
         emoji: defaultShelf.emoji,
+        mood: "aesthetic",
         createdAt: Date.now(),
       };
       updatedShelves.push(newShelf);
       changed = true;
+    } else {
+      // Ensure existing shelf has mood (backward compatibility)
+      if (!existingShelf.mood) {
+        const idx = updatedShelves.findIndex((s) => s.id === existingShelf.id);
+        if (idx >= 0) {
+          updatedShelves[idx] = { ...updatedShelves[idx], mood: "aesthetic" };
+          changed = true;
+        }
+      }
     }
   }
 
@@ -136,7 +156,15 @@ export function ensureDefaultShelves(): Shelf[] {
 export function ensureDefaultShelf(): Shelf {
   const shelves = ensureDefaultShelves();
   const activeId = getActiveShelfId();
-  return shelves.find((s) => s.id === activeId) || findShelfByNameInternal(shelves, "My Shelf") || shelves[0];
+  const shelf = shelves.find((s) => s.id === activeId) || findShelfByNameInternal(shelves, "My Shelf") || shelves[0];
+  // Ensure default shelf has mood "aesthetic"
+  if (shelf && !shelf.mood) {
+    const updatedShelf = { ...shelf, mood: "aesthetic" as Mood };
+    const updatedShelves = shelves.map((s) => (s.id === updatedShelf.id ? updatedShelf : s));
+    saveShelves(updatedShelves);
+    return updatedShelf;
+  }
+  return shelf;
 }
 
 /**
@@ -147,13 +175,15 @@ export function findShelfByName(shelves: Shelf[], name: string): Shelf | undefin
   return shelves.find((s) => s.name.trim().toLowerCase() === normalized);
 }
 
-export function createShelf(name: string, emoji: string = "📚"): Shelf {
+export function createShelf(name: string, emoji: string = "📚", mood?: Mood): Shelf {
   const emojiValue = normalizeShelfEmoji(emoji);
   const safeName = name.trim() || "My Shelf";
+  const shelfMood: Mood = mood === "aesthetic" || mood === "bold" || mood === "calm" ? mood : "aesthetic";
   const shelf: Shelf = {
     id: crypto.randomUUID(),
     name: safeName,
     emoji: emojiValue,
+    mood: shelfMood,
     createdAt: Date.now(),
   };
   const shelves = loadShelves();

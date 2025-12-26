@@ -2,15 +2,16 @@
 
 import { useState, useEffect, useRef } from "react";
 import { getMood, setMood, type Mood } from "./MoodProvider";
+import { getActiveShelfId, loadShelves, saveShelves } from "@/lib/storage";
 
 const MOODS: Array<{ value: Mood; label: string; emoji: string }> = [
-  { value: "aesthetic", label: "Aesthetic", emoji: "✨" },
+  { value: "default", label: "Aesthetic", emoji: "✨" },
   { value: "bold", label: "Bold", emoji: "🔥" },
   { value: "calm", label: "Calm", emoji: "🌙" },
 ];
 
 export function MoodSwitcher() {
-  const [currentMood, setCurrentMood] = useState<Mood>("aesthetic"); // Start with default for SSR
+  const [currentMood, setCurrentMood] = useState<Mood>("default"); // Start with default for SSR
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -54,7 +55,20 @@ export function MoodSwitcher() {
   }, [isOpen]);
 
   const handleSelectMood = (mood: Mood) => {
+    // Save to localStorage (primary source of truth)
     setMood(mood);
+    
+    // Also update the active shelf's mood for consistency
+    const shelfMood = mood === "default" ? "aesthetic" : mood;
+    const activeShelfId = getActiveShelfId();
+    if (activeShelfId) {
+      const shelves = loadShelves();
+      const updatedShelves = shelves.map((s) =>
+        s.id === activeShelfId ? { ...s, mood: shelfMood as "aesthetic" | "bold" | "calm" } : s
+      );
+      saveShelves(updatedShelves);
+    }
+    
     setCurrentMood(mood);
     setIsOpen(false);
   };

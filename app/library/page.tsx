@@ -20,7 +20,10 @@ import {
   type Book,
   type Shelf,
   type BookStatus,
+  type Mood,
 } from "@/lib/storage";
+
+import { getMood } from "@/components/MoodProvider";
 
 import { lookupByIsbn } from "@/lib/lookup";
 import { CoverImg } from "@/components/CoverImg";
@@ -60,19 +63,18 @@ export default function LibraryPage() {
   const [emoji, setEmoji] = useState("📚");
   const [emojiTouched, setEmojiTouched] = useState(false);
   const [suggestedEmoji, setSuggestedEmoji] = useState<string | null>(null);
+  const [newShelfMood, setNewShelfMood] = useState<Mood>("aesthetic");
   const [actionMenuBookId, setActionMenuBookId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [shareCoverUrls, setShareCoverUrls] = useState<string[]>([]);
+  const [shareStyle, setShareStyle] = useState<"aesthetic" | "bold">("aesthetic");
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareBlob, setShareBlob] = useState<Blob | null>(null);
   const [shareFilename, setShareFilename] = useState("");
   const [shareCaption, setShareCaption] = useState("");
   const [copyImageStatus, setCopyImageStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [copyCaptionStatus, setCopyCaptionStatus] = useState<"idle" | "copied" | "failed">("idle");
-  const [recentBookId, setRecentBookId] = useState<string | null>(null);
-  const [showRecentDetails, setShowRecentDetails] = useState(false);
-  const [mood, setMood] = useState<string>("aesthetic");
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const actionMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -122,17 +124,6 @@ export default function LibraryPage() {
         setAddLoading(false);
       }
     })();
-  }, []);
-
-  // Track mood changes
-  useEffect(() => {
-    const checkMood = () => {
-      setMood(document.documentElement.dataset.mood || "aesthetic");
-    };
-    checkMood();
-    const observer = new MutationObserver(checkMood);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-mood"] });
-    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -231,9 +222,6 @@ export default function LibraryPage() {
     setActiveShelfId(shelfId);
     setActiveShelfIdState(shelfId);
     setShowShelfDropdown(false);
-    // Reset recent book state when switching shelves
-    setRecentBookId(null);
-    setShowRecentDetails(false);
   }
 
   function suggestEmojiFromName(name: string): string | null {
@@ -323,9 +311,6 @@ export default function LibraryPage() {
     setEmoji("📚");
     setEmojiTouched(false);
     setSuggestedEmoji(null);
-    // Reset recent book state when creating new shelf (which becomes active)
-    setRecentBookId(null);
-    setShowRecentDetails(false);
   }
 
   function handleCreateShelfInAddModal() {
@@ -333,7 +318,10 @@ export default function LibraryPage() {
     if (!nameTrimmed || nameTrimmed.length > 24) return;
 
     const emojiTrimmed = newShelfEmoji.trim() || "📚";
-    const shelf = createShelf(nameTrimmed, emojiTrimmed);
+    // Use current mood for new shelf in add modal
+    const currentMood = getMood();
+    const shelfMood: Mood = currentMood === "default" ? "aesthetic" : currentMood;
+    const shelf = createShelf(nameTrimmed, emojiTrimmed, shelfMood);
     const updatedShelves = loadShelves();
     setShelves(updatedShelves);
     setTargetShelfId(shelf.id);
@@ -361,10 +349,6 @@ export default function LibraryPage() {
     upsertBook(book);
     handleBookAdded();
     showToast("Boek toegevoegd aan je shelf ✨");
-    
-    // Set recent book ID and start collapsed
-    setRecentBookId(book.id);
-    setShowRecentDetails(false);
     
     // Reset state and clean URL
     setAddModalOpen(false);
@@ -580,9 +564,21 @@ What should I add next? 👀
             position: "absolute",
             inset: 0,
             background:
-              shelfCovers.length > 0
-                ? `linear-gradient(135deg, color-mix(in srgb, var(--accent1) 35%, transparent), color-mix(in srgb, var(--accent2) 20%, transparent) 45%, rgba(0,0,0,0.7) 70%)`
-                : `linear-gradient(135deg, color-mix(in srgb, var(--accent1) 22%, transparent), color-mix(in srgb, var(--accent2) 10%, transparent) 45%, transparent 70%), var(--bg2)`,
+              typeof document !== "undefined" && document.documentElement.dataset.mood === "calm"
+                ? shelfCovers.length > 0
+                  ? `linear-gradient(135deg, color-mix(in srgb, var(--accent1) 15%, transparent), color-mix(in srgb, var(--accent2) 8%, transparent) 45%, rgba(0,0,0,0.2) 70%)`
+                  : "var(--panel)"
+                : typeof document !== "undefined" && document.documentElement.dataset.mood === "bold"
+                ? shelfCovers.length > 0
+                  ? "linear-gradient(135deg, rgba(255,138,0,0.15), rgba(255,138,0,0.08) 45%, rgba(0,0,0,0.85) 70%)"
+                  : "var(--bg2)"
+                : typeof document !== "undefined" && document.documentElement.dataset.mood === "default"
+                ? shelfCovers.length > 0
+                  ? "linear-gradient(135deg, rgba(109,94,252,0.35), rgba(255,73,240,0.20) 45%, rgba(0,0,0,0.7) 70%)"
+                  : "linear-gradient(135deg, rgba(109,94,252,0.20), rgba(255,73,240,0.12) 45%, rgba(0,0,0,0.0) 70%), var(--bg2)"
+                : shelfCovers.length > 0
+                ? "linear-gradient(135deg, rgba(109,94,252,0.35), rgba(255,73,240,0.20) 45%, rgba(0,0,0,0.7) 70%)"
+                : "linear-gradient(135deg, rgba(109,94,252,0.22), rgba(255,73,240,0.10) 45%, rgba(0,0,0,0) 70%), #121218",
             zIndex: 0,
           }}
         />
@@ -657,6 +653,75 @@ What should I add next? 👀
             {refreshing ? "Refreshing…" : "Refresh covers"}
           </button>
 
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: 3,
+              borderRadius: 999,
+              border: "1px solid #2a2a32",
+              background: "#111118",
+              height: 40,
+              flex: "0 0 auto",
+            }}
+            aria-label="Share card style"
+          >
+            <button
+              type="button"
+              onClick={() => setShareStyle("aesthetic")}
+              style={{
+                padding: "8px 10px",
+                borderRadius: 999,
+                border:
+                  shareStyle === "aesthetic"
+                    ? "1px solid rgba(255,255,255,0.20)"
+                    : "1px solid transparent",
+                cursor: "pointer",
+                fontWeight: 950,
+                fontSize: 12,
+                color: "#fff",
+                background:
+                  shareStyle === "aesthetic"
+                    ? "linear-gradient(135deg, rgba(109,94,252,0.8), rgba(255,73,240,0.55))"
+                    : "transparent",
+                boxShadow:
+                  shareStyle === "aesthetic"
+                    ? "0 10px 24px rgba(109,94,252,0.25), 0 0 0 2px rgba(0,0,0,0.25) inset"
+                    : "none",
+                opacity: shareStyle === "aesthetic" ? 1 : 0.7,
+              }}
+            >
+              Aesthetic
+            </button>
+            <button
+              type="button"
+              onClick={() => setShareStyle("bold")}
+              style={{
+                padding: "8px 10px",
+                borderRadius: 999,
+                border:
+                  shareStyle === "bold"
+                    ? "1px solid rgba(255,255,255,0.18)"
+                    : "1px solid transparent",
+                cursor: "pointer",
+                fontWeight: 950,
+                fontSize: 12,
+                color: "#fff",
+                background: shareStyle === "bold" ? "rgba(255,255,255,0.10)" : "transparent",
+                boxShadow:
+                  shareStyle === "bold"
+                    ? "0 10px 24px rgba(0,0,0,0.35), 0 0 0 2px rgba(255,255,255,0.06) inset"
+                    : "none",
+                opacity: shareStyle === "bold" ? 1 : 0.7,
+              }}
+            >
+              Bold
+            </button>
+          </div>
+
+          
+
           <button
             style={btnGhost}
             onClick={handleShareShelf}
@@ -681,7 +746,7 @@ What should I add next? 👀
             mode="shelfie"
             shelf={activeShelf}
             coverUrls={shareCoverUrls}
-            variant="aesthetic"
+            variant={shareStyle}
             stats={stats}
           />
         </div>
@@ -697,8 +762,8 @@ What should I add next? 👀
           <div style={modal} onClick={(e) => e.stopPropagation()}>
             <h2 style={modalTitle}>Share Shelfie</h2>
 
-            <p style={{ margin: "6px 0 12px", color: "#cfcfe6", fontWeight: 700 }}>
-              Tip: On mobile you’ll get the native share sheet.
+            <p style={{ margin: "6px 0 12px", color: "var(--muted)", fontWeight: 700 }}>
+              Tip: On mobile you'll get the native share sheet.
             </p>
 
             <div style={{ display: "grid", gap: 10 }}>
@@ -819,6 +884,9 @@ What should I add next? 👀
             setName("");
             setEmoji("📚");
             setSuggestedEmoji(null);
+            // Reset mood to current mood for next time
+            const currentMood = getMood();
+            setNewShelfMood(currentMood === "default" ? "aesthetic" : currentMood);
           }}
         >
           <div style={modal} onClick={(e) => e.stopPropagation()}>
@@ -841,7 +909,7 @@ What should I add next? 👀
                 />
                 <div style={formHint}>{name.length}/24</div>
                 {suggestedEmoji && !emojiTouched && (
-                  <div style={{ marginTop: 6, fontSize: 12, color: "#b7b7b7" }}>
+                  <div style={{ marginTop: 6, fontSize: 12, color: "var(--muted)" }}>
                     Suggested emoji: <span style={{ fontSize: 16 }}>{suggestedEmoji}</span>
                   </div>
                 )}
@@ -903,6 +971,9 @@ What should I add next? 👀
                     setName("");
                     setEmoji("📚");
                     setSuggestedEmoji(null);
+                    // Reset mood to current mood for next time
+                    const currentMood = getMood();
+                    setNewShelfMood(currentMood === "default" ? "aesthetic" : currentMood);
                   }}
                 >
                   Cancel
@@ -926,7 +997,7 @@ What should I add next? 👀
             <h2 style={modalTitle}>Boek toevoegen</h2>
             
             {addLoading ? (
-              <div style={{ padding: "20px 0", textAlign: "center", color: "#cfcfe6" }}>
+              <div style={{ padding: "20px 0", textAlign: "center", color: "var(--muted)" }}>
                 Bezig met ophalen...
               </div>
             ) : (
@@ -970,7 +1041,7 @@ What should I add next? 👀
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          color: "var(--muted)",
+                          color: "#8f8fa3",
                           fontSize: 12
                         }}>
                           Geen cover
@@ -987,7 +1058,7 @@ What should I add next? 👀
                       <div style={{ 
                         fontSize: 16, 
                         fontWeight: 800, 
-                        color: "var(--text)", 
+                        color: "#fff", 
                         marginBottom: 4,
                         display: "-webkit-box",
                         WebkitLineClamp: 2,
@@ -1004,7 +1075,7 @@ What should I add next? 👀
                       {pendingData.authors && pendingData.authors.length > 0 && (
                         <div style={{ 
                           fontSize: 12, 
-                          color: "var(--muted)",
+                          color: "#cfcfe6",
                           display: "-webkit-box",
                           WebkitLineClamp: 1,
                           WebkitBoxOrient: "vertical",
@@ -1116,7 +1187,7 @@ What should I add next? 👀
         <div style={modalOverlay} onClick={() => setShowDeleteConfirm(null)}>
           <div style={modal} onClick={(e) => e.stopPropagation()}>
             <h2 style={modalTitle}>Delete book?</h2>
-            <p style={{ color: "#cfcfe6", margin: "0 0 24px" }}>This action cannot be undone.</p>
+            <p style={{ color: "var(--muted)", margin: "0 0 24px" }}>This action cannot be undone.</p>
             <div style={modalActions}>
               <button style={btnGhost} onClick={() => setShowDeleteConfirm(null)}>
                 Cancel
@@ -1134,7 +1205,7 @@ What should I add next? 👀
 
       {activeBooks.length === 0 ? (
         <div style={emptyCard}>
-          <p style={{ color: "#cfcfe6", marginTop: 0, fontWeight: 700 }}>No books yet. Time to scan 📚✨</p>
+          <p style={{ color: "var(--muted)", marginTop: 0, fontWeight: 700 }}>No books yet. Time to scan 📚✨</p>
           <Link href="/scan">
             <button style={btnPrimary}>Scan your first book</button>
           </Link>
@@ -1142,31 +1213,26 @@ What should I add next? 👀
       ) : (
         <div style={grid}>
           {activeBooks.map((b, idx) => {
-            const isRecent = b.id === recentBookId;
-            const buttonStyle = isRecent ? actionButtonCompact : actionButton;
-
-            const isCalm = mood === "calm";
-            const cardStyle = isCalm
-              ? { ...card, borderRadius: 16, boxShadow: "0 6px 18px rgba(58,36,18,0.12)", background: "var(--panel)", border: "1px solid var(--border)" }
-              : card;
+            const isRecentlyAdded = idx === 0; // First card is the most recently added
+            const cardStyle = isRecentlyAdded ? cardCompact : card;
+            const buttonStyle = isRecentlyAdded ? actionButtonCompact : actionButton;
+            const titleStyle = isRecentlyAdded ? titleCompact : title;
+            const authorStyle = isRecentlyAdded ? authorCompact : author;
+            const coverWrapStyle = isRecentlyAdded ? coverWrapCompact : coverWrap;
 
             return (
               <div key={b.id} style={{ ...cardStyle, animationDelay: `${idx * 35}ms`, position: "relative" }}>
-                {/* Action menu button - only show when details are expanded OR not recent */}
-                {(!isRecent || showRecentDetails) && (
-                  <button
-                    style={buttonStyle}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActionMenuBookId(actionMenuBookId === b.id ? null : b.id);
-                    }}
-                  >
-                    ⋯
-                  </button>
-                )}
+                <button
+                  style={buttonStyle}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActionMenuBookId(actionMenuBookId === b.id ? null : b.id);
+                  }}
+                >
+                  ⋯
+                </button>
 
-                {/* Action menu - only show when details are expanded OR not recent */}
-                {(!isRecent || showRecentDetails) && actionMenuBookId === b.id && (
+                {actionMenuBookId === b.id && (
                   <>
                     <div style={actionMenuOverlay} onClick={() => setActionMenuBookId(null)} />
                     <div
@@ -1215,71 +1281,52 @@ What should I add next? 👀
 
                       <div style={actionMenuDivider} />
 
-                      <button style={{ ...actionMenuItem, color: "#ff6b6b" }} onClick={() => setShowDeleteConfirm(b.id)}>
+                      <button style={{ ...actionMenuItem, color: "var(--accent1)" }} onClick={() => setShowDeleteConfirm(b.id)}>
                         <span>Delete book</span>
                       </button>
                     </div>
                   </>
                 )}
 
-                {/* Cover */}
-                <Cover
-                  isbn13={b.isbn13}
-                  coverUrl={b.coverUrl || ""}
-                  title={b.title}
-                  authors={b.authors || []}
-                  onBadCover={() => handleCoverError(b.id)}
-                  isCalm={isCalm}
-                />
-
-                {/* Content */}
-              <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
-                  <div style={isCalm ? { ...title, fontWeight: 900, letterSpacing: "-0.2px", color: "var(--text)" } : title}>{b.title}</div>
-                  {b.authors?.length ? <div style={isCalm ? { ...author, fontSize: 12, color: "var(--muted)" } : author}>by {b.authors.join(", ")}</div> : null}
-
-                  {/* Confirmation message for recent book when collapsed */}
-                  {isRecent && !showRecentDetails && (
-                    <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 700, marginTop: 2 }}>
-                      ✓ Toegevoegd aan shelf
+                {isRecentlyAdded ? (
+                  <div style={coverWrapStyle}>
+                    <div style={coverPlaceholderCompact}>
+                      <div style={{ fontWeight: 950, fontSize: 13, lineHeight: 1.2 }}>{b.title || "Unknown"}</div>
+                      {b.authors?.length ? (
+                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>{b.authors[0]}</div>
+                      ) : null}
                     </div>
-                  )}
+                    {b.coverUrl ? (
+                      <CoverImg
+                        src={toHttps(b.coverUrl)}
+                        alt={b.title}
+                        style={coverImg}
+                        onError={() => handleCoverError(b.id)}
+                      />
+                    ) : null}
+                  </div>
+                ) : (
+                  <Cover
+                    isbn13={b.isbn13}
+                    coverUrl={b.coverUrl || ""}
+                    title={b.title}
+                    authors={b.authors || []}
+                    onBadCover={() => handleCoverError(b.id)}
+                  />
+                )}
 
-                  {/* Details section - only show when expanded OR not recent */}
-                  {(!isRecent || showRecentDetails) && (
+                <div style={{ display: "grid", gap: isRecentlyAdded ? 4 : 6, marginTop: isRecentlyAdded ? 8 : 10 }}>
+                  <div style={titleStyle}>{b.title}</div>
+                  {b.authors?.length ? <div style={authorStyle}>by {b.authors.join(", ")}</div> : null}
+
                 <div style={metaRow}>
-                      {(() => {
-                        const s = b.status || "TBR";
-                        const label = s === "Finished" ? "Read" : s;
-                        return <span style={badgeFor(s, isCalm)}>{label}</span>;
-                      })()}
-                      <span style={isCalm ? { ...isbn, fontSize: 11, color: "rgba(74,52,31,0.45)" } : isbn}>ISBN {b.isbn13}</span>
+                    {(() => {
+                      const s = b.status || "TBR";
+                      const label = s === "Finished" ? "Read" : s;
+                      return <span style={badgeFor(s)}>{label}</span>;
+                    })()}
+                    {!isRecentlyAdded && <span style={isbn}>ISBN {b.isbn13}</span>}
                 </div>
-                  )}
-
-                  {/* Toggle button for recent book */}
-                  {isRecent && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowRecentDetails(!showRecentDetails);
-                      }}
-                      style={{
-                        marginTop: 4,
-                        padding: 0,
-                        border: 0,
-                        background: "transparent",
-                        color: "var(--muted)",
-                        fontSize: 12,
-                        fontWeight: 800,
-                        cursor: "pointer",
-                        textAlign: "left",
-                        opacity: 0.8,
-                        textDecoration: "none",
-                      }}
-                    >
-                      {showRecentDetails ? "Verberg details" : "Toon details"}
-                    </button>
-                  )}
               </div>
             </div>
             );
@@ -1298,17 +1345,17 @@ What should I add next? 👀
             bottom: 18,
             left: "50%",
             transform: "translateX(-50%)",
-            background: "var(--panel)",
-            border: "1px solid var(--border)",
+            background: "rgba(20,20,26,0.92)",
+            border: "1px solid rgba(255,255,255,0.10)",
             padding: "12px 14px",
             borderRadius: 14,
             fontWeight: 800,
             zIndex: 99999,
+            backdropFilter: "blur(10px)",
             pointerEvents: "none",
-            color: "var(--text)",
+            color: "#fff",
             fontSize: 14,
             whiteSpace: "nowrap",
-            boxShadow: `0 16px 40px var(--shadow)`,
           }}
         >
           {toast}
@@ -1405,7 +1452,7 @@ function ShareCardPreview({ variant }: { variant: ShareCardVariant }) {
       <div style={{ position: "relative", padding: 10, display: "grid", gap: 10 }}>
         <div
           style={{
-            color: "var(--text)",
+            color: "#fff",
             fontWeight: 950,
             fontSize: isBold ? 13 : 12,
             lineHeight: 1.05,
@@ -1581,7 +1628,7 @@ const ShareCard = React.forwardRef<
           style={{
             fontSize: tokens.titleSize,
             fontWeight: 980,
-            color: "var(--text)",
+            color: "#fff",
             lineHeight: 1.02,
             letterSpacing: isBold ? -0.9 : -0.6,
             textShadow: tokens.titleShadow,
@@ -1687,34 +1734,24 @@ function Cover({
   title,
   authors,
   onBadCover,
-  isCalm = false,
 }: {
   isbn13: string;
   coverUrl: string;
   title: string;
   authors: string[];
   onBadCover?: () => void;
-  isCalm?: boolean;
 }) {
   const candidates = [coverUrl ? toHttps(coverUrl) : ""].filter(Boolean);
 
   const [srcIndex, setSrcIndex] = useState(0);
   const src = candidates[srcIndex] || "";
 
-  const placeholderStyle = isCalm
-    ? {
-        ...coverPlaceholder,
-        background: "linear-gradient(180deg, rgba(255,248,235,0.96), rgba(245,230,205,0.96))",
-        boxShadow: "inset 0 0 0 1px rgba(120,90,55,0.18)",
-      }
-    : coverPlaceholder;
-
   return (
     <div style={coverWrap}>
-      <div style={placeholderStyle}>
-        <div style={{ fontWeight: 950, fontSize: 15, lineHeight: 1.2, color: isCalm ? "var(--text)" : undefined }}>{title || "Unknown"}</div>
-        {authors.length ? <div style={{ marginTop: 6, fontSize: 12, color: isCalm ? "var(--muted)" : "#d8d8ff" }}>{authors.join(", ")}</div> : null}
-        <div style={{ marginTop: 10, fontSize: 12, color: isCalm ? "rgba(74,52,31,0.45)" : "#b7b7b7" }}>ISBN {isbn13}</div>
+      <div style={coverPlaceholder}>
+        <div style={{ fontWeight: 950, fontSize: 15, lineHeight: 1.2 }}>{title || "Unknown"}</div>
+        {authors.length ? <div style={{ marginTop: 6, fontSize: 12, color: "#d8d8ff" }}>{authors.join(", ")}</div> : null}
+        <div style={{ marginTop: 10, fontSize: 12, color: "#b7b7b7" }}>ISBN {isbn13}</div>
       </div>
 
       {src ? (
@@ -1735,8 +1772,6 @@ const page: React.CSSProperties = {
   padding: 16,
   maxWidth: 1060,
   margin: "0 auto",
-  background: "var(--bg)",
-  color: "var(--text)",
 };
 
 const hero: React.CSSProperties = {
@@ -1766,6 +1801,7 @@ const shelfHeader: React.CSSProperties = {
   alignItems: "flex-end",
   gap: 14,
   flexWrap: "wrap",
+  background: "var(--panel)",
 };
 
 const shelfHeaderContent: React.CSSProperties = {
@@ -1807,7 +1843,7 @@ const kicker: React.CSSProperties = {
   fontSize: 12,
   fontWeight: 900,
   letterSpacing: 0.6,
-  color: "var(--muted)",
+  color: "#cfcfe6",
   opacity: 0.9,
 };
 
@@ -1819,7 +1855,7 @@ const h1: React.CSSProperties = {
 
 const sub: React.CSSProperties = {
   margin: "8px 0 0",
-  color: "var(--muted)",
+  color: "#cfcfe6",
   opacity: 0.9,
   fontWeight: 650,
 };
@@ -1837,8 +1873,16 @@ const btnPrimary: React.CSSProperties = {
   padding: "10px 14px",
   borderRadius: 16,
   border: 0,
-  background: "linear-gradient(135deg, var(--accent1), var(--accent2))",
-  color: "var(--text)",
+  background: (() => {
+    const mood = typeof document !== "undefined" ? document.documentElement.dataset.mood : "default";
+    if (mood === "default" || mood === "bold" || mood === "calm") return "var(--btnPrimaryBg)";
+    return `linear-gradient(135deg, var(--accent1), var(--accent2))`;
+  })(),
+  color: (() => {
+    const mood = typeof document !== "undefined" ? document.documentElement.dataset.mood : "default";
+    if (mood === "default" || mood === "bold" || mood === "calm") return "var(--btnPrimaryText)";
+    return "#fff";
+  })(),
   fontWeight: 950,
   cursor: "pointer",
   boxShadow: `0 12px 28px var(--shadow)`,
@@ -1852,8 +1896,16 @@ const btnPrimary: React.CSSProperties = {
 const btnGhost: React.CSSProperties = {
   padding: "10px 14px",
   borderRadius: 16,
-  border: "1px solid var(--border)",
-  background: "var(--panel)",
+  border: (() => {
+    const mood = typeof document !== "undefined" ? document.documentElement.dataset.mood : "default";
+    if (mood === "default" || mood === "bold" || mood === "calm") return "1px solid var(--btnGhostBorder)";
+    return "1px solid var(--border)";
+  })(),
+  background: (() => {
+    const mood = typeof document !== "undefined" ? document.documentElement.dataset.mood : "default";
+    if (mood === "default" || mood === "bold" || mood === "calm") return "var(--btnGhostBg)";
+    return "var(--panel)";
+  })(),
   color: "var(--text)",
   fontWeight: 900,
   cursor: "pointer",
@@ -1870,8 +1922,16 @@ const shelfSelector: React.CSSProperties = {
   gap: 8,
   padding: "10px 16px",
   borderRadius: 16,
-  border: "1px solid var(--border)",
-  background: "var(--panel)",
+  border: (() => {
+    const mood = typeof document !== "undefined" ? document.documentElement.dataset.mood : "default";
+    if (mood === "default" || mood === "bold" || mood === "calm") return "1px solid var(--btnGhostBorder)";
+    return "1px solid var(--border)";
+  })(),
+  background: (() => {
+    const mood = typeof document !== "undefined" ? document.documentElement.dataset.mood : "default";
+    if (mood === "default" || mood === "bold" || mood === "calm") return "var(--btnGhostBg)";
+    return "var(--panel)";
+  })(),
   color: "var(--text)",
   fontWeight: 950,
   cursor: "pointer",
@@ -1888,7 +1948,7 @@ const dropdown: React.CSSProperties = {
   maxWidth: "90vw",
   maxHeight: "70vh",
   overflowY: "auto",
-  background: "var(--panel)",
+  background: typeof document !== "undefined" && document.documentElement.dataset.mood === "default" ? "var(--panelSolid)" : "var(--panel)",
   border: "1px solid var(--border)",
   borderRadius: 16,
   padding: 6,
@@ -1914,7 +1974,7 @@ const dropdownItem: React.CSSProperties = {
 };
 
 const dropdownItemActive: React.CSSProperties = {
-  background: `color-mix(in srgb, var(--accent1) 18%, transparent)`,
+  background: typeof document !== "undefined" && document.documentElement.dataset.mood === "default" ? "var(--accentSoft)" : `color-mix(in srgb, var(--accent1) 18%, transparent)`,
   color: "var(--muted)",
 };
 
@@ -1931,17 +1991,24 @@ const modalOverlay: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  zIndex: 2000,
+  zIndex: 10000,
   padding: 16,
 };
 
 const modal: React.CSSProperties = {
-  background: "var(--panel)",
+  background: (() => {
+    const mood = typeof document !== "undefined" ? document.documentElement.dataset.mood : "default";
+    if (mood === "default" || mood === "bold" || mood === "calm") return "var(--panelSolid)";
+    return "var(--panel)";
+  })(),
   border: "1px solid var(--border)",
   borderRadius: 22,
   padding: 20,
   maxWidth: 340,
   width: "100%",
+  maxHeight: "90vh",
+  display: "flex",
+  flexDirection: "column",
   boxShadow: `0 20px 60px var(--shadow)`,
 };
 
@@ -1965,15 +2032,15 @@ const formGroup: React.CSSProperties = {
 const formLabel: React.CSSProperties = {
   fontSize: 14,
   fontWeight: 700,
-  color: "var(--muted)",
+  color: "#cfcfe6",
 };
 
 const formInput: React.CSSProperties = {
   padding: "12px 16px",
   borderRadius: 12,
-  border: "1px solid var(--border)",
-  background: "var(--panel2)",
-  color: "var(--text)",
+  border: "1px solid #2a2a32",
+  background: "#101014",
+  color: "#fff",
   fontSize: 16,
   fontFamily: "inherit",
   width: "100%",
@@ -1984,7 +2051,7 @@ const formInput: React.CSSProperties = {
 
 const formHint: React.CSSProperties = {
   fontSize: 12,
-  color: "var(--muted)",
+  color: "#8f8fa3",
   textAlign: "right",
 };
 
@@ -1999,9 +2066,9 @@ const emojiChip: React.CSSProperties = {
   width: 44,
   height: 44,
   borderRadius: 12,
-  border: "1px solid var(--border)",
-  background: "var(--panel2)",
-  color: "var(--text)",
+  border: "1px solid #2a2a32",
+  background: "#101014",
+  color: "#fff",
   fontSize: 20,
   cursor: "pointer",
   display: "flex",
@@ -2012,11 +2079,11 @@ const emojiChip: React.CSSProperties = {
 };
 
 const emojiChipActive: React.CSSProperties = {
-  background: `color-mix(in srgb, var(--accent1) 25%, transparent)`,
-  borderColor: "var(--accent1)",
+  background: "rgba(109,94,252,0.25)",
+  borderColor: "#6d5efc",
   borderWidth: "2px",
   transform: "scale(1.05)",
-  boxShadow: `0 0 16px color-mix(in srgb, var(--accent1) 40%, transparent), 0 4px 12px color-mix(in srgb, var(--accent1) 20%, transparent)`,
+  boxShadow: "0 0 16px rgba(109,94,252,0.4), 0 4px 12px rgba(109,94,252,0.2)",
 };
 
 const modalActions: React.CSSProperties = {
@@ -2033,9 +2100,9 @@ const actionButton: React.CSSProperties = {
   width: 32,
   height: 32,
   borderRadius: 8,
-  border: "1px solid var(--border)",
-  background: "var(--panel)",
-  color: "var(--text)",
+  border: "1px solid #2a2a32",
+  background: "rgba(21, 21, 28, 0.9)",
+  color: "#fff",
   fontSize: 18,
   fontWeight: 900,
   cursor: "pointer",
@@ -2043,6 +2110,7 @@ const actionButton: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   zIndex: 10,
+  backdropFilter: "blur(8px)",
 };
 
 const actionButtonCompact: React.CSSProperties = {
@@ -2052,9 +2120,9 @@ const actionButtonCompact: React.CSSProperties = {
   width: 28,
   height: 28,
   borderRadius: 6,
-  border: "1px solid var(--border)",
-  background: "var(--panel)",
-  color: "var(--text)",
+  border: "1px solid #2a2a32",
+  background: "rgba(21, 21, 28, 0.7)",
+  color: "#fff",
   fontSize: 16,
   fontWeight: 900,
   cursor: "pointer",
@@ -2062,6 +2130,7 @@ const actionButtonCompact: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   zIndex: 10,
+  backdropFilter: "blur(8px)",
   opacity: 0.85,
 };
 
@@ -2072,13 +2141,13 @@ const actionMenu: React.CSSProperties = {
   right: 0,
   maxHeight: "70vh",
   overflowY: "auto",
-  background: "var(--panel)",
-  borderTop: "1px solid var(--border)",
+  background: "#15151c",
+  borderTop: "1px solid #2a2a32",
   borderTopLeftRadius: 20,
   borderTopRightRadius: 20,
   padding: "12px 16px 20px",
   zIndex: 1000,
-  boxShadow: `0 -8px 32px var(--shadow)`,
+  boxShadow: "0 -8px 32px rgba(0,0,0,0.8)",
 };
 
 const actionMenuSection: React.CSSProperties = {
@@ -2089,7 +2158,7 @@ const actionMenuSection: React.CSSProperties = {
 const actionMenuLabel: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 900,
-  color: "var(--muted)",
+  color: "#8f8fa3",
   textTransform: "uppercase",
   letterSpacing: 0.5,
   padding: "6px 12px 4px",
@@ -2105,7 +2174,7 @@ const actionMenuItem: React.CSSProperties = {
   borderRadius: 12,
   border: 0,
   background: "transparent",
-  color: "var(--text)",
+  color: "#fff",
   fontWeight: 700,
   cursor: "pointer",
   fontSize: 14,
@@ -2114,13 +2183,13 @@ const actionMenuItem: React.CSSProperties = {
 };
 
 const actionMenuItemActive: React.CSSProperties = {
-  background: `color-mix(in srgb, var(--accent1) 18%, transparent)`,
-  color: "var(--muted)",
+  background: "rgba(109,94,252,0.18)",
+  color: "#d8d8ff",
 };
 
 const actionMenuDivider: React.CSSProperties = {
   height: 1,
-  background: "var(--border)",
+  background: "#2a2a32",
   margin: "6px 0",
 };
 
@@ -2134,7 +2203,7 @@ const actionMenuOverlay: React.CSSProperties = {
 const actionMenuHandle: React.CSSProperties = {
   width: 40,
   height: 4,
-  background: "var(--muted)",
+  background: "#4a4a5a",
   borderRadius: 2,
   margin: "0 auto 12px",
 };
@@ -2143,8 +2212,8 @@ const emptyCard: React.CSSProperties = {
   marginTop: 14,
   padding: 16,
   borderRadius: 18,
-  border: "1px solid var(--border)",
-  background: "var(--panel)",
+  border: "1px solid #2a2a32",
+  background: "#15151c",
 };
 
 const grid: React.CSSProperties = {
@@ -2165,6 +2234,15 @@ const card: React.CSSProperties = {
   animation: "popIn 420ms ease both",
 };
 
+const cardCompact: React.CSSProperties = {
+  background: "var(--panel)",
+  border: "1px solid var(--border)",
+  borderRadius: 14,
+  padding: 7.5, // ~25% reduction from 10px
+  boxShadow: `0 8px 20px var(--shadow)`, // Softer shadow
+  animation: "popIn 420ms ease both",
+};
+
 const coverWrap: React.CSSProperties = {
   position: "relative",
   width: "100%",
@@ -2172,6 +2250,17 @@ const coverWrap: React.CSSProperties = {
   overflow: "hidden",
   border: "1px solid var(--border)",
   background: "var(--panel2)",
+  aspectRatio: "2 / 3",
+};
+
+const coverWrapCompact: React.CSSProperties = {
+  position: "relative",
+  width: "100%",
+  borderRadius: 10,
+  overflow: "hidden",
+  border: "1px solid var(--border)",
+  background: "var(--panel2)",
+  height: 120, // Fixed height 110-130px range
   aspectRatio: "2 / 3",
 };
 
@@ -2194,16 +2283,32 @@ const coverPlaceholder: React.CSSProperties = {
   gap: 2,
   padding: 12,
   textAlign: "left",
-  background:
-    `linear-gradient(135deg, color-mix(in srgb, var(--accent1) 22%, transparent), color-mix(in srgb, var(--accent2) 10%, transparent) 45%, transparent 70%), var(--panel2)`,
-  // Calm mood override via CSS
+  background: "var(--panel2)",
 };
 
+const coverPlaceholderCompact: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  zIndex: 0,
+  pointerEvents: "none",
+  display: "grid",
+  alignContent: "center",
+  gap: 2,
+  padding: 10,
+  textAlign: "left",
+  background: "var(--panel2)",
+};
 
 const title: React.CSSProperties = {
   fontSize: 15,
   fontWeight: 950,
   lineHeight: 1.2,
+};
+
+const titleCompact: React.CSSProperties = {
+  fontSize: 14,
+  fontWeight: 950,
+  lineHeight: 1.3,
   display: "-webkit-box",
   WebkitLineClamp: 2,
   WebkitBoxOrient: "vertical",
@@ -2212,6 +2317,12 @@ const title: React.CSSProperties = {
 };
 
 const author: React.CSSProperties = {
+  fontSize: 12,
+  color: "var(--muted)",
+  fontWeight: 700,
+};
+
+const authorCompact: React.CSSProperties = {
   fontSize: 12,
   color: "var(--muted)",
   fontWeight: 700,
@@ -2235,7 +2346,7 @@ const isbn: React.CSSProperties = {
   color: "var(--muted)",
 };
 
-function badgeFor(status: string, isCalm: boolean = false): React.CSSProperties {
+function badgeFor(status: string): React.CSSProperties {
   const base: React.CSSProperties = {
   fontSize: 12,
     fontWeight: 950,
@@ -2244,20 +2355,25 @@ function badgeFor(status: string, isCalm: boolean = false): React.CSSProperties 
     border: "1px solid var(--border)",
   };
 
-  if (isCalm) {
-    // Calm mood: warm bruin, geen gradient
-    return { ...base, background: "rgba(138,90,43,0.14)", color: "#5a3a1e", border: "1px solid rgba(138,90,43,0.25)" };
-  }
-
-  // Aesthetic/Bold moods
+  // Check if we're in Calm mood
+  const isCalm = typeof document !== "undefined" && document.documentElement.dataset.mood === "calm";
+  
   if (status === "Finished") {
+    if (isCalm) {
+      return { ...base, background: `color-mix(in srgb, var(--accent1) 14%, transparent)`, color: "var(--text)" };
+    }
     return { ...base, background: "rgba(79, 209, 197, 0.18)", color: "#bff7ef" };
   }
   if (status === "Reading") {
+    if (isCalm) {
+      return { ...base, background: `color-mix(in srgb, var(--accent1) 12%, transparent)`, color: "var(--text)" };
+    }
     return { ...base, background: "rgba(255, 203, 76, 0.16)", color: "#ffe2a3" };
   }
-  // TBR
-  return { ...base, background: `color-mix(in srgb, var(--accent1) 18%, transparent)`, color: "var(--muted)" };
+  if (isCalm) {
+    return { ...base, background: `color-mix(in srgb, var(--accent1) 14%, transparent)`, color: "var(--text)" };
+  }
+  return { ...base, background: "rgba(109,94,252,0.18)", color: "#d8d8ff" };
 }
 
 const css = `
@@ -2275,11 +2391,6 @@ const css = `
     box-shadow: 0 18px 46px rgba(0,0,0,0.55);
     border-color: rgba(255,73,240,0.35);
   }
-}
-
-[data-mood="calm"] div[style*="animation: popIn"]:hover {
-  box-shadow: 0 8px 22px rgba(58,36,18,0.16) !important;
-  border-color: var(--border) !important;
 }
 
 button:active {
