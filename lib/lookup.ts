@@ -101,6 +101,35 @@ async function searchGoogleBooks(isbn: string): Promise<GoogleBooksVolume[]> {
   }
 }
 
+/**
+ * Try to get cover from Open Library API.
+ * Returns cover URL if found, empty string otherwise.
+ * Open Library format: https://covers.openlibrary.org/b/isbn/{ISBN}-{size}.jpg
+ * Sizes: S (small), M (medium), L (large)
+ */
+async function tryOpenLibraryCover(isbn: string): Promise<string> {
+  if (!isbn) return "";
+  
+  // Try large size first for best quality
+  const url = `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(isbn)}-L.jpg`;
+  
+  try {
+    // Check if the image exists by making a HEAD request
+    const res = await fetch(url, { method: "HEAD" });
+    
+    // Open Library returns 200 even for placeholders, but we can check Content-Type
+    // If it's an image, use it. Open Library placeholders are also images, but
+    // that's okay - better than nothing.
+    if (res.ok && res.headers.get("content-type")?.startsWith("image/")) {
+      return url;
+    }
+  } catch {
+    // Ignore errors, return empty string
+  }
+  
+  return "";
+}
+
 export async function lookupByIsbn(isbn13: string): Promise<LookupResult> {
   const clean = (isbn13 || "").replace(/[^0-9X]/gi, "").trim();
 
@@ -151,6 +180,20 @@ export async function lookupByIsbn(isbn13: string): Promise<LookupResult> {
     }
   } catch {
     // ignore errors, return what we have
+  }
+
+  // --- 2) Open Library fallback if Google Books didn't provide a cover ---
+  if (!coverUrl) {
+    // Try with ISBN-13 first
+    coverUrl = await tryOpenLibraryCover(clean);
+    
+    // If that didn't work and we have an ISBN-10, try that
+    if (!coverUrl) {
+      const isbn10 = isbn13to10(clean);
+      if (isbn10) {
+        coverUrl = await tryOpenLibraryCover(isbn10);
+      }
+    }
   }
 
   return { title, authors, coverUrl };
