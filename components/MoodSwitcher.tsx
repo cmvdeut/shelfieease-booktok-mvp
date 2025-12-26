@@ -87,27 +87,27 @@ export function MoodSwitcher() {
           width: 56,
           height: 56,
           borderRadius: 28,
-          border: "1px solid rgba(255,255,255,0.15)",
-          background: "rgba(21, 21, 28, 0.85)",
+          border: "1px solid var(--border)",
+          background: "var(--panel)",
           backdropFilter: "blur(12px)",
-          color: "#fff",
+          color: "var(--text)",
           fontSize: 24,
           fontWeight: 700,
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+          boxShadow: "0 8px 24px var(--shadow)",
           zIndex: 1000,
           transition: "all 200ms ease",
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = "scale(1.05)";
-          e.currentTarget.style.boxShadow = "0 12px 32px rgba(0,0,0,0.5)";
+          e.currentTarget.style.boxShadow = `0 12px 32px var(--shadow)`;
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = "scale(1)";
-          e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.4)";
+          e.currentTarget.style.boxShadow = `0 8px 24px var(--shadow)`;
         }}
         aria-label="Change mood"
       >
@@ -123,10 +123,10 @@ export function MoodSwitcher() {
             right: 20,
             minWidth: 160,
             borderRadius: 16,
-            border: "1px solid rgba(255,255,255,0.15)",
-            background: "rgba(21, 21, 28, 0.95)",
+            border: "1px solid var(--border)",
+            background: typeof document !== "undefined" && document.documentElement.dataset.mood === "default" ? "var(--panelSolid)" : "var(--panel)",
             backdropFilter: "blur(16px)",
-            boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+            boxShadow: "0 12px 40px var(--shadow)",
             padding: 8,
             zIndex: 1001,
             display: "grid",
@@ -144,8 +144,8 @@ export function MoodSwitcher() {
                 padding: "10px 14px",
                 borderRadius: 12,
                 border: 0,
-                background: currentMood === mood.value ? "rgba(109,94,252,0.2)" : "transparent",
-                color: "#fff",
+                background: currentMood === mood.value ? "var(--accentSoft)" : "transparent",
+                color: "var(--text)",
                 fontSize: 14,
                 fontWeight: 700,
                 cursor: "pointer",
@@ -154,7 +154,7 @@ export function MoodSwitcher() {
               }}
               onMouseEnter={(e) => {
                 if (currentMood !== mood.value) {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+                  e.currentTarget.style.background = "var(--btnGhostBg)";
                 }
               }}
               onMouseLeave={(e) => {
