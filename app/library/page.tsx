@@ -68,7 +68,6 @@ export default function LibraryPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [shareCoverUrls, setShareCoverUrls] = useState<string[]>([]);
-  const [shareStyle, setShareStyle] = useState<"aesthetic" | "bold">("aesthetic");
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareBlob, setShareBlob] = useState<Blob | null>(null);
   const [shareFilename, setShareFilename] = useState("");
@@ -653,75 +652,6 @@ What should I add next? 👀
             {refreshing ? "Refreshing…" : "Refresh covers"}
           </button>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: 3,
-              borderRadius: 999,
-              border: "1px solid #2a2a32",
-              background: "#111118",
-              height: 40,
-              flex: "0 0 auto",
-            }}
-            aria-label="Share card style"
-          >
-            <button
-              type="button"
-              onClick={() => setShareStyle("aesthetic")}
-              style={{
-                padding: "8px 10px",
-                borderRadius: 999,
-                border:
-                  shareStyle === "aesthetic"
-                    ? "1px solid rgba(255,255,255,0.20)"
-                    : "1px solid transparent",
-                cursor: "pointer",
-                fontWeight: 950,
-                fontSize: 12,
-                color: "#fff",
-                background:
-                  shareStyle === "aesthetic"
-                    ? "linear-gradient(135deg, rgba(109,94,252,0.8), rgba(255,73,240,0.55))"
-                    : "transparent",
-                boxShadow:
-                  shareStyle === "aesthetic"
-                    ? "0 10px 24px rgba(109,94,252,0.25), 0 0 0 2px rgba(0,0,0,0.25) inset"
-                    : "none",
-                opacity: shareStyle === "aesthetic" ? 1 : 0.7,
-              }}
-            >
-              Aesthetic
-            </button>
-            <button
-              type="button"
-              onClick={() => setShareStyle("bold")}
-              style={{
-                padding: "8px 10px",
-                borderRadius: 999,
-                border:
-                  shareStyle === "bold"
-                    ? "1px solid rgba(255,255,255,0.18)"
-                    : "1px solid transparent",
-                cursor: "pointer",
-                fontWeight: 950,
-                fontSize: 12,
-                color: "#fff",
-                background: shareStyle === "bold" ? "rgba(255,255,255,0.10)" : "transparent",
-                boxShadow:
-                  shareStyle === "bold"
-                    ? "0 10px 24px rgba(0,0,0,0.35), 0 0 0 2px rgba(255,255,255,0.06) inset"
-                    : "none",
-                opacity: shareStyle === "bold" ? 1 : 0.7,
-              }}
-            >
-              Bold
-            </button>
-          </div>
-
-          
-
           <button
             style={btnGhost}
             onClick={handleShareShelf}
@@ -739,18 +669,22 @@ What should I add next? 👀
       </div>
 
       {/* Hidden Share Card for rendering */}
-      {activeShelf && (
-        <div style={{ position: "fixed", left: "-10000px", top: 0, opacity: 0, pointerEvents: "none" }}>
-          <ShareCard
-            ref={shareCardRef}
-            mode="shelfie"
-            shelf={activeShelf}
-            coverUrls={shareCoverUrls}
-            variant={shareStyle}
-            stats={stats}
-          />
-        </div>
-      )}
+      {activeShelf && (() => {
+        const currentMood = typeof document !== "undefined" ? document.documentElement.dataset.mood : "default";
+        const shareVariant: "aesthetic" | "bold" = currentMood === "bold" ? "bold" : "aesthetic";
+        return (
+          <div style={{ position: "fixed", left: "-10000px", top: 0, opacity: 0, pointerEvents: "none" }}>
+            <ShareCard
+              ref={shareCardRef}
+              mode="shelfie"
+              shelf={activeShelf}
+              coverUrls={shareCoverUrls}
+              variant={shareVariant}
+              stats={stats}
+            />
+          </div>
+        );
+      })()}
 
       {shareModalOpen && (
         <div
