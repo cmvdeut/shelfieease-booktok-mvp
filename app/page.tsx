@@ -3,11 +3,39 @@ import Link from "next/link";
 export default function HomePage() {
   return (
     <main style={{ minHeight: "100dvh", background: "var(--bg)", color: "var(--text)" }}>
-      {/* Background glow */}
-      <div className="pointer-events-none fixed inset-0">
-        <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-violet-600/25 blur-3xl" />
-        <div className="absolute top-40 -right-24 h-80 w-80 rounded-full bg-fuchsia-500/20 blur-3xl" />
-        <div className="absolute bottom-[-120px] left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-sky-500/10 blur-3xl" />
+      {/* Background glow - mood-aware via CSS vars */}
+      <div style={{ pointerEvents: "none", position: "fixed", inset: 0 }}>
+        <div style={{
+          position: "absolute",
+          top: -96,
+          left: -96,
+          width: 288,
+          height: 288,
+          borderRadius: "50%",
+          background: `radial-gradient(circle, color-mix(in srgb, var(--accent1) 25%, transparent), transparent)`,
+          filter: "blur(64px)",
+        }} />
+        <div style={{
+          position: "absolute",
+          top: 160,
+          right: -96,
+          width: 320,
+          height: 320,
+          borderRadius: "50%",
+          background: `radial-gradient(circle, color-mix(in srgb, var(--accent2) 20%, transparent), transparent)`,
+          filter: "blur(64px)",
+        }} />
+        <div style={{
+          position: "absolute",
+          bottom: -120,
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: 384,
+          height: 384,
+          borderRadius: "50%",
+          background: `radial-gradient(circle, color-mix(in srgb, var(--accent1) 10%, transparent), transparent)`,
+          filter: "blur(64px)",
+        }} />
       </div>
 
       <div style={{ position: "relative", maxWidth: 448, margin: "0 auto", padding: "28px 24px 36px" }}>
@@ -49,7 +77,11 @@ export default function HomePage() {
                 padding: "14px 20px",
                 fontSize: "clamp(1rem, 1.125rem, 1.125rem)",
                 fontWeight: 600,
-                background: "linear-gradient(135deg, var(--accent1), var(--accent2))",
+                background: (() => {
+                  const mood = typeof document !== "undefined" ? document.documentElement.dataset.mood : "default";
+                  if (mood === "default" || mood === "bold" || mood === "calm") return "var(--btnPrimaryBg)";
+                  return "linear-gradient(135deg, var(--accent1), var(--accent2))";
+                })(),
                 boxShadow: `0 8px 24px var(--shadow)`,
                 border: "1px solid var(--border)",
                 color: "var(--text)",

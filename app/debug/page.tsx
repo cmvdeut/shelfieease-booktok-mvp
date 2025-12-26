@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function DebugPage() {
+  const router = useRouter();
   const [earlyError, setEarlyError] = useState<string | null>(null);
   const [lastClientError, setLastClientError] = useState<string | null>(null);
 
@@ -52,8 +54,21 @@ export default function DebugPage() {
 
       <div style={{ marginBottom: "24px", padding: "12px", backgroundColor: "#1a1a1a", borderRadius: "4px" }}>
         <h2 style={{ color: "#888", marginTop: 0, marginBottom: "8px" }}>Navigation</h2>
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-          <a href="/" style={{ color: "#6d5efc", textDecoration: "underline" }}>Home</a>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+          <button
+            onClick={() => router.push("/")}
+            style={{
+              padding: "8px 12px",
+              backgroundColor: "#333",
+              color: "#fff",
+              border: "1px solid #555",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "14px",
+            }}
+          >
+            ← Home
+          </button>
           <a href="/scan" style={{ color: "#6d5efc", textDecoration: "underline" }}>Scan</a>
           <a href="/library" style={{ color: "#6d5efc", textDecoration: "underline" }}>Library</a>
         </div>

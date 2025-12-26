@@ -20,88 +20,134 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           __html: `
 :root {
   /* Default (Aesthetic) */
-  --bg: #0b0b10;
-  --bg2: #121218;
-  --panel: rgba(21,21,28,0.78);
-  --panel2: rgba(16,16,20,0.72);
+  --bg: #0B0B10;
+  --bg2: #12111A;
+  --panel: rgba(18,17,26,0.72);
+  --panel2: rgba(18,17,26,0.72);
+  --panelSolid: #14131D;
   --border: rgba(255,255,255,0.10);
-  --text: rgba(255,255,255,0.96);
-  --muted: rgba(207,207,230,0.82);
-  --accent1: #6d5efc;
-  --accent2: #ff49f0;
+  --borderStrong: rgba(255,255,255,0.16);
+  --text: #FFFFFF;
+  --muted: rgba(255,255,255,0.72);
+  --muted2: rgba(255,255,255,0.55);
+  --accent1: #6D5EFC;
+  --accent2: #FF49F0;
+  --accentSoft: rgba(109,94,252,0.22);
+  --accentSoft2: rgba(255,73,240,0.14);
+  --btnPrimaryBg: linear-gradient(90deg,#6D5EFC,#FF49F0);
+  --btnPrimaryText: #FFFFFF;
+  --btnGhostBg: rgba(255,255,255,0.06);
+  --btnGhostBorder: rgba(255,255,255,0.12);
   --shadow: rgba(0,0,0,0.55);
+  --glow: rgba(255,73,240,0.18);
+  --glow2: rgba(109,94,252,0.22);
+  --danger: #FF6B6B;
+  --dangerSoft: rgba(255,107,107,0.12);
 }
 
-[data-mood="aesthetic"] {
-  --bg: #0b0b10;
-  --bg2: #121218;
-  --panel: rgba(21,21,28,0.78);
-  --panel2: rgba(16,16,20,0.72);
+[data-mood="default"] {
+  --bg: #0B0B10;
+  --bg2: #12111A;
+  --panel: rgba(18,17,26,0.72);
+  --panel2: rgba(18,17,26,0.72);
+  --panelSolid: #14131D;
   --border: rgba(255,255,255,0.10);
-  --text: rgba(255,255,255,0.96);
-  --muted: rgba(207,207,230,0.82);
-  --accent1: #6d5efc;
-  --accent2: #ff49f0;
+  --borderStrong: rgba(255,255,255,0.16);
+  --text: #FFFFFF;
+  --muted: rgba(255,255,255,0.72);
+  --muted2: rgba(255,255,255,0.55);
+  --accent1: #6D5EFC;
+  --accent2: #FF49F0;
+  --accentSoft: rgba(109,94,252,0.22);
+  --accentSoft2: rgba(255,73,240,0.14);
+  --btnPrimaryBg: linear-gradient(90deg,#6D5EFC,#FF49F0);
+  --btnPrimaryText: #FFFFFF;
+  --btnGhostBg: rgba(255,255,255,0.06);
+  --btnGhostBorder: rgba(255,255,255,0.12);
   --shadow: rgba(0,0,0,0.55);
+  --glow: rgba(255,73,240,0.18);
+  --glow2: rgba(109,94,252,0.22);
+  --danger: #FF6B6B;
+  --dangerSoft: rgba(255,107,107,0.12);
 }
 
 [data-mood="bold"] {
-  --bg: #07080a;
-  --bg2: #0f1115;
+  --bg: #0B0B0D;                 /* Background */
+  --bg2: #141418;                /* Background 2 */
 
-  --panel: #121318;            /* GEEN translucency */
-  --panel2: #0d0e13;
+  --panel: #111113;               /* Card background */
+  --panel2: #111113;              /* Card background 2 */
+  --panelSolid: #111113;          /* Solid panel */
 
-  --border: rgba(255,255,255,0.18);
-  --text: rgba(255,255,255,0.98);
-  --muted: rgba(255,255,255,0.70);
+  --border: rgba(255,255,255,0.20);  /* Borders */
+  --borderStrong: rgba(255,255,255,0.30);  /* Strong borders */
 
-  --accent1: #ff6a00;
-  --accent2: #ff9a3d;
+  --text: #FFFFFF;                /* Primary text */
+  --muted: #CFCFD4;              /* Secondary text */
+  --muted2: #8B8B92;             /* Muted text */
 
-  --shadow: rgba(0,0,0,0.85);
+  --accent1: #FF8A00;            /* Primary accent (oranje) */
+  --accent2: #FF8A00;            /* Primary accent 2 (oranje) */
+  --accentSoft: rgba(255,138,0,0.15);  /* Soft accent */
+  --accentSoft2: rgba(255,138,0,0.10);  /* Soft accent 2 */
+
+  --btnPrimaryBg: linear-gradient(90deg,#FF8A00,#FF8A00);
+  --btnPrimaryText: #FFFFFF;
+  --btnGhostBg: rgba(255,255,255,0.06);
+  --btnGhostBorder: rgba(255,255,255,0.12);
+
+  --shadow: rgba(0,0,0,0.90);    /* Deep shadows */
+  --glow: transparent;            /* No glow */
+  --glow2: transparent;          /* No glow 2 */
+
+  --danger: #FF6B6B;
+  --dangerSoft: rgba(255,107,107,0.12);
 }
 
 [data-mood="calm"] {
-  --bg: #f5e7cf;                 /* warm zand/linnen */
-  --bg2: #ead5b5;                /* iets donkerder zand (diepte) */
+  --bg: #F6EAD7;                 /* Background */
+  --bg2: #F2E2C9;                /* Background 2 */
 
-  --panel: rgba(255, 250, 242, 0.94);   /* paper panel */
-  --panel2: rgba(250, 240, 226, 0.92);
+  --panel: #FBF4E8;              /* Card background */
+  --panel2: #FBF4E8;             /* Card background 2 */
+  --panelSolid: #FBF4E8;          /* Solid panel */
 
-  --border: rgba(88, 62, 36, 0.22);     /* warm bruin, subtiel */
+  --border: rgba(58, 42, 26, 0.15);  /* Borders */
+  --borderStrong: rgba(58, 42, 26, 0.25);  /* Strong borders */
 
-  --text: #3a2412;               /* donkerbruin (goed contrast) */
-  --muted: #6b4a2b;              /* secundair bruin (leesbaar) */
+  --text: #3A2A1A;               /* Primary text */
+  --muted: #5C4630;              /* Secondary text */
+  --muted2: #8A7358;             /* Muted text */
 
-  --accent1: #8a5a2b;            /* warm bruin (CTA basis) */
-  --accent2: #c48a46;            /* honing/brons (gradient top) */
+  --accent1: #9C6B2F;            /* Primary accent */
+  --accent2: #9C6B2F;            /* Primary accent 2 */
+  --accentSoft: rgba(156, 107, 47, 0.15);  /* Soft accent */
+  --accentSoft2: rgba(156, 107, 47, 0.10);  /* Soft accent 2 */
 
-  --shadow: rgba(58, 36, 18, 0.14);
+  --btnPrimaryBg: linear-gradient(90deg,#9C6B2F,#9C6B2F);
+  --btnPrimaryText: #FFFFFF;
+  --btnGhostBg: rgba(58, 42, 26, 0.06);
+  --btnGhostBorder: rgba(58, 42, 26, 0.15);
+
+  --shadow: rgba(58, 42, 26, 0.12);      /* Subtle shadows */
+  --glow: transparent;            /* No glow */
+  --glow2: transparent;          /* No glow 2 */
+
+  --danger: #C85A5A;
+  --dangerSoft: rgba(200, 90, 90, 0.12);
 }
 
 [data-mood="calm"] * {
   text-shadow: none !important;
 }
 
-/* Calm mood: papier/linnen polish */
+/* Calm mood: Senior-Ease / rust / vertrouwen / warm */
 [data-mood="calm"] body {
-  background:
-    radial-gradient(900px 520px at 20% 10%, rgba(255,255,255,0.55), rgba(255,255,255,0) 60%),
-    radial-gradient(900px 520px at 80% 18%, rgba(255,255,255,0.35), rgba(255,255,255,0) 62%),
-    linear-gradient(180deg, var(--bg), var(--bg2));
+  background: var(--bg); /* Effen achtergrondkleur, geen gradient */
 }
 
 [data-mood="calm"] body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.10; /* heel subtiel */
-  background-image:
-    repeating-linear-gradient(0deg, rgba(58,36,18,0.020) 0px, rgba(58,36,18,0.020) 1px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 6px),
-    repeating-linear-gradient(90deg, rgba(58,36,18,0.016) 0px, rgba(58,36,18,0.016) 1px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 7px);
-  mix-blend-mode: multiply;
+  display: none; /* Geen overlay of texture in Calm */
 }
           `
         }} />
