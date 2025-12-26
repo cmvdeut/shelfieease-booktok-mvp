@@ -74,6 +74,10 @@ export default function LibraryPage() {
   const [shareCaption, setShareCaption] = useState("");
   const [copyImageStatus, setCopyImageStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [copyCaptionStatus, setCopyCaptionStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [scope, setScope] = useState<"shelf" | "all">("shelf");
+  const [statusFilter, setStatusFilter] = useState<Set<BookStatus>>(new Set(["TBR", "Reading", "Finished"]));
+  const [sortBy, setSortBy] = useState<"recent" | "title" | "author">("recent");
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const actionMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -208,6 +212,56 @@ export default function LibraryPage() {
     if (!activeShelfId) return [];
     return books.filter((b) => b.shelfId === activeShelfId);
   }, [books, activeShelfId]);
+
+  // Base books for filtering (shelf or all)
+  const baseBooks = useMemo(() => {
+    return scope === "all" ? books : activeBooks;
+  }, [scope, books, activeBooks]);
+
+  // Filter and search
+  const visibleBooks = useMemo(() => {
+    let filtered = baseBooks;
+
+    // Status filter
+    if (statusFilter.size > 0 && statusFilter.size < 3) {
+      filtered = filtered.filter((b) => {
+        const status = b.status ?? "TBR";
+        return statusFilter.has(status);
+      });
+    }
+
+    // Search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
+      const words = query.split(/\s+/).filter(Boolean);
+      
+      filtered = filtered.filter((b) => {
+        const title = (b.title || "").toLowerCase();
+        const authors = (b.authors || []).join(" ").toLowerCase();
+        const isbn = (b.isbn13 || "").toLowerCase();
+        const searchText = `${title} ${authors} ${isbn}`;
+        
+        return words.every((word) => searchText.includes(word));
+      });
+    }
+
+    // Sort
+    const sorted = [...filtered];
+    if (sortBy === "title") {
+      sorted.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+    } else if (sortBy === "author") {
+      sorted.sort((a, b) => {
+        const aAuthor = (a.authors || [])[0] || "";
+        const bAuthor = (b.authors || [])[0] || "";
+        return aAuthor.localeCompare(bAuthor);
+      });
+    } else {
+      // recent (default) - sort by updatedAt desc
+      sorted.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    }
+
+    return sorted;
+  }, [baseBooks, statusFilter, searchQuery, sortBy]);
 
   const stats = useMemo(() => {
     const tbr = activeBooks.filter((b) => (b.status ?? "TBR") === "TBR").length;
@@ -1137,6 +1191,160 @@ What should I add next? 👀
         </div>
       )}
 
+      {/* Search and Filters */}
+      {activeBooks.length > 0 && (
+        <div style={{ padding: "0 16px 16px", display: "grid", gap: 12 }}>
+          {/* Search input */}
+          <div style={{ position: "relative" }}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Zoek op titel, auteur of ISBN"
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                paddingRight: searchQuery ? "40px" : "16px",
+                borderRadius: 12,
+                border: "1px solid var(--border)",
+                background: "var(--panel2)",
+                color: "var(--text)",
+                fontSize: 16,
+                fontFamily: "inherit",
+                boxSizing: "border-box",
+              }}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                style={{
+                  position: "absolute",
+                  right: 8,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  width: 28,
+                  height: 28,
+                  borderRadius: 14,
+                  border: "none",
+                  background: "var(--btnGhostBg)",
+                  color: "var(--muted)",
+                  fontSize: 18,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {/* Scope toggle and filters */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+            {/* Scope toggle */}
+            <div style={{ display: "flex", gap: 4, borderRadius: 12, padding: 2, background: "var(--btnGhostBg)", border: "1px solid var(--border)" }}>
+              <button
+                type="button"
+                onClick={() => setScope("shelf")}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: scope === "shelf" ? "var(--accentSoft)" : "transparent",
+                  color: scope === "shelf" ? "var(--text)" : "var(--muted)",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  transition: "all 150ms ease",
+                }}
+              >
+                This shelf
+              </button>
+              <button
+                type="button"
+                onClick={() => setScope("all")}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: scope === "all" ? "var(--accentSoft)" : "transparent",
+                  color: scope === "all" ? "var(--text)" : "var(--muted)",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  transition: "all 150ms ease",
+                }}
+              >
+                All shelves
+              </button>
+            </div>
+
+            {/* Status filters */}
+            {(["TBR", "Reading", "Finished"] as BookStatus[]).map((status) => (
+              <button
+                key={status}
+                type="button"
+                onClick={() => {
+                  const newFilter = new Set(statusFilter);
+                  if (newFilter.has(status)) {
+                    newFilter.delete(status);
+                  } else {
+                    newFilter.add(status);
+                  }
+                  setStatusFilter(newFilter);
+                }}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 12,
+                  border: statusFilter.has(status)
+                    ? "1px solid var(--accent1)"
+                    : "1px solid var(--border)",
+                  background: statusFilter.has(status)
+                    ? "var(--accentSoft)"
+                    : "var(--btnGhostBg)",
+                  color: statusFilter.has(status) ? "var(--text)" : "var(--muted)",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  transition: "all 150ms ease",
+                }}
+              >
+                {status === "TBR" ? "TBR" : status === "Reading" ? "Reading" : "Finished"}
+              </button>
+            ))}
+
+            {/* Sort dropdown */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as "recent" | "title" | "author")}
+              style={{
+                padding: "6px 12px",
+                paddingRight: 32,
+                borderRadius: 12,
+                border: "1px solid var(--border)",
+                background: "var(--btnGhostBg)",
+                color: "var(--text)",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                appearance: "none",
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 4L6 8L10 4' stroke='currentColor' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E")`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 8px center",
+              }}
+            >
+              <option value="recent">Sort: Recent</option>
+              <option value="title">Sort: Title A–Z</option>
+              <option value="author">Sort: Author A–Z</option>
+            </select>
+          </div>
+        </div>
+      )}
+
       {activeBooks.length === 0 ? (
         <div style={emptyCard}>
           <p style={{ color: "var(--muted)", marginTop: 0, fontWeight: 700 }}>No books yet. Time to scan 📚✨</p>
@@ -1144,15 +1352,21 @@ What should I add next? 👀
             <button style={btnPrimary}>Scan your first book</button>
           </Link>
         </div>
+      ) : visibleBooks.length === 0 ? (
+        <div style={emptyCard}>
+          <p style={{ color: "var(--muted)", marginTop: 0, fontWeight: 700 }}>Geen boeken gevonden</p>
+          <p style={{ color: "var(--muted2)", marginTop: 8, fontSize: 14 }}>Check je filters of zoekterm.</p>
+        </div>
       ) : (
         <div style={grid}>
-          {activeBooks.map((b, idx) => {
+          {visibleBooks.map((b, idx) => {
             const isRecentlyAdded = idx === 0; // First card is the most recently added
             const cardStyle = isRecentlyAdded ? cardCompact : card;
             const buttonStyle = isRecentlyAdded ? actionButtonCompact : actionButton;
             const titleStyle = isRecentlyAdded ? titleCompact : title;
             const authorStyle = isRecentlyAdded ? authorCompact : author;
             const coverWrapStyle = isRecentlyAdded ? coverWrapCompact : coverWrap;
+            const bookShelf = shelves.find((s) => s.id === b.shelfId);
 
             return (
               <div key={b.id} style={{ ...cardStyle, animationDelay: `${idx * 35}ms`, position: "relative" }}>
@@ -1252,6 +1466,19 @@ What should I add next? 👀
                 <div style={{ display: "grid", gap: isRecentlyAdded ? 4 : 6, marginTop: isRecentlyAdded ? 8 : 10 }}>
                   <div style={titleStyle}>{b.title}</div>
                   {b.authors?.length ? <div style={authorStyle}>by {b.authors.join(", ")}</div> : null}
+                  {scope === "all" && bookShelf && (
+                    <div style={{
+                      marginTop: 2,
+                      fontSize: 11,
+                      color: "var(--muted2)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}>
+                      <span>{bookShelf.emoji}</span>
+                      <span>{bookShelf.name}</span>
+                    </div>
+                  )}
 
                 <div style={metaRow}>
                     {(() => {
