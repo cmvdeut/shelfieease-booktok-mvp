@@ -20,6 +20,7 @@ import {
   type Book,
   type Shelf,
   type BookStatus,
+  type BookFormat,
   type Mood,
 } from "@/lib/storage";
 
@@ -432,10 +433,17 @@ export default function LibraryPage() {
   }
 
   function handleChangeStatus(bookId: string, status: BookStatus) {
-    updateBook(bookId, { status });
+    const updated = updateBook(bookId, { status });
+    setBooks(updated);
+    showToast(`Status updated to ${status === "Finished" ? "Read" : status}`);
+  }
+
+  function handleChangeFormat(bookId: string, format: BookFormat) {
+    updateBook(bookId, { format });
     const updated = loadBooks();
     setBooks(updated);
     setActionMenuBookId(null);
+    showToast(`Format updated to ${format === "ebook" ? "E-book" : "Physical book"}`);
   }
 
   function handleDeleteBook(bookId: string) {
@@ -1427,6 +1435,44 @@ What should I add next? 👀
 
                       <div style={actionMenuDivider} />
 
+                      <div style={actionMenuSection}>
+                        <div style={actionMenuLabel}>Book format</div>
+                        {(["physical", "ebook"] as BookFormat[]).map((format) => (
+                          <button
+                            key={format}
+                            style={{
+                              ...actionMenuItem,
+                              ...((b.format || "physical") === format ? actionMenuItemActive : {}),
+                            }}
+                            onClick={() => handleChangeFormat(b.id, format)}
+                          >
+                            <span>{format === "ebook" ? "📱 E-book" : "📖 Physical book"}</span>
+                            {(b.format || "physical") === format && <span style={{ fontSize: 10 }}>✓</span>}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div style={actionMenuDivider} />
+
+                      <div style={actionMenuSection}>
+                        <div style={actionMenuLabel}>Book format</div>
+                        {(["physical", "ebook"] as BookFormat[]).map((format) => (
+                          <button
+                            key={format}
+                            style={{
+                              ...actionMenuItem,
+                              ...((b.format || "physical") === format ? actionMenuItemActive : {}),
+                            }}
+                            onClick={() => handleChangeFormat(b.id, format)}
+                          >
+                            <span>{format === "ebook" ? "📱 E-book" : "📖 Physical book"}</span>
+                            {(b.format || "physical") === format && <span style={{ fontSize: 10 }}>✓</span>}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div style={actionMenuDivider} />
+
                       <button style={{ ...actionMenuItem, color: "var(--accent1)" }} onClick={() => setShowDeleteConfirm(b.id)}>
                         <span>Delete book</span>
                       </button>
@@ -1484,6 +1530,17 @@ What should I add next? 👀
                       const label = s === "Finished" ? "Read" : s;
                       return <span style={badgeFor(s)}>{label}</span>;
                     })()}
+                    {(b.format || "physical") === "ebook" && (
+                      <span style={{
+                        fontSize: 11,
+                        color: "var(--muted2)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 3,
+                      }}>
+                        📱
+                      </span>
+                    )}
                     {!isRecentlyAdded && <span style={isbn}>ISBN {b.isbn13}</span>}
                 </div>
               </div>

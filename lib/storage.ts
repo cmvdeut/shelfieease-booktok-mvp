@@ -1,4 +1,5 @@
 export type BookStatus = "TBR" | "Reading" | "Finished";
+export type BookFormat = "physical" | "ebook";
 
 export type Mood = "aesthetic" | "bold" | "calm";
 
@@ -17,6 +18,7 @@ export type Book = {
   authors: string[];
   coverUrl?: string;
   status?: BookStatus;
+  format?: BookFormat;
   shelfId: string;
 
   addedAt: number;
@@ -260,6 +262,11 @@ export function loadBooks(): Book[] {
         if (typeof item.status !== "undefined") changed = true;
       }
 
+      const format = item.format === "ebook" || item.format === "physical" ? item.format : "physical";
+      if (format !== item.format) {
+        if (typeof item.format !== "undefined") changed = true;
+      }
+
       const shelfId =
         typeof item.shelfId === "string" && item.shelfId.trim()
           ? item.shelfId
@@ -281,6 +288,7 @@ export function loadBooks(): Book[] {
         authors,
         coverUrl,
         status, // only TBR | Reading | Finished (never "Read")
+        format, // "physical" | "ebook", default "physical"
         shelfId,
         addedAt,
         updatedAt,
