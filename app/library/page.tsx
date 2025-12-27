@@ -2186,18 +2186,21 @@ function ShareCardPreview({ variant }: { variant: ShareCardVariant }) {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 6 }}>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              style={{
-                aspectRatio: "2 / 3",
-                borderRadius: 10,
-                border: tokens.tileBorder,
-                boxShadow: "0 8px 18px rgba(0,0,0,0.45)",
-                background: "rgba(255,255,255,0.06)",
-              }}
-            />
-          ))}
+          {Array.from({ length: 4 }).map((_, i) => {
+            const isCalm = typeof document !== "undefined" && document.documentElement.dataset.mood === "calm";
+            return (
+              <div
+                key={i}
+                style={{
+                  aspectRatio: "2 / 3",
+                  borderRadius: 10,
+                  border: tokens.tileBorder,
+                  boxShadow: "0 8px 18px rgba(0,0,0,0.45)",
+                  background: isCalm ? "#E8D9C3" : "rgba(255,255,255,0.06)",
+                }}
+              />
+            );
+          })}
         </div>
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -2465,10 +2468,9 @@ const hero: React.CSSProperties = {
   flexWrap: "wrap",
   padding: 14,
   borderRadius: 22,
-  border: "1px solid #2a2a32",
-  background:
-    "linear-gradient(135deg, rgba(109,94,252,0.22), rgba(255,73,240,0.10) 45%, rgba(0,0,0,0) 70%), #121218",
-  boxShadow: "0 16px 50px rgba(0,0,0,0.45)",
+  border: "var(--border)",
+  background: "var(--panel)",
+  boxShadow: "0 16px 50px var(--shadow)",
 };
 
 const shelfHeader: React.CSSProperties = {
@@ -2693,9 +2695,9 @@ const formLabel: React.CSSProperties = {
 const formInput: React.CSSProperties = {
   padding: "12px 16px",
   borderRadius: 12,
-  border: "1px solid #2a2a32",
-  background: "#101014",
-  color: "#fff",
+  border: "1px solid var(--border)",
+  background: "var(--panel)",
+  color: "var(--text)",
   fontSize: 16,
   fontFamily: "inherit",
   width: "100%",
@@ -2721,9 +2723,9 @@ const emojiChip: React.CSSProperties = {
   width: 44,
   height: 44,
   borderRadius: 12,
-  border: "1px solid #2a2a32",
-  background: "#101014",
-  color: "#fff",
+  border: "1px solid var(--border)",
+  background: "var(--panel)",
+  color: "var(--text)",
   fontSize: 20,
   cursor: "pointer",
   display: "flex",
@@ -2796,8 +2798,8 @@ const actionMenu: React.CSSProperties = {
   right: 0,
   maxHeight: "70vh",
   overflowY: "auto",
-  background: "#15151c",
-  borderTop: "1px solid #2a2a32",
+  background: "var(--panel)",
+  borderTop: "1px solid var(--border)",
   borderTopLeftRadius: 20,
   borderTopRightRadius: 20,
   padding: "12px 16px 20px",
@@ -2829,7 +2831,7 @@ const actionMenuItem: React.CSSProperties = {
   borderRadius: 12,
   border: 0,
   background: "transparent",
-  color: "#fff",
+  color: "var(--text)",
   fontWeight: 700,
   cursor: "pointer",
   fontSize: 14,
@@ -2844,7 +2846,7 @@ const actionMenuItemActive: React.CSSProperties = {
 
 const actionMenuDivider: React.CSSProperties = {
   height: 1,
-  background: "#2a2a32",
+  background: "var(--border)",
   margin: "6px 0",
 };
 
@@ -2858,7 +2860,7 @@ const actionMenuOverlay: React.CSSProperties = {
 const actionMenuHandle: React.CSSProperties = {
   width: 40,
   height: 4,
-  background: "#4a4a5a",
+  background: "var(--border)",
   borderRadius: 2,
   margin: "0 auto 12px",
 };
@@ -2867,8 +2869,8 @@ const emptyCard: React.CSSProperties = {
   marginTop: 14,
   padding: 16,
   borderRadius: 18,
-  border: "1px solid #2a2a32",
-  background: "#15151c",
+  border: "1px solid var(--border)",
+  background: "var(--panel)",
 };
 
 const grid: React.CSSProperties = {
