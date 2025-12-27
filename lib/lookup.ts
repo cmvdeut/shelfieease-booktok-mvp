@@ -120,8 +120,18 @@ async function searchGoogleBooks(isbn: string): Promise<GoogleBooksVolume[]> {
   }
 }
 
+type OpenLibrarySearchDoc = {
+  cover_i?: number;
+  [key: string]: unknown;
+};
+
+type OpenLibrarySearchResponse = {
+  docs?: OpenLibrarySearchDoc[];
+  [key: string]: unknown;
+};
+
 /**
- * Try to get cover from Open Library API.
+ * Try to get cover from Open Library API via ISBN.
  * Returns cover URL if found, empty string otherwise.
  * Open Library format: https://covers.openlibrary.org/b/isbn/{ISBN}-{size}.jpg
  * Sizes: S (small), M (medium), L (large)
@@ -141,6 +151,38 @@ async function tryOpenLibraryCover(isbn: string): Promise<string> {
     if (response.ok && response.headers.get("content-type")?.startsWith("image/")) {
       return url;
     }
+    return "";
+  } catch {
+    // If fetch fails, return empty string
+    return "";
+  }
+}
+
+/**
+ * Try to get cover from Open Library Search API.
+ * Uses the search.json endpoint to find cover_i, then builds cover URL.
+ * Returns cover URL if found, empty string otherwise.
+ */
+async function openLibraryCoverBySearch(isbn13: string): Promise<string> {
+  if (!isbn13) return "";
+  
+  try {
+    const searchUrl = `https://openlibrary.org/search.json?isbn=${encodeURIComponent(isbn13)}`;
+    const response = await fetch(searchUrl);
+    
+    if (!response.ok) {
+      return "";
+    }
+    
+    const data = (await response.json()) as OpenLibrarySearchResponse;
+    
+    // Check if we have docs and the first doc has a cover_i
+    if (data.docs?.length && data.docs[0].cover_i) {
+      const cover_i = data.docs[0].cover_i;
+      // Build cover URL using cover_i (large size)
+      return `https://covers.openlibrary.org/b/id/${cover_i}-L.jpg`;
+    }
+    
     return "";
   } catch {
     // If fetch fails, return empty string
@@ -200,9 +242,10 @@ export async function lookupByIsbn(isbn13: string): Promise<LookupResult> {
     // ignore errors, return what we have
   }
 
-  // --- 2) Open Library fallback ONLY if Google Books didn't find any item ---
-  if (!coverUrl && items.length === 0) {
-    console.log("No Google Books item found, trying Open Library...");
+  // --- 2) Open Library fallback if Google Books didn't provide a cover ---
+  if (!coverUrl) {
+    // Try Open Library ISBN-based cover lookup first
+    console.log("No Google Books cover found, trying Open Library ISBN lookup...");
     // Try with ISBN-13 first
     coverUrl = await tryOpenLibraryCover(clean);
     console.log("Open Library ISBN-13 result:", coverUrl || "none");
@@ -215,6 +258,13 @@ export async function lookupByIsbn(isbn13: string): Promise<LookupResult> {
         coverUrl = await tryOpenLibraryCover(isbn10);
         console.log("Open Library ISBN-10 result:", coverUrl || "none");
       }
+    }
+    
+    // --- 3) Open Library Search API fallback if ISBN lookup failed ---
+    if (!coverUrl) {
+      console.log("Open Library ISBN lookup failed, trying Open Library Search API...");
+      coverUrl = await openLibraryCoverBySearch(clean);
+      console.log("Open Library Search API result:", coverUrl || "none");
     }
   }
 
