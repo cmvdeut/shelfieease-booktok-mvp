@@ -1325,9 +1325,6 @@ What should I add next? 👀
         <div style={{ padding: "0 16px 16px", display: "grid", gap: 12 }}>
           {/* Search input */}
           <div style={{ position: "relative" }}>
-            <label htmlFor="book-search" style={{ position: "absolute", left: "-9999px", width: "1px", height: "1px", overflow: "hidden" }}>
-              Zoek op titel, auteur of ISBN
-            </label>
             <input
               id="book-search"
               name="book-search"
@@ -1335,6 +1332,7 @@ What should I add next? 👀
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Zoek op titel, auteur of ISBN"
+              aria-label="Zoek op titel, auteur of ISBN"
               style={{
                 width: "100%",
                 padding: "12px 16px",
@@ -1451,14 +1449,12 @@ What should I add next? 👀
             ))}
 
             {/* Sort dropdown */}
-            <label htmlFor="book-sort" style={{ position: "absolute", left: "-9999px", width: "1px", height: "1px", overflow: "hidden" }}>
-              Sorteer boeken
-            </label>
             <select
               id="book-sort"
               name="book-sort"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as "recent" | "title" | "author")}
+              aria-label="Sorteer boeken"
               style={{
                 padding: "6px 12px",
                 paddingRight: 32,
@@ -1615,15 +1611,15 @@ What should I add next? 👀
 
                 {isRecentlyAdded ? (
                   <div style={coverWrapStyle}>
-                    {b.coverUrl && (
+                    {b.coverUrl ? (
                       <CoverImg
                         key={`cover-${b.id}-${b.coverUrl}-${b.updatedAt || 0}`}
                         src={toHttps(b.coverUrl)}
                         alt={b.title}
-                        style={{}}
+                        style={coverImg}
                         onError={() => handleCoverError(b.id)}
                       />
-                    )}
+                    ) : null}
                   </div>
                 ) : (
                   <Cover
