@@ -61,59 +61,14 @@ export function CoverImg({
     setIsLoaded(true);
   };
 
-  // Use native img tag for better control and to avoid Next.js Image wrapper issues
-  // Ensure image fills the entire container
-  const imageStyle: React.CSSProperties = {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: "100%",
-    height: "100%",
-    minWidth: "100%",
-    minHeight: "100%",
-    maxWidth: "100%",
-    maxHeight: "100%",
-    objectFit: "cover",
-    objectPosition: "center",
-    opacity: 1,
-    display: "block",
-    margin: 0,
-    padding: 0,
-    border: "none",
-    boxSizing: "border-box",
-  };
-  
-  // Merge passed style, but ensure critical sizing properties are preserved
-  const finalStyle: React.CSSProperties = {
-    ...imageStyle,
-    ...style,
-    // Force these critical properties to always be set
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-  };
-
   // Merge passed style with default image style
+  // First apply defaults, then spread style, then override critical properties
   const finalImageStyle: React.CSSProperties = {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: "100%",
-    height: "100%",
+    // Default values
     minWidth: "100%",
     minHeight: "100%",
     maxWidth: "100%",
     maxHeight: "100%",
-    objectFit: "cover",
     objectPosition: "center",
     opacity: 1,
     display: "block",
@@ -122,16 +77,17 @@ export function CoverImg({
     border: "none",
     boxSizing: "border-box",
     zIndex: 10,
+    // Apply passed style (may override defaults)
     ...style,
-    // Ensure critical properties are always set
-    position: style?.position || "absolute",
-    top: style?.top ?? 0,
-    left: style?.left ?? 0,
-    right: style?.right ?? 0,
-    bottom: style?.bottom ?? 0,
-    width: style?.width || "100%",
-    height: style?.height || "100%",
-    objectFit: style?.objectFit || "cover",
+    // Ensure critical properties are always set (override any style props)
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
   };
 
   return (
