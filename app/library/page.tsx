@@ -494,10 +494,12 @@ export default function LibraryPage() {
       console.log("Found cover URL:", newCoverUrl);
       
       if (newCoverUrl) {
+        const httpsUrl = toHttps(newCoverUrl);
+        console.log("Opening cover preview modal with URL:", httpsUrl);
         // Open preview modal instead of saving directly
         setCoverPreview({
           bookId,
-          coverUrl: newCoverUrl,
+          coverUrl: httpsUrl,
           title: book.title,
         });
       } else {
@@ -1353,20 +1355,43 @@ What should I add next? 👀
                 background: "var(--panel2)",
                 marginBottom: 24,
                 position: "relative",
+                minHeight: 200,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
               <img
+                key={`cover-preview-${coverPreview.coverUrl}`}
                 src={toHttps(coverPreview.coverUrl)}
                 alt={coverPreview.title}
                 style={{
                   width: "100%",
                   height: "100%",
-                  objectFit: "cover",
+                  objectFit: "contain",
+                  objectPosition: "center",
                   display: "block",
                 }}
-                onError={() => {
+                onLoad={(e) => {
+                  console.log("Cover preview image loaded successfully:", coverPreview.coverUrl);
+                  console.log("Image dimensions:", {
+                    naturalWidth: e.currentTarget.naturalWidth,
+                    naturalHeight: e.currentTarget.naturalHeight,
+                    clientWidth: e.currentTarget.clientWidth,
+                    clientHeight: e.currentTarget.clientHeight,
+                    src: e.currentTarget.src,
+                  });
+                }}
+                onError={(e) => {
+                  console.error("Cover preview image error:", coverPreview.coverUrl, e);
+                  console.error("Image element:", {
+                    src: e.currentTarget.src,
+                    complete: e.currentTarget.complete,
+                    naturalWidth: e.currentTarget.naturalWidth,
+                    naturalHeight: e.currentTarget.naturalHeight,
+                  });
                   showToast("Fout bij laden cover");
-                  handleCloseCoverPreview();
+                  // Don't close modal automatically, let user decide
                 }}
               />
             </div>
