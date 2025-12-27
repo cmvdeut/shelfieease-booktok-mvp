@@ -2396,7 +2396,13 @@ function Cover({
   onBadCover?: () => void;
   coverWrapStyle: React.CSSProperties;
 }) {
+  const [imageFailed, setImageFailed] = useState(false);
   const src = normalizeCoverUrl(coverUrl);
+
+  // Reset failed state when src changes
+  useEffect(() => {
+    setImageFailed(false);
+  }, [src]);
 
   return (
     <div style={coverWrapStyle}>
@@ -2405,7 +2411,7 @@ function Cover({
         <div style={{ fontSize: 28, lineHeight: 1 }}>📖</div>
         <div style={{ fontWeight: 950, fontSize: 16, lineHeight: 1.2 }}>
           {title || "Onbekende titel"}
-      </div>
+        </div>
         {authors?.length ? (
           <div style={{ marginTop: 6, fontSize: 12, color: "#d8d8ff" }}>
             {authors.join(", ")}
@@ -2416,8 +2422,8 @@ function Cover({
         </div>
       </div>
 
-      {/* Alleen een <img> tonen als er echt een coverUrl is */}
-      {src ? (
+      {/* Alleen een <img> tonen als er echt een coverUrl is EN de image niet is gefaald */}
+      {src && !imageFailed ? (
         <img
           src={src}
           alt={title || "Cover"}
@@ -2426,7 +2432,8 @@ function Cover({
           decoding="async"
           referrerPolicy="no-referrer"
           onError={() => {
-            // Als cover stuk is: wis hem en val terug op placeholder (geen witte OpenLibrary!)
+            // Als cover stuk is: verberg image en val terug op placeholder (geen witte browser placeholder!)
+            setImageFailed(true);
             onBadCover?.();
           }}
         />
