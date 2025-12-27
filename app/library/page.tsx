@@ -113,7 +113,6 @@ export default function LibraryPage() {
   const [scope, setScope] = useState<"shelf" | "all">("shelf");
   const [statusFilter, setStatusFilter] = useState<Set<BookStatus>>(new Set(["TBR", "Reading", "Finished"]));
   const [sortBy, setSortBy] = useState<"recent" | "title" | "author">("recent");
-  const [failedCovers, setFailedCovers] = useState<Set<string>>(new Set());
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const actionMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -520,9 +519,6 @@ export default function LibraryPage() {
     }
     
     console.warn("Cover image error for book:", book.title, "URL:", book.coverUrl);
-    
-    // Mark cover as failed in this session (immediate UI update)
-    setFailedCovers((prev) => new Set(prev).add(bookId));
     
     // Clear cover URL - if CoverImg detected a strip/bad cover, remove it regardless of source
     // This prevents the app from repeatedly trying to load invalid covers
@@ -1872,28 +1868,17 @@ What should I add next? 👀
                   </>
                 )}
 
-                {b.coverUrl && b.coverUrl.trim() !== "" && !failedCovers.has(b.id) ? (
-                  isRecentlyAdded ? (
-                    <div style={coverWrapStyle}>
-                      <CoverImg
-                        key={`cover-${b.id}-${b.coverUrl}-${b.updatedAt || 0}`}
-                        src={toHttps(b.coverUrl)}
-                        alt={b.title}
-                        style={coverImg}
-                        onError={() => handleCoverError(b.id)}
-                      />
-                    </div>
-                  ) : (
-                    <Cover
-                      key={`cover-${b.id}-${b.coverUrl || ""}-${b.updatedAt || 0}`}
-                      isbn13={b.isbn13}
-                      coverUrl={b.coverUrl || ""}
-                      title={b.title}
-                      authors={b.authors || []}
-                      onBadCover={() => handleCoverError(b.id)}
-                      updatedAt={b.updatedAt}
-                    />
-                  )
+                {b.coverUrl && b.coverUrl.trim() !== "" ? (
+                  <CoverImg
+                    key={`cover-${b.id}-${b.coverUrl}-${b.updatedAt || 0}`}
+                    src={toHttps(b.coverUrl)}
+                    alt={b.title}
+                    style={{
+                      ...coverWrapStyle,
+                      ...coverImg,
+                    }}
+                    onError={() => handleCoverError(b.id)}
+                  />
                 ) : null}
 
                 {(() => {
@@ -2378,45 +2363,7 @@ const ShareCard = React.forwardRef<
 
 ShareCard.displayName = "ShareCard";
 
-function Cover({
-  isbn13,
-  coverUrl,
-  title,
-  authors,
-  onBadCover,
-  updatedAt,
-}: {
-  isbn13: string;
-  coverUrl: string;
-  title: string;
-  authors: string[];
-  onBadCover?: () => void;
-  updatedAt?: number;
-}) {
-  const candidates = [coverUrl ? toHttps(coverUrl) : ""].filter(Boolean);
-  const src = candidates[0] || "";
-
-  // Only render container if we have a valid cover URL
-  if (!src) {
-    return null;
-  }
-
-  return (
-    <div style={coverWrap}>
-      <CoverImg
-        key={`cover-img-${coverUrl}-${updatedAt || 0}`}
-        src={src}
-        alt={title}
-        style={coverImg}
-        onError={() => {
-          // Always call onBadCover when CoverImg detects a bad cover (strip/invalid)
-          // This ensures coverUrl is cleared from storage via handleCoverError
-          onBadCover?.();
-        }}
-      />
-    </div>
-  );
-}
+// Cover component removed - using CoverImg directly
 
 /* ------- styles ------- */
 
@@ -2872,8 +2819,6 @@ const coverWrap: React.CSSProperties = {
   width: "100%",
   borderRadius: 14,
   overflow: "hidden",
-  border: "1px solid var(--border)",
-  background: "var(--panel2)",
   aspectRatio: "2 / 3",
 };
 
@@ -2882,48 +2827,17 @@ const coverWrapCompact: React.CSSProperties = {
   width: "100%",
   borderRadius: 10,
   overflow: "hidden",
-  border: "1px solid var(--border)",
-  background: "var(--panel2)",
-  height: 120, // Fixed height 110-130px range
+  height: 120,
   aspectRatio: "2 / 3",
 };
 
 const coverImg: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  zIndex: 10, // Higher z-index to ensure visibility
   width: "100%",
   height: "100%",
   objectFit: "cover",
-  opacity: 1, // Always visible
   display: "block",
 };
 
-const coverPlaceholder: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  zIndex: 0,
-  pointerEvents: "none",
-  display: "grid",
-  alignContent: "center",
-  gap: 2,
-  padding: 12,
-  textAlign: "left",
-  background: "var(--panel2)",
-};
-
-const coverPlaceholderCompact: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  zIndex: 0,
-  pointerEvents: "none",
-  display: "grid",
-  alignContent: "center",
-  gap: 2,
-  padding: 10,
-  textAlign: "left",
-  background: "var(--panel2)",
-};
 
 const title: React.CSSProperties = {
   fontSize: 15,
