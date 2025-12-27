@@ -1395,26 +1395,13 @@ What should I add next? 👀
                     objectPosition: "center",
                     display: "block",
                   }}
-                  onLoad={(e) => {
-                    console.log("✅ Cover preview image loaded successfully:", coverPreview.coverUrl);
-                    console.log("Image dimensions:", {
-                      naturalWidth: e.currentTarget.naturalWidth,
-                      naturalHeight: e.currentTarget.naturalHeight,
-                      clientWidth: e.currentTarget.clientWidth,
-                      clientHeight: e.currentTarget.clientHeight,
-                      src: e.currentTarget.src,
-                    });
+                  onLoad={() => {
+                    console.log("✅ Cover preview image loaded:", coverPreview.coverUrl);
                   }}
                   onError={(e) => {
-                    console.error("❌ Cover preview image error:", coverPreview.coverUrl, e);
-                    console.error("Image element:", {
-                      src: e.currentTarget.src,
-                      complete: e.currentTarget.complete,
-                      naturalWidth: e.currentTarget.naturalWidth,
-                      naturalHeight: e.currentTarget.naturalHeight,
-                    });
+                    console.error("❌ Cover preview image error:", coverPreview.coverUrl);
+                    console.error("Error details:", e);
                     showToast("Fout bij laden cover");
-                    // Don't close modal automatically, let user decide
                   }}
                 />
               ) : (
