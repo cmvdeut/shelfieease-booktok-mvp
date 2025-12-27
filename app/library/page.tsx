@@ -1869,15 +1869,14 @@ What should I add next? 👀
 
                 {b.coverUrl && b.coverUrl.trim() !== "" ? (
                   <>
-                    <div style={coverWrapStyle}>
-                      <CoverImg
-                        key={`cover-${b.id}-${b.coverUrl}-${b.updatedAt || 0}`}
-                        src={toHttps(b.coverUrl)}
-                        alt={b.title}
-                        style={coverImg}
-                        onError={() => handleCoverError(b.id)}
-                      />
-                    </div>
+                    <CoverWrapper
+                      key={`cover-wrapper-${b.id}-${b.coverUrl}-${b.updatedAt || 0}`}
+                      coverUrl={toHttps(b.coverUrl)}
+                      alt={b.title}
+                      coverWrapStyle={coverWrapStyle}
+                      coverImgStyle={coverImg}
+                      onError={() => handleCoverError(b.id)}
+                    />
 
                     {(() => {
                       const nl = isNlUi();
@@ -2429,7 +2428,59 @@ const ShareCard = React.forwardRef<
 
 ShareCard.displayName = "ShareCard";
 
-// Cover component removed - using CoverImg directly
+// Wrapper component that only renders container if cover loads successfully
+function CoverWrapper({
+  coverUrl,
+  alt,
+  coverWrapStyle,
+  coverImgStyle,
+  onError,
+}: {
+  coverUrl: string;
+  alt: string;
+  coverWrapStyle: React.CSSProperties;
+  coverImgStyle: React.CSSProperties;
+  onError?: () => void;
+}) {
+  const [coverLoaded, setCoverLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  if (!coverUrl || coverUrl.trim() === "" || hasError) return null;
+
+  // Only render wrapper div if cover has loaded successfully
+  // This prevents empty white space when cover fails to load
+  if (!coverLoaded) {
+    return (
+      <CoverImg
+        src={coverUrl}
+        alt={alt}
+        style={{
+          ...coverWrapStyle,
+          ...coverImgStyle,
+        }}
+        onLoad={() => setCoverLoaded(true)}
+        onError={() => {
+          setHasError(true);
+          onError?.();
+        }}
+      />
+    );
+  }
+
+  return (
+    <div style={coverWrapStyle}>
+      <CoverImg
+        src={coverUrl}
+        alt={alt}
+        style={coverImgStyle}
+        onError={() => {
+          setHasError(true);
+          onError?.();
+        }}
+      />
+    </div>
+  );
+}
 
 /* ------- styles ------- */
 
