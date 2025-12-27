@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Fix for multiple lockfiles warning
+  outputFileTracingRoot: require("path").join(__dirname),
   images: {
     remotePatterns: [
       {
