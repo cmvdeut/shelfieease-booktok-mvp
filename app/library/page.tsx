@@ -68,6 +68,8 @@ export default function LibraryPage() {
   const [newShelfMood, setNewShelfMood] = useState<Mood>("aesthetic");
   const [actionMenuBookId, setActionMenuBookId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [coverPreview, setCoverPreview] = useState<{ bookId: string; coverUrl: string; title: string } | null>(null);
+  const [coverPreviewLoading, setCoverPreviewLoading] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [shareCoverUrls, setShareCoverUrls] = useState<string[]>([]);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -482,48 +484,55 @@ export default function LibraryPage() {
     if (!book) return;
 
     setActionMenuBookId(null);
+    setCoverPreviewLoading(true);
     
     try {
       const data = await lookupByIsbn(book.isbn13);
       const newCoverUrl = data.coverUrl || "";
-      const now = Date.now();
       
       console.log("Searching cover for book:", book.title, "ISBN:", book.isbn13);
       console.log("Found cover URL:", newCoverUrl);
       
-      // Update book in storage
-      updateBook(bookId, {
-        coverUrl: newCoverUrl,
-        updatedAt: now,
-      });
-      
-      // Force state update by creating a new array reference with updated book
-      const updated = loadBooks();
-      // Ensure the updated book has the latest values
-      const updatedBook = updated.find((b) => b.id === bookId);
-      if (updatedBook) {
-        updatedBook.coverUrl = newCoverUrl;
-        updatedBook.updatedAt = now;
-        console.log("Updated book cover URL:", updatedBook.coverUrl, "updatedAt:", updatedBook.updatedAt);
-      }
-      
-      // Create a completely new array to force React to re-render
-      setBooks(updated.map(b => b.id === bookId ? { ...b, coverUrl: newCoverUrl, updatedAt: now } : b));
-      
       if (newCoverUrl) {
-        showToast("Cover gevonden ✨");
-        // Force another re-render after image has time to load
-        setTimeout(() => {
-          const refreshed = loadBooks();
-          setBooks(refreshed.map(b => b.id === bookId ? { ...b, coverUrl: newCoverUrl, updatedAt: now } : b));
-        }, 300);
+        // Open preview modal instead of saving directly
+        setCoverPreview({
+          bookId,
+          coverUrl: newCoverUrl,
+          title: book.title,
+        });
       } else {
         showToast("Geen cover gevonden");
       }
     } catch (error) {
       console.error("Failed to search cover:", error);
       showToast("Fout bij zoeken cover");
+    } finally {
+      setCoverPreviewLoading(false);
     }
+  }
+
+  function handleSaveCover() {
+    if (!coverPreview) return;
+    
+    const now = Date.now();
+    const { bookId, coverUrl } = coverPreview;
+    
+    // Update book in storage
+    updateBook(bookId, {
+      coverUrl,
+      updatedAt: now,
+    });
+    
+    // Update state
+    const updated = loadBooks();
+    setBooks(updated.map(b => b.id === bookId ? { ...b, coverUrl, updatedAt: now } : b));
+    
+    showToast("Cover opgeslagen ✨");
+    setCoverPreview(null);
+  }
+
+  function handleCloseCoverPreview() {
+    setCoverPreview(null);
   }
 
   async function refreshCovers() {
@@ -1320,6 +1329,75 @@ What should I add next? 👀
         </div>
       )}
 
+      {coverPreview && (
+        <div style={modalOverlay} onClick={handleCloseCoverPreview}>
+          <div 
+            style={{
+              ...modal,
+              maxWidth: 400,
+              padding: 24,
+            }} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={modalTitle}>Cover gevonden</h2>
+            <p style={{ color: "var(--muted)", margin: "0 0 20px", fontSize: 14 }}>
+              {coverPreview.title}
+            </p>
+            <div
+              style={{
+                width: "100%",
+                aspectRatio: "2 / 3",
+                borderRadius: 12,
+                overflow: "hidden",
+                border: "1px solid var(--border)",
+                background: "var(--panel2)",
+                marginBottom: 24,
+                position: "relative",
+              }}
+            >
+              <img
+                src={toHttps(coverPreview.coverUrl)}
+                alt={coverPreview.title}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                }}
+                onError={() => {
+                  showToast("Fout bij laden cover");
+                  handleCloseCoverPreview();
+                }}
+              />
+            </div>
+            <div style={modalActions}>
+              <button style={btnGhost} onClick={handleCloseCoverPreview}>
+                Sluiten
+              </button>
+              <button style={btnPrimary} onClick={handleSaveCover}>
+                Opslaan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {coverPreviewLoading && (
+        <div style={modalOverlay}>
+          <div 
+            style={{
+              ...modal,
+              maxWidth: 300,
+              padding: 24,
+            }} 
+          >
+            <p style={{ color: "var(--text)", margin: 0, textAlign: "center" }}>
+              Cover zoeken...
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Search and Filters */}
       {activeBooks.length > 0 && (
         <div style={{ padding: "0 16px 16px", display: "grid", gap: 12 }}>
@@ -1590,8 +1668,9 @@ What should I add next? 👀
                       <button
                         style={actionMenuItem}
                         onClick={() => handleSearchCover(b.id)}
+                        disabled={coverPreviewLoading}
                       >
-                        <span>🔍 Zoek cover</span>
+                        <span>{coverPreviewLoading ? "⏳ Zoeken..." : "🔍 Zoek cover"}</span>
                       </button>
 
                       <div style={actionMenuDivider} />
