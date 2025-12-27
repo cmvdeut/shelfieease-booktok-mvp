@@ -1,80 +1,59 @@
+// components/CoverImg.tsx
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 type Props = React.ImgHTMLAttributes<HTMLImageElement> & {
-  src: string;
   onError?: () => void;
 };
 
-function isLikelyBadCover(img: HTMLImageElement) {
-  const w = img.naturalWidth || 0;
-  const h = img.naturalHeight || 0;
-
-  // 1) 1x1 / tiny pixels (common for placeholders)
-  if (w <= 2 && h <= 2) return true;
-  if (w < 40 || h < 60) return true; // too small to be a cover
-
-  // 2) "strip" images (very wide and short) like 300x48
-  const ratio = w / h;
-  if (ratio > 1.6) return true; // covers are normally portrait-ish
-
-  // 3) Sometimes OL placeholder returns weird aspect; treat very flat as bad
-  if (h < 120 && w > 200) return true;
-
-  return false;
-}
-
-export function CoverImg({ src, onError, style, ...rest }: Props) {
+export function CoverImg({ onError, ...props }: Props) {
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [hidden, setHidden] = useState(false);
 
-  const normalizedSrc = useMemo(() => {
-    const s = (src || "").trim();
-    // normalize http -> https
-    if (s.startsWith("http://")) return s.replace("http://", "https://");
-    return s;
-  }, [src]);
+  const markBad = () => {
+    if (!hidden) setHidden(true);
+    onError?.();
+  };
+
+  const validateNaturalSize = (img: HTMLImageElement) => {
+    const w = img.naturalWidth || 0;
+    const h = img.naturalHeight || 0;
+    if (!w || !h) return;
+
+    const ratio = w / h;
+
+    // BAD: very wide "strip" (e.g. 300x48) or tiny-height placeholders
+    if (ratio > 1.35 || h < 120) {
+      markBad();
+    }
+  };
 
   useEffect(() => {
-    // whenever src changes, show again (we may hide only if it's a bad image)
-    setHidden(false);
-  }, [normalizedSrc]);
+    const img = imgRef.current;
+    if (!img) return;
 
-  if (!normalizedSrc || hidden) return null;
+    // if cached, validate immediately
+    if (img.complete) {
+      validateNaturalSize(img);
+    }
+  }, [props.src]);
+
+  if (!props.src || hidden) return null;
 
   return (
     <img
+      {...props}
       ref={imgRef}
-      src={normalizedSrc}
-      {...rest}
-      style={{
-        display: "block",
-        width: "100%",
-        height: "100%",
-        objectFit: "cover",
-        ...style,
-      }}
       onLoad={(e) => {
         const img = e.currentTarget;
-        // If the server returned a placeholder / strip, hide it and let parent fallback UI show.
-        if (isLikelyBadCover(img)) {
-          setHidden(true);
-          onError?.();
-          return;
-        }
-        rest.onLoad?.(e);
+        validateNaturalSize(img);
+        props.onLoad?.(e);
       }}
       onError={(e) => {
-        setHidden(true);
-        onError?.();
-        rest.onError?.(e);
+        markBad();
+        props.onError?.(e);
       }}
-      // Helps with some hosts + avoids referrer issues
-      crossOrigin="anonymous"
-      referrerPolicy="no-referrer"
-      loading={rest.loading ?? "lazy"}
-      decoding={rest.decoding ?? "async"}
     />
   );
 }
