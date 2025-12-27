@@ -94,10 +94,13 @@ export default function ScanPage() {
 
         <div style={{ display: "flex", gap: 8 }}>
           <input
+            id="manual-isbn-input"
+            name="manual-isbn-input"
             value={manual}
             onChange={(e) => setManual(e.target.value)}
             inputMode="numeric"
             placeholder="Bijv. 9789022591260"
+            aria-label="ISBN invoeren"
             style={{
               width: "100%",
               borderRadius: 12,
