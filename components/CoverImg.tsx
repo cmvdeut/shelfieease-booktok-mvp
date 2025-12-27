@@ -1,94 +1,80 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
-function isBadImage(w: number, h: number): boolean {
-  if (!w || !h) return true;
+type Props = React.ImgHTMLAttributes<HTMLImageElement> & {
+  src: string;
+  onError?: () => void;
+};
+
+function isLikelyBadCover(img: HTMLImageElement) {
+  const w = img.naturalWidth || 0;
+  const h = img.naturalHeight || 0;
+
+  // 1) 1x1 / tiny pixels (common for placeholders)
   if (w <= 2 && h <= 2) return true;
+  if (w < 40 || h < 60) return true; // too small to be a cover
+
+  // 2) "strip" images (very wide and short) like 300x48
   const ratio = w / h;
-  if (ratio > 2.2) return true;
-  if (ratio < 0.45) return true;
+  if (ratio > 1.6) return true; // covers are normally portrait-ish
+
+  // 3) Sometimes OL placeholder returns weird aspect; treat very flat as bad
+  if (h < 120 && w > 200) return true;
+
   return false;
 }
 
-export function CoverImg({
-  src,
-  alt = "Book cover",
-  style,
-  onError,
-}: {
-  src: string;
-  alt?: string;
-  style?: React.CSSProperties;
-  onError?: () => void;
-}) {
-  const [failed, setFailed] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
+export function CoverImg({ src, onError, style, ...rest }: Props) {
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const [hidden, setHidden] = useState(false);
 
-  // Reset failed state when src changes
-  useEffect(() => {
-    setFailed(false);
+  const normalizedSrc = useMemo(() => {
+    const s = (src || "").trim();
+    // normalize http -> https
+    if (s.startsWith("http://")) return s.replace("http://", "https://");
+    return s;
   }, [src]);
 
-  if (!src || failed) {
-    return null;
-  }
+  useEffect(() => {
+    // whenever src changes, show again (we may hide only if it's a bad image)
+    setHidden(false);
+  }, [normalizedSrc]);
 
-  const handleError = () => {
-    setFailed(true);
-    onError?.();
-  };
-
-  const handleLoad = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    const img = e.currentTarget;
-    const w = img.naturalWidth || 0;
-    const h = img.naturalHeight || 0;
-    if (isBadImage(w, h)) {
-      setFailed(true);
-      onError?.();
-    }
-  };
-
-  // Merge passed style with default image style
-  // First apply defaults, then spread style, then override critical properties
-  const finalImageStyle: React.CSSProperties = {
-    // Default values
-    minWidth: "100%",
-    minHeight: "100%",
-    maxWidth: "100%",
-    maxHeight: "100%",
-    objectPosition: "center",
-    opacity: 1,
-    display: "block",
-    margin: 0,
-    padding: 0,
-    border: "none",
-    boxSizing: "border-box",
-    zIndex: 10,
-    // Apply passed style (may override defaults)
-    ...style,
-    // Ensure critical properties are always set (override any style props)
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-  };
+  if (!normalizedSrc || hidden) return null;
 
   return (
     <img
       ref={imgRef}
-      src={src}
-      alt={alt}
-      style={finalImageStyle}
-      onError={handleError}
-      onLoad={handleLoad}
-      loading="lazy"
+      src={normalizedSrc}
+      {...rest}
+      style={{
+        display: "block",
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        ...style,
+      }}
+      onLoad={(e) => {
+        const img = e.currentTarget;
+        // If the server returned a placeholder / strip, hide it and let parent fallback UI show.
+        if (isLikelyBadCover(img)) {
+          setHidden(true);
+          onError?.();
+          return;
+        }
+        rest.onLoad?.(e);
+      }}
+      onError={(e) => {
+        setHidden(true);
+        onError?.();
+        rest.onError?.(e);
+      }}
+      // Helps with some hosts + avoids referrer issues
+      crossOrigin="anonymous"
+      referrerPolicy="no-referrer"
+      loading={rest.loading ?? "lazy"}
+      decoding={rest.decoding ?? "async"}
     />
   );
 }
-
-export default CoverImg;
