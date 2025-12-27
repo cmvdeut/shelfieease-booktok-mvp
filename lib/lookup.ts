@@ -96,13 +96,14 @@ function isbn13to10(isbn13: string): string | null {
 
 /**
  * Try Google Books API with a specific ISBN, returns items or empty array
+ * Explicitly requests imageLinks to ensure they're not filtered out
  */
 async function searchGoogleBooks(isbn: string): Promise<GoogleBooksVolume[]> {
   try {
     const res = await fetch(
       `https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(
         isbn
-      )}&maxResults=5`
+      )}&maxResults=1&fields=items(id,volumeInfo(title,authors,imageLinks,industryIdentifiers))`
     );
     const json = (await res.json()) as GoogleBooksResponse;
     return json.items || [];
@@ -164,36 +165,36 @@ export async function lookupByIsbn(isbn13: string): Promise<LookupResult> {
 
   // Process results
   try {
-    // First pass: get metadata from first item
-    if (items.length > 0) {
-      const firstInfo = items[0].volumeInfo;
-      title = firstInfo?.title || "";
-      authors = firstInfo?.authors || [];
-    }
+    const item = items?.[0];
+    if (item) {
+      const volumeId = item.id; // belangrijk
+      const vi = item.volumeInfo;
 
-    // Second pass: find best cover from any of the results
-    for (const item of items.slice(0, 5)) {
-      const candidateCover = extractCoverFromVolume(item);
-      if (candidateCover) {
-        coverUrl = candidateCover;
-        
-        // If this item also has better metadata, use it
-        const info = item.volumeInfo;
-        if (!title && info?.title) title = info.title;
-        if (authors.length === 0 && info?.authors?.length) {
-          authors = info.authors;
-        }
-        
-        break; // Found a cover, stop looking
-      }
+      // Get metadata
+      title = vi?.title || "";
+      authors = vi?.authors || [];
+
+      // Build coverUrl:
+      // 1) Probeer imageLinks eerst (als aanwezig)
+      const thumb = vi?.imageLinks?.thumbnail || vi?.imageLinks?.smallThumbnail || "";
+
+      // 2) Als thumb leeg is, gebruik canonical content URL via volumeId
+      const canonicalById = volumeId
+        ? `https://books.google.com/books/content?id=${encodeURIComponent(volumeId)}&printsec=frontcover&img=1&zoom=1&source=gbs_api`
+        : "";
+
+      // 3) coverUrl prioriteit:
+      // - als thumb bestaat: normalizeGoogleCoverUrl(thumb)
+      // - anders: canonicalById
+      coverUrl = thumb ? normalizeGoogleCoverUrl(thumb) : canonicalById;
     }
   } catch {
     // ignore errors, return what we have
   }
 
-  // --- 2) Open Library fallback if Google Books didn't provide a cover ---
-  if (!coverUrl) {
-    console.log("No Google Books cover found, trying Open Library...");
+  // --- 2) Open Library fallback ONLY if Google Books didn't find any item ---
+  if (!coverUrl && items.length === 0) {
+    console.log("No Google Books item found, trying Open Library...");
     // Try with ISBN-13 first
     coverUrl = await tryOpenLibraryCover(clean);
     console.log("Open Library ISBN-13 result:", coverUrl || "none");
