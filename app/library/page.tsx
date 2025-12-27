@@ -30,6 +30,28 @@ import { lookupByIsbn } from "@/lib/lookup";
 import { CoverImg } from "@/components/CoverImg";
 import { toBlob } from "html-to-image";
 
+// Helper functions
+function isNlUi(): boolean {
+  if (typeof document === "undefined") return false;
+  const htmlLang = document.documentElement.lang?.toLowerCase() || "";
+  const navLang = navigator.language?.toLowerCase() || "";
+  return htmlLang.startsWith("nl") || navLang.startsWith("nl");
+}
+
+function googleSearchUrl(q: string): string {
+  return `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+}
+
+function googleIsbnUrl(isbn: string): string {
+  return googleSearchUrl("ISBN " + isbn);
+}
+
+function googleSummaryUrl(title: string, authors: string, isbn: string, nl: boolean): string {
+  const keyword = nl ? "samenvatting" : "summary";
+  const extra = nl ? "samenvatting summary" : "summary samenvatting";
+  const query = `${title} ${authors} ${isbn} ${extra}`;
+  return googleSearchUrl(query);
+}
 
 export default function LibraryPage() {
   const router = useRouter();
@@ -2320,14 +2342,14 @@ function Cover({
         <CoverImg
           key={`cover-img-${coverUrl}-${updatedAt || 0}`}
           src={src}
-          alt={title}
-          style={coverImg}
+        alt={title}
+        style={coverImg}
           onError={() => onBadCover?.()}
         />
       ) : (
-        <div style={coverPlaceholder}>
+      <div style={coverPlaceholder}>
           <div style={{ fontSize: 28, lineHeight: 1 }}>📖</div>
-        </div>
+      </div>
       )}
     </div>
   );
