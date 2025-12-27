@@ -1384,77 +1384,58 @@ What should I add next? 👀
               }}
             >
               {coverPreview.coverUrl ? (
-                <>
-                  {/* Debug: Show URL in dev mode */}
-                  {process.env.NODE_ENV === 'development' && (
-                    <div style={{
-                      position: "absolute",
-                      top: 4,
-                      left: 4,
-                      background: "rgba(0,0,0,0.8)",
-                      color: "#fff",
-                      fontSize: 10,
-                      padding: "2px 4px",
-                      borderRadius: 4,
-                      zIndex: 9999,
-                      pointerEvents: "none",
-                      maxWidth: "90%",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}>
-                      {coverPreview.coverUrl.substring(0, 50)}...
-                    </div>
-                  )}
-                  <img
-                    key={`cover-preview-${coverPreview.coverUrl}`}
-                    src={toHttps(coverPreview.coverUrl)}
-                    alt={coverPreview.title}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "contain",
-                      objectPosition: "center",
-                      display: "block",
-                      backgroundColor: "transparent",
-                    }}
-                    onLoad={(e) => {
-                      const img = e.currentTarget;
-                      console.log("✅ Cover preview image loaded successfully!");
-                      console.log("Original URL:", coverPreview.coverUrl);
-                      console.log("Loaded URL:", img.src);
-                      console.log("Image dimensions:", {
-                        naturalWidth: img.naturalWidth,
-                        naturalHeight: img.naturalHeight,
-                        clientWidth: img.clientWidth,
-                        clientHeight: img.clientHeight,
-                      });
-                    }}
-                    onError={(e) => {
-                      const img = e.currentTarget;
-                      console.error("❌ Cover preview image FAILED to load");
-                      console.error("Original URL:", coverPreview.coverUrl);
-                      console.error("Trying to load:", toHttps(coverPreview.coverUrl));
-                      console.error("Image element state:", {
-                        src: img.src,
-                        complete: img.complete,
-                        naturalWidth: img.naturalWidth,
-                        naturalHeight: img.naturalHeight,
-                      });
-                      // Try to extract book ID from Google Books URL and use thumbnail format
-                      const contentMatch = coverPreview.coverUrl.match(/id=([^&]+)/);
-                      if (contentMatch) {
-                        const bookId = contentMatch[1];
-                        const thumbnailUrl = `https://books.google.com/books/publisher/content/images/frontcover/${bookId}?fife=w400-h600`;
-                        console.log("🔄 Trying alternative thumbnail URL:", thumbnailUrl);
-                        // Update the src to try alternative URL
-                        img.src = thumbnailUrl;
+                <img
+                  key={`cover-preview-${coverPreview.coverUrl}`}
+                  src={toHttps(coverPreview.coverUrl)}
+                  alt={coverPreview.title}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    objectPosition: "center",
+                    display: "block",
+                  }}
+                  onLoad={(e) => {
+                    const img = e.currentTarget;
+                    console.log("✅ Cover preview image loaded successfully!");
+                    console.log("Original URL:", coverPreview.coverUrl);
+                    console.log("Loaded URL:", img.src);
+                    console.log("Image dimensions:", {
+                      naturalWidth: img.naturalWidth,
+                      naturalHeight: img.naturalHeight,
+                      clientWidth: img.clientWidth,
+                      clientHeight: img.clientHeight,
+                    });
+                  }}
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    console.error("❌ Cover preview image FAILED to load");
+                    console.error("Original URL:", coverPreview.coverUrl);
+                    console.error("Trying to load:", toHttps(coverPreview.coverUrl));
+                    
+                    // Try to convert Google Books content URL to thumbnail URL
+                    let fallbackUrl = coverPreview.coverUrl;
+                    const contentMatch = coverPreview.coverUrl.match(/books\/content\?id=([^&]+)/);
+                    if (contentMatch) {
+                      const bookId = contentMatch[1];
+                      // Try different Google Books thumbnail formats
+                      fallbackUrl = `https://books.google.com/books/publisher/content/images/frontcover/${bookId}?fife=w400-h600`;
+                      console.log("🔄 Trying alternative thumbnail URL:", fallbackUrl);
+                      img.src = fallbackUrl;
+                    } else {
+                      // If it's already a thumbnail URL, try without parameters
+                      const thumbnailMatch = coverPreview.coverUrl.match(/books\/publisher\/content\/images\/frontcover\/([^?]+)/);
+                      if (thumbnailMatch) {
+                        const bookId = thumbnailMatch[1];
+                        fallbackUrl = `https://books.google.com/books/publisher/content/images/frontcover/${bookId}?fife=w400-h600`;
+                        console.log("🔄 Trying simplified thumbnail URL:", fallbackUrl);
+                        img.src = fallbackUrl;
                       } else {
                         showToast("Fout bij laden cover");
                       }
-                    }}
-                  />
-                </>
+                    }
+                  }}
+                />
               ) : (
                 <div style={{ padding: 20, textAlign: "center", color: "var(--muted)" }}>
                   Geen cover URL beschikbaar
