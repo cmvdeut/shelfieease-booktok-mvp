@@ -1416,15 +1416,42 @@ What should I add next? 👀
                       objectFit: "contain",
                       objectPosition: "center",
                       display: "block",
+                      backgroundColor: "transparent",
                     }}
-                    onLoad={() => {
-                      console.log("✅ Cover preview image loaded:", coverPreview.coverUrl);
+                    onLoad={(e) => {
+                      const img = e.currentTarget;
+                      console.log("✅ Cover preview image loaded successfully!");
+                      console.log("Original URL:", coverPreview.coverUrl);
+                      console.log("Loaded URL:", img.src);
+                      console.log("Image dimensions:", {
+                        naturalWidth: img.naturalWidth,
+                        naturalHeight: img.naturalHeight,
+                        clientWidth: img.clientWidth,
+                        clientHeight: img.clientHeight,
+                      });
                     }}
                     onError={(e) => {
-                      console.error("❌ Cover preview image error:", coverPreview.coverUrl);
-                      console.error("Error details:", e);
+                      const img = e.currentTarget;
+                      console.error("❌ Cover preview image FAILED to load");
+                      console.error("Original URL:", coverPreview.coverUrl);
                       console.error("Trying to load:", toHttps(coverPreview.coverUrl));
-                      showToast("Fout bij laden cover");
+                      console.error("Image element state:", {
+                        src: img.src,
+                        complete: img.complete,
+                        naturalWidth: img.naturalWidth,
+                        naturalHeight: img.naturalHeight,
+                      });
+                      // Try to extract book ID from Google Books URL and use thumbnail format
+                      const contentMatch = coverPreview.coverUrl.match(/id=([^&]+)/);
+                      if (contentMatch) {
+                        const bookId = contentMatch[1];
+                        const thumbnailUrl = `https://books.google.com/books/publisher/content/images/frontcover/${bookId}?fife=w400-h600`;
+                        console.log("🔄 Trying alternative thumbnail URL:", thumbnailUrl);
+                        // Update the src to try alternative URL
+                        img.src = thumbnailUrl;
+                      } else {
+                        showToast("Fout bij laden cover");
+                      }
                     }}
                   />
                 </>
