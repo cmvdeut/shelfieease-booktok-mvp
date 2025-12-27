@@ -122,12 +122,26 @@ async function searchGoogleBooks(isbn: string): Promise<GoogleBooksVolume[]> {
 
 type OpenLibrarySearchDoc = {
   cover_i?: number;
+  edition_key?: string[];
   [key: string]: unknown;
 };
 
 type OpenLibrarySearchResponse = {
   docs?: OpenLibrarySearchDoc[];
   [key: string]: unknown;
+};
+
+type OpenLibraryBookData = {
+  cover?: {
+    large?: string;
+    medium?: string;
+    small?: string;
+  };
+  [key: string]: unknown;
+};
+
+type OpenLibraryBooksResponse = {
+  [key: string]: OpenLibraryBookData;
 };
 
 /**
@@ -159,9 +173,47 @@ async function tryOpenLibraryCover(isbn: string): Promise<string> {
 }
 
 /**
- * Try to get cover from Open Library Search API.
- * Uses the search.json endpoint to find cover_i, then builds cover URL.
+ * Try to get cover from Open Library Books API using OLID (edition_key).
  * Returns cover URL if found, empty string otherwise.
+ */
+async function openLibraryCoverByOlid(olid: string): Promise<string> {
+  if (!olid) return "";
+  
+  try {
+    const apiUrl = `https://openlibrary.org/api/books?bibkeys=OLID:${encodeURIComponent(olid)}&format=json&jscmd=data`;
+    const response = await fetch(apiUrl);
+    
+    if (!response.ok) {
+      return "";
+    }
+    
+    const data = (await response.json()) as OpenLibraryBooksResponse;
+    const bookKey = `OLID:${olid}`;
+    const bookData = data[bookKey];
+    
+    // Check if we have cover data (prefer large, fallback to medium)
+    if (bookData?.cover?.large) {
+      return bookData.cover.large;
+    }
+    if (bookData?.cover?.medium) {
+      return bookData.cover.medium;
+    }
+    
+    return "";
+  } catch {
+    // If fetch fails, return empty string
+    return "";
+  }
+}
+
+/**
+ * Try to get cover from Open Library Search API.
+ * Uses the search.json endpoint to find cover_i or edition_key, then builds cover URL.
+ * Returns cover URL if found, empty string otherwise.
+ * 
+ * Fallback order:
+ * 1. cover_i -> b/id/{cover_i}-L.jpg
+ * 2. edition_key[0] -> api/books -> cover.large/medium
  */
 async function openLibraryCoverBySearch(isbn13: string): Promise<string> {
   if (!isbn13) return "";
@@ -176,11 +228,26 @@ async function openLibraryCoverBySearch(isbn13: string): Promise<string> {
     
     const data = (await response.json()) as OpenLibrarySearchResponse;
     
-    // Check if we have docs and the first doc has a cover_i
-    if (data.docs?.length && data.docs[0].cover_i) {
-      const cover_i = data.docs[0].cover_i;
+    if (!data.docs?.length) {
+      return "";
+    }
+    
+    const firstDoc = data.docs[0];
+    
+    // Step 1: Try cover_i first (faster, direct URL)
+    if (firstDoc.cover_i) {
+      const cover_i = firstDoc.cover_i;
       // Build cover URL using cover_i (large size)
       return `https://covers.openlibrary.org/b/id/${cover_i}-L.jpg`;
+    }
+    
+    // Step 2: If no cover_i, try edition_key -> api/books
+    if (firstDoc.edition_key && firstDoc.edition_key.length > 0) {
+      const olid = firstDoc.edition_key[0];
+      const coverUrl = await openLibraryCoverByOlid(olid);
+      if (coverUrl) {
+        return coverUrl;
+      }
     }
     
     return "";
