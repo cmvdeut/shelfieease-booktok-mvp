@@ -159,7 +159,7 @@ async function openLibraryCoverByIsbn(isbn: string): Promise<string | "none"> {
     const json = await res.json();
     const coverId = json?.docs?.[0]?.cover_i;
     if (!coverId) return "none";
-    return `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`;
+    return `https://covers.openlibrary.org/b/id/${coverId}-L.jpg?default=false`;
   } catch {
     return "none";
   }
@@ -231,7 +231,7 @@ async function openLibraryCoverBySearch(isbn13: string): Promise<string> {
     if (firstDoc.cover_i) {
       const cover_i = firstDoc.cover_i;
       // Build cover URL using cover_i (large size)
-      return `https://covers.openlibrary.org/b/id/${cover_i}-L.jpg`;
+      return `https://covers.openlibrary.org/b/id/${cover_i}-L.jpg?default=false`;
     }
     
     // Step 2: If no cover_i, try edition_key -> api/books
