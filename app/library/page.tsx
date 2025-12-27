@@ -113,6 +113,7 @@ export default function LibraryPage() {
   const [scope, setScope] = useState<"shelf" | "all">("shelf");
   const [statusFilter, setStatusFilter] = useState<Set<BookStatus>>(new Set(["TBR", "Reading", "Finished"]));
   const [sortBy, setSortBy] = useState<"recent" | "title" | "author">("recent");
+  const [failedCovers, setFailedCovers] = useState<Set<string>>(new Set());
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const actionMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -519,6 +520,9 @@ export default function LibraryPage() {
     }
     
     console.warn("Cover image error for book:", book.title, "URL:", book.coverUrl);
+    
+    // Mark cover as failed in this session (immediate UI update)
+    setFailedCovers((prev) => new Set(prev).add(bookId));
     
     // Clear cover URL - if CoverImg detected a strip/bad cover, remove it regardless of source
     // This prevents the app from repeatedly trying to load invalid covers
@@ -1868,7 +1872,7 @@ What should I add next? 👀
                   </>
                 )}
 
-                {b.coverUrl && b.coverUrl.trim() !== "" ? (
+                {b.coverUrl && b.coverUrl.trim() !== "" && !failedCovers.has(b.id) ? (
                   isRecentlyAdded ? (
                     <div style={coverWrapStyle}>
                       <CoverImg
