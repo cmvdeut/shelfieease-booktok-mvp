@@ -160,7 +160,7 @@ export default function LibraryPage() {
         setPendingData({
           title: data.title || "Onbekend",
           authors: data.authors || [],
-          coverUrl: data.coverUrl || "",
+          coverUrl: "", // Don't fetch cover automatically - user can use "Cover zoeken" button
         });
       } catch (e) {
         console.error("Failed to lookup ISBN:", e);
@@ -1856,16 +1856,6 @@ What should I add next? 👀
                           </button>
                         ))}
                       </div>
-
-                      <div style={actionMenuDivider} />
-
-                      <button
-                        style={actionMenuItem}
-                        onClick={() => handleSearchCover(b.id)}
-                        disabled={coverPreviewLoading}
-                      >
-                        <span>{coverPreviewLoading ? "⏳ Zoeken..." : "🔍 Zoek cover"}</span>
-                      </button>
 
                       <div style={actionMenuDivider} />
 
