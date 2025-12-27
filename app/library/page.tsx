@@ -1858,7 +1858,7 @@ What should I add next? 👀
                   </>
                 )}
 
-                {b.coverUrl && (
+                {b.coverUrl && b.coverUrl.trim() !== "" ? (
                   isRecentlyAdded ? (
                     <div style={coverWrapStyle}>
                       <CoverImg
@@ -1880,7 +1880,7 @@ What should I add next? 👀
                       updatedAt={b.updatedAt}
                     />
                   )
-                )}
+                ) : null}
 
                 {(() => {
                   const nl = isNlUi();
