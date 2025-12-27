@@ -955,8 +955,10 @@ What should I add next? 👀
             <h2 style={modalTitle}>New Shelf</h2>
             <div style={modalForm}>
               <div style={formGroup}>
-                <label style={formLabel}>Name</label>
+                <label htmlFor="new-shelf-name" style={formLabel}>Name</label>
                 <input
+                  id="new-shelf-name"
+                  name="new-shelf-name"
                   type="text"
                   value={name}
                   onChange={(e) => {
@@ -978,7 +980,7 @@ What should I add next? 👀
               </div>
 
               <div style={formGroup}>
-                <label style={formLabel}>Emoji</label>
+                <label htmlFor="new-shelf-emoji" style={formLabel}>Emoji</label>
                 <div style={emojiPicker}>
                   {(() => {
                     const defaultEmojis = ["📚", "✨", "🔥", "💖", "🧙", "🗡️", "🌙", "🧋", "😭", "🕯️", "🏰", "🐉"];
@@ -1006,6 +1008,8 @@ What should I add next? 👀
                 </div>
 
                 <input
+                  id="new-shelf-emoji"
+                  name="new-shelf-emoji"
                   type="text"
                   value={emoji}
                   onChange={(e) => {
@@ -1148,8 +1152,10 @@ What should I add next? 👀
                 {!showNewShelfInAddModal ? (
                   <>
                     <div style={{ ...formGroup, marginBottom: 20 }}>
-                      <label style={{ ...formLabel, color: "var(--text)" }}>Kies een shelf</label>
+                      <label htmlFor="add-book-shelf" style={{ ...formLabel, color: "var(--text)" }}>Kies een shelf</label>
                       <select
+                        id="add-book-shelf"
+                        name="add-book-shelf"
                         value={targetShelfId || ""}
                         onChange={(e) => setTargetShelfId(e.target.value)}
                         style={{
@@ -1215,8 +1221,10 @@ What should I add next? 👀
                 ) : (
                   <div style={modalForm}>
                     <div style={formGroup}>
-                      <label style={{ ...formLabel, color: "var(--text)" }}>Naam</label>
+                      <label htmlFor="add-book-new-shelf-name" style={{ ...formLabel, color: "var(--text)" }}>Naam</label>
                       <input
+                        id="add-book-new-shelf-name"
+                        name="add-book-new-shelf-name"
                         type="text"
                         value={newShelfName}
                         onChange={(e) => setNewShelfName(e.target.value.slice(0, 24))}
@@ -1232,8 +1240,10 @@ What should I add next? 👀
                       />
                     </div>
                     <div style={formGroup}>
-                      <label style={{ ...formLabel, color: "var(--text)" }}>Emoji</label>
+                      <label htmlFor="add-book-new-shelf-emoji" style={{ ...formLabel, color: "var(--text)" }}>Emoji</label>
                       <input
+                        id="add-book-new-shelf-emoji"
+                        name="add-book-new-shelf-emoji"
                         type="text"
                         value={newShelfEmoji}
                         onChange={(e) => setNewShelfEmoji(e.target.value.slice(0, 2) || "📚")}
@@ -1293,17 +1303,17 @@ What should I add next? 👀
       {showDeleteConfirm && (
         <div style={modalOverlay} onClick={() => setShowDeleteConfirm(null)}>
           <div style={modal} onClick={(e) => e.stopPropagation()}>
-            <h2 style={modalTitle}>Delete book?</h2>
-            <p style={{ color: "var(--muted)", margin: "0 0 24px" }}>This action cannot be undone.</p>
+            <h2 style={modalTitle}>Boek verwijderen?</h2>
+            <p style={{ color: "var(--muted)", margin: "0 0 24px" }}>Deze actie kan niet ongedaan worden gemaakt.</p>
             <div style={modalActions}>
               <button style={btnGhost} onClick={() => setShowDeleteConfirm(null)}>
-                Cancel
+                Annuleren
               </button>
               <button
-                style={{ ...btnPrimary, background: "linear-gradient(135deg, #ff6b6b, #ee5a6f)" }}
+                style={{ ...btnPrimary, background: "var(--danger)", color: "#fff" }}
                 onClick={() => handleDeleteBook(showDeleteConfirm)}
               >
-                Delete
+                Verwijderen
               </button>
             </div>
           </div>
@@ -1315,7 +1325,12 @@ What should I add next? 👀
         <div style={{ padding: "0 16px 16px", display: "grid", gap: 12 }}>
           {/* Search input */}
           <div style={{ position: "relative" }}>
+            <label htmlFor="book-search" style={{ position: "absolute", left: "-9999px", width: "1px", height: "1px", overflow: "hidden" }}>
+              Zoek op titel, auteur of ISBN
+            </label>
             <input
+              id="book-search"
+              name="book-search"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -1436,7 +1451,12 @@ What should I add next? 👀
             ))}
 
             {/* Sort dropdown */}
+            <label htmlFor="book-sort" style={{ position: "absolute", left: "-9999px", width: "1px", height: "1px", overflow: "hidden" }}>
+              Sorteer boeken
+            </label>
             <select
+              id="book-sort"
+              name="book-sort"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as "recent" | "title" | "author")}
               style={{
@@ -1580,8 +1600,14 @@ What should I add next? 👀
 
                       <div style={actionMenuDivider} />
 
-                      <button style={{ ...actionMenuItem, color: "var(--accent1)" }} onClick={() => setShowDeleteConfirm(b.id)}>
-                        <span>Delete book</span>
+                      <button 
+                        style={{ ...actionMenuItem, color: "var(--danger)" }} 
+                        onClick={() => {
+                          setActionMenuBookId(null);
+                          setShowDeleteConfirm(b.id);
+                        }}
+                      >
+                        <span>🗑️ Verwijder boek</span>
                       </button>
                     </div>
                   </>
@@ -1594,7 +1620,7 @@ What should I add next? 👀
                         key={`cover-${b.id}-${b.coverUrl}-${b.updatedAt || 0}`}
                         src={toHttps(b.coverUrl)}
                         alt={b.title}
-                        style={coverImg}
+                        style={{}}
                         onError={() => handleCoverError(b.id)}
                       />
                     )}
@@ -2190,16 +2216,8 @@ const btnPrimary: React.CSSProperties = {
   padding: "10px 14px",
   borderRadius: 16,
   border: 0,
-  background: (() => {
-    const mood = typeof document !== "undefined" ? document.documentElement.dataset.mood : "default";
-    if (mood === "default" || mood === "bold" || mood === "calm") return "var(--btnPrimaryBg)";
-    return `linear-gradient(135deg, var(--accent1), var(--accent2))`;
-  })(),
-  color: (() => {
-    const mood = typeof document !== "undefined" ? document.documentElement.dataset.mood : "default";
-    if (mood === "default" || mood === "bold" || mood === "calm") return "var(--btnPrimaryText)";
-    return "#fff";
-  })(),
+  background: "var(--btnPrimaryBg)",
+  color: "var(--btnPrimaryText)",
   fontWeight: 950,
   cursor: "pointer",
   boxShadow: `0 12px 28px var(--shadow)`,
@@ -2213,16 +2231,8 @@ const btnPrimary: React.CSSProperties = {
 const btnGhost: React.CSSProperties = {
   padding: "10px 14px",
   borderRadius: 16,
-  border: (() => {
-    const mood = typeof document !== "undefined" ? document.documentElement.dataset.mood : "default";
-    if (mood === "default" || mood === "bold" || mood === "calm") return "1px solid var(--btnGhostBorder)";
-    return "1px solid var(--border)";
-  })(),
-  background: (() => {
-    const mood = typeof document !== "undefined" ? document.documentElement.dataset.mood : "default";
-    if (mood === "default" || mood === "bold" || mood === "calm") return "var(--btnGhostBg)";
-    return "var(--panel)";
-  })(),
+  border: "1px solid var(--btnGhostBorder)",
+  background: "var(--btnGhostBg)",
   color: "var(--text)",
   fontWeight: 900,
   cursor: "pointer",
@@ -2239,16 +2249,8 @@ const shelfSelector: React.CSSProperties = {
   gap: 8,
   padding: "10px 16px",
   borderRadius: 16,
-  border: (() => {
-    const mood = typeof document !== "undefined" ? document.documentElement.dataset.mood : "default";
-    if (mood === "default" || mood === "bold" || mood === "calm") return "1px solid var(--btnGhostBorder)";
-    return "1px solid var(--border)";
-  })(),
-  background: (() => {
-    const mood = typeof document !== "undefined" ? document.documentElement.dataset.mood : "default";
-    if (mood === "default" || mood === "bold" || mood === "calm") return "var(--btnGhostBg)";
-    return "var(--panel)";
-  })(),
+  border: "1px solid var(--btnGhostBorder)",
+  background: "var(--btnGhostBg)",
   color: "var(--text)",
   fontWeight: 950,
   cursor: "pointer",
@@ -2265,7 +2267,7 @@ const dropdown: React.CSSProperties = {
   maxWidth: "90vw",
   maxHeight: "70vh",
   overflowY: "auto",
-  background: typeof document !== "undefined" && document.documentElement.dataset.mood === "default" ? "var(--panelSolid)" : "var(--panel)",
+  background: "var(--panelSolid)",
   border: "1px solid var(--border)",
   borderRadius: 16,
   padding: 6,
@@ -2291,7 +2293,7 @@ const dropdownItem: React.CSSProperties = {
 };
 
 const dropdownItemActive: React.CSSProperties = {
-  background: typeof document !== "undefined" && document.documentElement.dataset.mood === "default" ? "var(--accentSoft)" : `color-mix(in srgb, var(--accent1) 18%, transparent)`,
+  background: "var(--accentSoft)",
   color: "var(--muted)",
 };
 
@@ -2313,11 +2315,7 @@ const modalOverlay: React.CSSProperties = {
 };
 
 const modal: React.CSSProperties = {
-  background: (() => {
-    const mood = typeof document !== "undefined" ? document.documentElement.dataset.mood : "default";
-    if (mood === "default" || mood === "bold" || mood === "calm") return "var(--panelSolid)";
-    return "var(--panel)";
-  })(),
+  background: "var(--panelSolid)",
   border: "1px solid var(--border)",
   borderRadius: 22,
   padding: 20,
@@ -2426,7 +2424,7 @@ const actionButton: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  zIndex: 10,
+  zIndex: 100, // Higher than cover image (z-index 10)
   backdropFilter: "blur(8px)",
 };
 
@@ -2446,7 +2444,7 @@ const actionButtonCompact: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  zIndex: 10,
+  zIndex: 100, // Higher than cover image (z-index 10)
   backdropFilter: "blur(8px)",
   opacity: 0.85,
 };
