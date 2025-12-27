@@ -2049,6 +2049,7 @@ What should I add next? 👀
                 flex: "0 0 auto",
                 border: `1px solid ${toastBorder}`,
                 background: isCalm ? "rgba(58, 42, 26, 0.08)" : "rgba(255,255,255,0.06)",
+                position: "relative",
               }}
             >
               {addedToast.coverUrl ? (
@@ -2056,8 +2057,24 @@ What should I add next? 👀
                   src={addedToast.coverUrl}
                   alt=""
                   style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                  onError={(e) => {
+                    // als cover niet laadt -> verberg img zodat placeholder zichtbaar wordt
+                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                  }}
                 />
-              ) : null}
+              ) : (
+                <div style={{
+                  width: "100%",
+                  height: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 20,
+                  opacity: 0.85
+                }}>
+                  📖
+                </div>
+              )}
             </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
