@@ -1869,16 +1869,15 @@ What should I add next? 👀
 
                 {b.coverUrl && b.coverUrl.trim() !== "" ? (
                   <>
-                    <CoverImg
-                      key={`cover-${b.id}-${b.coverUrl}-${b.updatedAt || 0}`}
-                      src={toHttps(b.coverUrl)}
-                      alt={b.title}
-                      style={{
-                        ...coverWrapStyle,
-                        ...coverImg,
-                      }}
-                      onError={() => handleCoverError(b.id)}
-                    />
+                    <div style={coverWrapStyle}>
+                      <CoverImg
+                        key={`cover-${b.id}-${b.coverUrl}-${b.updatedAt || 0}`}
+                        src={toHttps(b.coverUrl)}
+                        alt={b.title}
+                        style={coverImg}
+                        onError={() => handleCoverError(b.id)}
+                      />
+                    </div>
 
                     {(() => {
                       const nl = isNlUi();
@@ -1923,7 +1922,7 @@ What should I add next? 👀
                     })()}
 
                     <div style={{ display: "grid", gap: isRecentlyAdded ? 4 : 6, marginTop: isRecentlyAdded ? 8 : 10 }}>
-                      <div style={titleStyle}>{b.title}</div>
+                <div style={titleStyle}>{b.title}</div>
                       {b.authors?.length ? <div style={authorStyle}>by {b.authors.join(", ")}</div> : null}
                       {scope === "all" && bookShelf && (
                         <div style={{
@@ -1977,9 +1976,9 @@ What should I add next? 👀
                           <span>{bookShelf.emoji}</span>
                           <span>{bookShelf.name}</span>
                         </div>
-                      )}
+                )}
 
-                      <div style={metaRow}>
+                <div style={metaRow}>
                         {(() => {
                           const s = b.status || "TBR";
                           const label = s === "Finished" ? "Read" : s;
@@ -1997,8 +1996,8 @@ What should I add next? 👀
                           </span>
                         )}
                         {!isRecentlyAdded && <span style={isbn}>ISBN {b.isbn13}</span>}
-                      </div>
-                    </div>
+                </div>
+              </div>
 
                     {(() => {
                       const nl = isNlUi();
@@ -2038,7 +2037,7 @@ What should I add next? 👀
                           >
                             {nl ? "Cover zoeken" : "Find cover"}
                           </button>
-                        </div>
+            </div>
                       );
                     })()}
                   </>
@@ -2412,9 +2411,9 @@ const ShareCard = React.forwardRef<
           position: "relative",
           zIndex: 2,
           marginTop: "auto",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
           fontSize: 14,
           color: "rgba(255,255,255,0.35)",
           fontWeight: 850,
@@ -2898,6 +2897,8 @@ const coverWrapCompact: React.CSSProperties = {
 };
 
 const coverImg: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
   width: "100%",
   height: "100%",
   objectFit: "cover",
