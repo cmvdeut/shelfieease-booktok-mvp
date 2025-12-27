@@ -209,9 +209,19 @@ export default function LibraryPage() {
       if (!hasOlMissingFlag(b.isbn13)) return b;
       return { ...b, coverUrl: "" };
     };
+    
+    // Also clean up empty or whitespace-only coverUrls
+    const cleanEmptyCoverUrl = (b: Book) => {
+      if (!b.coverUrl || b.coverUrl.trim() === "") {
+        return { ...b, coverUrl: "" };
+      }
+      return b;
+    };
+    
     let didStrip = false;
     const cleanedBooks = allBooks.map((b) => {
-      const next = stripStaleOpenLibraryCover(b);
+      let next = stripStaleOpenLibraryCover(b);
+      next = cleanEmptyCoverUrl(next);
       if (next !== b) didStrip = true;
       return next;
     });
