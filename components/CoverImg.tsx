@@ -17,6 +17,13 @@ export function CoverImg({
   const [isLoaded, setIsLoaded] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
+  // Reset error state when src changes
+  useEffect(() => {
+    setHasError(false);
+    setIsLoaded(false);
+    console.log("CoverImg src changed, resetting error state:", src);
+  }, [src]);
+
   if (!src || hasError) {
     return null;
   }
@@ -62,19 +69,27 @@ export function CoverImg({
       computedStyle: window.getComputedStyle(img),
     });
 
-    // Detect strip/invalid cover
+    // Detect bad cover (strip/invalid/placeholder)
     // Regels:
-    // - te laag: h < 120
-    // - of extreme verhouding: w / h > 2.2
+    // - te laag: h < 120 (strip)
+    // - of extreme verhouding: w / h > 2.2 (extreme horizontale strip)
+    // - of OpenLibrary placeholder: w <= 2 && h <= 2
     // - of h === 0
-    if (!h || h < 120 || (h > 0 && w / h > 2.2)) {
-      console.warn("CoverImg: Invalid cover detected (strip/bad dimensions):", {
+    const isBadCover = 
+      !h || 
+      h < 120 || 
+      (h > 0 && w / h > 2.2) ||
+      (w <= 2 && h <= 2);
+
+    if (isBadCover) {
+      console.warn("CoverImg: Bad cover detected (strip/invalid/placeholder):", {
         width: w,
         height: h,
         aspectRatio: h > 0 ? (w / h).toFixed(2) : "N/A",
+        isOpenLibraryPlaceholder: w <= 2 && h <= 2,
         src,
       });
-      // Treat as error
+      // Treat as error - trigger onError callback to clear coverUrl
       setHasError(true);
       onError?.();
       return;
