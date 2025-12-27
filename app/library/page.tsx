@@ -1423,7 +1423,7 @@ What should I add next? 👀
                       // Try Open Library as fallback
                       const book = books.find((b) => b.id === coverPreview.bookId);
                       if (book?.isbn13) {
-                        const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${book.isbn13}-L.jpg`;
+                        const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${book.isbn13}-L.jpg?default=false`;
                         console.log("🔄 Trying Open Library URL:", openLibraryUrl);
                         // Create a new image to test if Open Library has a better cover
                         const testImg = new Image();
@@ -1448,30 +1448,17 @@ What should I add next? 👀
                     const img = e.currentTarget;
                     console.error("❌ Cover preview image FAILED to load");
                     console.error("Original URL:", coverPreview.coverUrl);
-                    console.error("Trying to load:", toHttps(coverPreview.coverUrl));
                     
-                    // Try to convert Google Books content URL to thumbnail URL
-                    let fallbackUrl = coverPreview.coverUrl;
-                    const contentMatch = coverPreview.coverUrl.match(/books\/content\?id=([^&]+)/);
-                    if (contentMatch) {
-                      const bookId = contentMatch[1];
-                      // Try different Google Books thumbnail formats
-                      fallbackUrl = `https://books.google.com/books/publisher/content/images/frontcover/${bookId}?fife=w400-h600`;
-                      console.log("🔄 Trying alternative thumbnail URL:", fallbackUrl);
-                      img.src = fallbackUrl;
+                    // Try Open Library as fallback
+                    const book = books.find((b) => b.id === coverPreview.bookId);
+                    if (book?.isbn13) {
+                      const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${book.isbn13}-L.jpg?default=false`;
+                      console.log("🔄 Trying Open Library fallback:", openLibraryUrl);
+                      img.src = openLibraryUrl;
                     } else {
-                      // If it's already a thumbnail URL, try without parameters
-                      const thumbnailMatch = coverPreview.coverUrl.match(/books\/publisher\/content\/images\/frontcover\/([^?]+)/);
-                      if (thumbnailMatch) {
-                        const bookId = thumbnailMatch[1];
-                        fallbackUrl = `https://books.google.com/books/publisher/content/images/frontcover/${bookId}?fife=w400-h600`;
-                        console.log("🔄 Trying simplified thumbnail URL:", fallbackUrl);
-                        img.src = fallbackUrl;
-                      } else {
-                        console.error("❌ No fallback URL available");
-                        setCoverImageError(true);
-                        showToast("Fout bij laden cover");
-                      }
+                      console.error("❌ No fallback available (no ISBN)");
+                      setCoverImageError(true);
+                      showToast("Fout bij laden cover");
                     }
                   }}
                 />

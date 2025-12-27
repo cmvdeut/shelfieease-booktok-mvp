@@ -23,56 +23,54 @@ type GoogleBooksResponse = {
   items?: GoogleBooksVolume[];
 };
 
-function forceHttps(url: string) {
+/**
+ * Normalize Google Books cover URL to ensure it's a proper frontcover.
+ * Converts content URLs to canonical form with correct parameters.
+ */
+function normalizeGoogleCoverUrl(url: string): string {
   if (!url) return "";
-  return url.startsWith("http://") ? url.replace("http://", "https://") : url;
-}
 
-function boostGoogleThumb(url: string) {
-  // Google thumbs often include zoom=1; zoom=2 looks better.
-  if (!url) return "";
-  let u = url;
-  u = forceHttps(u);
-  
-  // If this is a content URL (not a thumbnail), try to convert it
-  if (u.includes("/books/content?id=")) {
-    const idMatch = u.match(/id=([^&]+)/);
-    if (idMatch) {
-      const bookId = idMatch[1];
-      // Use the thumbnail format instead which gives proper cover images
-      u = `https://books.google.com/books/publisher/content/images/frontcover/${bookId}?fife=w400-h600`;
-      return u;
-    }
+  // Force https
+  url = url.replace(/^http:\/\//i, "https://");
+
+  // If it's already the canonical content endpoint, ensure required params.
+  // Canonical form:
+  // https://books.google.com/books/content?id=BOOKID&printsec=frontcover&img=1&zoom=1&source=gbs_api
+  const isContent = url.includes("books.google.com/books/content") || url.includes("books.google.com/books/content?");
+  if (isContent) {
+    const u = new URL(url);
+    const id = u.searchParams.get("id") || "";
+    if (!id) return url;
+
+    // Rebuild clean canonical URL
+    const canonical = new URL("https://books.google.com/books/content");
+    canonical.searchParams.set("id", id);
+    canonical.searchParams.set("printsec", "frontcover");
+    canonical.searchParams.set("img", "1");
+    canonical.searchParams.set("zoom", "1");
+    canonical.searchParams.set("source", "gbs_api");
+    return canonical.toString();
   }
-  
-  if (u.includes("zoom=1")) u = u.replace("zoom=1", "zoom=2");
-  // Remove edge=curl if present (adds visual curl effect we don't want)
-  u = u.replace("&edge=curl", "");
-  return u;
+
+  // If it's a googleusercontent thumbnail or other GB thumb, keep it but force https
+  return url;
 }
 
 /**
  * Extract the best available cover URL from a Google Books volume.
- * Prefers larger images when available.
+ * Uses thumbnail or smallThumbnail and normalizes it.
  * Returns empty string if no imageLinks available (shows UI placeholder instead).
  */
 function extractCoverFromVolume(item: GoogleBooksVolume): string {
   const links = item.volumeInfo?.imageLinks;
   if (!links) return "";
 
-  // Prefer larger formats, fall back to smaller
-  const candidates = [
-    links.medium,
-    links.small,
-    links.thumbnail,
-    links.smallThumbnail,
-  ].filter(Boolean);
+  // Use thumbnail or smallThumbnail (prefer thumbnail)
+  const thumbnailUrl = links.thumbnail || links.smallThumbnail;
+  if (!thumbnailUrl) return "";
 
-  if (candidates.length > 0) {
-    return boostGoogleThumb(candidates[0] as string);
-  }
-
-  return "";
+  // Normalize the URL to ensure it's a proper frontcover
+  return normalizeGoogleCoverUrl(thumbnailUrl);
 }
 
 /**
@@ -118,17 +116,27 @@ async function searchGoogleBooks(isbn: string): Promise<GoogleBooksVolume[]> {
  * Returns cover URL if found, empty string otherwise.
  * Open Library format: https://covers.openlibrary.org/b/isbn/{ISBN}-{size}.jpg
  * Sizes: S (small), M (medium), L (large)
+ * Uses ?default=false to avoid placeholder images.
  */
 async function tryOpenLibraryCover(isbn: string): Promise<string> {
   if (!isbn) return "";
   
   // Try large size first for best quality
-  const url = `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(isbn)}-L.jpg`;
+  // Use ?default=false to avoid placeholder images
+  const url = `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(isbn)}-L.jpg?default=false`;
   
-  // Open Library always returns an image (even if it's a placeholder)
-  // We'll return the URL and let the image component's onError handler deal with placeholders/broken images
-  // This is simpler and more efficient than checking first
-  return url;
+  // Check if the URL actually returns a valid image (not a placeholder)
+  try {
+    const response = await fetch(url, { method: "HEAD" });
+    // If status is 200 and content-type is image, it's likely a real cover
+    if (response.ok && response.headers.get("content-type")?.startsWith("image/")) {
+      return url;
+    }
+    return "";
+  } catch {
+    // If fetch fails, return empty string
+    return "";
+  }
 }
 
 export async function lookupByIsbn(isbn13: string): Promise<LookupResult> {
