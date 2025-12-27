@@ -1397,7 +1397,7 @@ What should I add next? 👀
                     objectPosition: "center",
                     display: "block",
                   }}
-                  onLoad={(e) => {
+                  onLoad={async (e) => {
                     const img = e.currentTarget;
                     console.log("✅ Cover preview image loaded successfully!");
                     console.log("Original URL:", coverPreview.coverUrl);
@@ -1408,7 +1408,41 @@ What should I add next? 👀
                       clientWidth: img.clientWidth,
                       clientHeight: img.clientHeight,
                     });
-                    setCoverImageError(false);
+                    
+                    // Check if this looks like a copyright placeholder
+                    // Copyright placeholders are usually very small or have wrong aspect ratio
+                    const aspectRatio = img.naturalWidth / img.naturalHeight;
+                    const isSuspicious = 
+                      img.naturalWidth < 100 || 
+                      img.naturalHeight < 100 ||
+                      aspectRatio < 0.3 || 
+                      aspectRatio > 3.0;
+                    
+                    if (isSuspicious && coverPreview.coverUrl?.includes("books.google.com")) {
+                      console.log("⚠️ Suspicious image dimensions detected, trying Open Library fallback...");
+                      // Try Open Library as fallback
+                      const book = books.find((b) => b.id === coverPreview.bookId);
+                      if (book?.isbn13) {
+                        const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${book.isbn13}-L.jpg`;
+                        console.log("🔄 Trying Open Library URL:", openLibraryUrl);
+                        // Create a new image to test if Open Library has a better cover
+                        const testImg = new Image();
+                        testImg.onload = () => {
+                          // Open Library image loaded successfully, use it
+                          console.log("✅ Open Library cover found, switching to it");
+                          img.src = openLibraryUrl;
+                        };
+                        testImg.onerror = () => {
+                          console.log("❌ Open Library also failed, keeping Google Books image");
+                          setCoverImageError(false);
+                        };
+                        testImg.src = openLibraryUrl;
+                      } else {
+                        setCoverImageError(false);
+                      }
+                    } else {
+                      setCoverImageError(false);
+                    }
                   }}
                   onError={(e) => {
                     const img = e.currentTarget;
