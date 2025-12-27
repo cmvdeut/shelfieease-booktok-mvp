@@ -26,6 +26,9 @@ type GoogleBooksResponse = {
 /**
  * Normalize Google Books cover URL to ensure it's a proper frontcover.
  * Converts content URLs to canonical form with correct parameters.
+ * 
+ * IMPORTANT: Always uses zoom=1 for content URLs to avoid strip images.
+ * Never uses zoom=2 as it can result in invalid covers (e.g., 300x48 strips).
  */
 function normalizeGoogleCoverUrl(url: string): string {
   if (!url) return "";
@@ -33,23 +36,28 @@ function normalizeGoogleCoverUrl(url: string): string {
   // Force https
   url = url.replace(/^http:\/\//i, "https://");
 
-  // If it's already the canonical content endpoint, ensure required params.
+  // If it's a Google Books content URL, normalize to canonical form
   // Canonical form:
-  // https://books.google.com/books/content?id=BOOKID&printsec=frontcover&img=1&zoom=1&source=gbs_api
-  const isContent = url.includes("books.google.com/books/content") || url.includes("books.google.com/books/content?");
-  if (isContent) {
-    const u = new URL(url);
-    const id = u.searchParams.get("id") || "";
-    if (!id) return url;
+  // https://books.google.com/books/content?id=VOLUMEID&printsec=frontcover&img=1&zoom=1&source=gbs_api
+  if (url.includes("books.google.com/books/content")) {
+    try {
+      const u = new URL(url);
+      const id = u.searchParams.get("id") || "";
+      if (!id) return url;
 
-    // Rebuild clean canonical URL
-    const canonical = new URL("https://books.google.com/books/content");
-    canonical.searchParams.set("id", id);
-    canonical.searchParams.set("printsec", "frontcover");
-    canonical.searchParams.set("img", "1");
-    canonical.searchParams.set("zoom", "1");
-    canonical.searchParams.set("source", "gbs_api");
-    return canonical.toString();
+      // Rebuild clean canonical URL with required params
+      // ALWAYS use zoom=1 (never zoom=2) to avoid strip images
+      const canonical = new URL("https://books.google.com/books/content");
+      canonical.searchParams.set("id", id);
+      canonical.searchParams.set("printsec", "frontcover");
+      canonical.searchParams.set("img", "1");
+      canonical.searchParams.set("zoom", "1"); // Force zoom=1, never zoom=2
+      canonical.searchParams.set("source", "gbs_api");
+      return canonical.toString();
+    } catch {
+      // If URL parsing fails, return original (but with https)
+      return url;
+    }
   }
 
   // If it's a googleusercontent thumbnail or other GB thumb, keep it but force https
