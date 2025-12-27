@@ -474,17 +474,24 @@ export default function LibraryPage() {
 
   function handleCoverError(bookId: string) {
     const book = books.find((b) => b.id === bookId);
-    if (!book) return;
+    if (!book) {
+      console.warn("handleCoverError: Book not found:", bookId);
+      return;
+    }
     
     console.warn("Cover image error for book:", book.title, "URL:", book.coverUrl);
     
     // Clear cover URL - if CoverImg detected a strip/bad cover, remove it regardless of source
     // This prevents the app from repeatedly trying to load invalid covers
+    // After clearing, refreshCovers or new lookup can set a better URL
     if (book.coverUrl) {
-      console.log("Clearing bad cover URL (strip/invalid detected)");
+      console.log("Clearing bad cover URL (strip/invalid/placeholder detected)");
       updateBook(bookId, { coverUrl: "", updatedAt: Date.now() });
       const updated = loadBooks();
       setBooks(updated);
+      console.log("Cover URL cleared from storage for book:", book.title);
+    } else {
+      console.log("Book already has no coverUrl, nothing to clear");
     }
   }
 
