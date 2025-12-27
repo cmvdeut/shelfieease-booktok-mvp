@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Fix for multiple lockfiles warning
+  // Fix for multiple lockfiles warning - ensures Vercel uses correct root
   outputFileTracingRoot: require("path").join(__dirname),
   images: {
     remotePatterns: [
