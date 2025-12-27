@@ -2,6 +2,15 @@
 
 import { useState, useEffect, useRef } from "react";
 
+function isBadImage(w: number, h: number): boolean {
+  if (!w || !h) return true;
+  if (w <= 2 && h <= 2) return true;
+  const ratio = w / h;
+  if (ratio > 2.2) return true;
+  if (ratio < 0.45) return true;
+  return false;
+}
+
 export function CoverImg({
   src,
   alt = "Book cover",
@@ -13,60 +22,31 @@ export function CoverImg({
   style?: React.CSSProperties;
   onError?: () => void;
 }) {
-  const [hasError, setHasError] = useState(false);
-  const [hidden, setHidden] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  // Reset error state when src changes
+  // Reset failed state when src changes
   useEffect(() => {
-    setHasError(false);
-    setHidden(false);
-    setIsLoaded(false);
+    setFailed(false);
   }, [src]);
 
-  if (!src) {
+  if (!src || failed) {
     return null;
   }
 
-  // Check if image is already loaded (cached images)
-  useEffect(() => {
-    if (imgRef.current) {
-      if (imgRef.current.complete && imgRef.current.naturalHeight !== 0) {
-        setIsLoaded(true);
-      }
-    }
-  }, [src]);
-
-  const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    setHasError(true);
-    setHidden(true);
+  const handleError = () => {
+    setFailed(true);
     onError?.();
   };
 
   const handleLoad = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    const el = e.currentTarget;
-    const w = el.naturalWidth;
-    const h = el.naturalHeight;
-
-    // Detect invalid/unusable images that loaded but are not usable
-    // Rules:
-    // - naturalWidth <= 1 or naturalHeight <= 1 => invalid (Open Library 1x1 placeholder)
-    // - extreme wide strip: naturalWidth / naturalHeight > 3.2 => invalid
-    const isInvalid = 
-      w <= 1 || 
-      h <= 1 || 
-      (h > 0 && w / h > 3.2);
-
-    if (isInvalid) {
-      // Treat as error - hide image and trigger onError callback
-      setHasError(true);
-      setHidden(true);
+    const img = e.currentTarget;
+    const w = img.naturalWidth || 0;
+    const h = img.naturalHeight || 0;
+    if (isBadImage(w, h)) {
+      setFailed(true);
       onError?.();
-      return;
     }
-
-    setIsLoaded(true);
   };
 
   // Merge passed style with default image style
@@ -78,8 +58,8 @@ export function CoverImg({
     maxWidth: "100%",
     maxHeight: "100%",
     objectPosition: "center",
-    opacity: hidden ? 0 : 1,
-    display: hidden ? "none" : "block",
+    opacity: 1,
+    display: "block",
     margin: 0,
     padding: 0,
     border: "none",
@@ -99,17 +79,15 @@ export function CoverImg({
   };
 
   return (
-    <>
-      <img
-        ref={imgRef}
-        src={src}
-        alt={alt}
-        style={finalImageStyle}
-        onError={handleError}
-        onLoad={handleLoad}
-        loading="lazy"
-      />
-    </>
+    <img
+      ref={imgRef}
+      src={src}
+      alt={alt}
+      style={finalImageStyle}
+      onError={handleError}
+      onLoad={handleLoad}
+      loading="lazy"
+    />
   );
 }
 
