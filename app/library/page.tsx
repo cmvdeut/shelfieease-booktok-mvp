@@ -1384,26 +1384,50 @@ What should I add next? 👀
               }}
             >
               {coverPreview.coverUrl ? (
-                <img
-                  key={`cover-preview-${coverPreview.coverUrl}`}
-                  src={toHttps(coverPreview.coverUrl)}
-                  alt={coverPreview.title}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "contain",
-                    objectPosition: "center",
-                    display: "block",
-                  }}
-                  onLoad={() => {
-                    console.log("✅ Cover preview image loaded:", coverPreview.coverUrl);
-                  }}
-                  onError={(e) => {
-                    console.error("❌ Cover preview image error:", coverPreview.coverUrl);
-                    console.error("Error details:", e);
-                    showToast("Fout bij laden cover");
-                  }}
-                />
+                <>
+                  {/* Debug: Show URL in dev mode */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div style={{
+                      position: "absolute",
+                      top: 4,
+                      left: 4,
+                      background: "rgba(0,0,0,0.8)",
+                      color: "#fff",
+                      fontSize: 10,
+                      padding: "2px 4px",
+                      borderRadius: 4,
+                      zIndex: 9999,
+                      pointerEvents: "none",
+                      maxWidth: "90%",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}>
+                      {coverPreview.coverUrl.substring(0, 50)}...
+                    </div>
+                  )}
+                  <img
+                    key={`cover-preview-${coverPreview.coverUrl}`}
+                    src={toHttps(coverPreview.coverUrl)}
+                    alt={coverPreview.title}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                      objectPosition: "center",
+                      display: "block",
+                    }}
+                    onLoad={() => {
+                      console.log("✅ Cover preview image loaded:", coverPreview.coverUrl);
+                    }}
+                    onError={(e) => {
+                      console.error("❌ Cover preview image error:", coverPreview.coverUrl);
+                      console.error("Error details:", e);
+                      console.error("Trying to load:", toHttps(coverPreview.coverUrl));
+                      showToast("Fout bij laden cover");
+                    }}
+                  />
+                </>
               ) : (
                 <div style={{ padding: 20, textAlign: "center", color: "var(--muted)" }}>
                   Geen cover URL beschikbaar
