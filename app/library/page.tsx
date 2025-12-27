@@ -70,6 +70,7 @@ export default function LibraryPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<{ bookId: string; coverUrl: string; title: string } | null>(null);
   const [coverPreviewLoading, setCoverPreviewLoading] = useState(false);
+  const [coverImageError, setCoverImageError] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [shareCoverUrls, setShareCoverUrls] = useState<string[]>([]);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -550,6 +551,7 @@ export default function LibraryPage() {
 
   function handleCloseCoverPreview() {
     setCoverPreview(null);
+    setCoverImageError(false);
   }
 
   async function refreshCovers() {
@@ -1383,7 +1385,7 @@ What should I add next? 👀
                 justifyContent: "center",
               }}
             >
-              {coverPreview.coverUrl ? (
+              {coverPreview.coverUrl && !coverImageError ? (
                 <img
                   key={`cover-preview-${coverPreview.coverUrl}`}
                   src={toHttps(coverPreview.coverUrl)}
@@ -1406,6 +1408,7 @@ What should I add next? 👀
                       clientWidth: img.clientWidth,
                       clientHeight: img.clientHeight,
                     });
+                    setCoverImageError(false);
                   }}
                   onError={(e) => {
                     const img = e.currentTarget;
@@ -1431,11 +1434,20 @@ What should I add next? 👀
                         console.log("🔄 Trying simplified thumbnail URL:", fallbackUrl);
                         img.src = fallbackUrl;
                       } else {
+                        console.error("❌ No fallback URL available");
+                        setCoverImageError(true);
                         showToast("Fout bij laden cover");
                       }
                     }
                   }}
                 />
+              ) : coverImageError ? (
+                <div style={{ padding: 20, textAlign: "center", color: "var(--muted)" }}>
+                  <div style={{ marginBottom: 8 }}>⚠️ Cover kon niet worden geladen</div>
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>
+                    URL: {coverPreview.coverUrl?.substring(0, 50)}...
+                  </div>
+                </div>
               ) : (
                 <div style={{ padding: 20, textAlign: "center", color: "var(--muted)" }}>
                   Geen cover URL beschikbaar
