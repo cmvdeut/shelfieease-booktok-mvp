@@ -1422,7 +1422,6 @@ What should I add next? 👀
                 background: "var(--panel2)",
                 marginBottom: 24,
                 position: "relative",
-                minHeight: 200,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -2273,25 +2272,6 @@ const ShareCard = React.forwardRef<
           transform: isBold ? "none" : index % 2 === 0 ? `rotate(-${tilt}deg)` : `rotate(${tilt}deg)`,
         }}
       >
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "flex-end",
-            gap: 10,
-            padding: 16,
-            boxSizing: "border-box",
-          }}
-        >
-          <div style={{ fontSize: 28, lineHeight: 1 }}>📖</div>
-          <div style={{ fontSize: 14, fontWeight: 950, color: "rgba(255,255,255,0.92)" }}>No cover</div>
-          <div style={{ fontSize: 12, fontWeight: 850, color: "rgba(255,255,255,0.55)" }}>
-            Add more books to fill the grid
-          </div>
-        </div>
-
         <CoverImg
           src={src || ""}
           alt="Book cover"
@@ -2379,7 +2359,7 @@ const ShareCard = React.forwardRef<
           }}
         >
           {slots.map((src, i) => (
-            <CoverTile key={`${src || "placeholder"}-${i}`} src={src} index={i} />
+            <CoverTile key={`${src || ""}-${i}`} src={src} index={i} />
           ))}
         </div>
       </div>
