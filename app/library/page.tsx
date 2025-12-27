@@ -1858,9 +1858,9 @@ What should I add next? 👀
                   </>
                 )}
 
-                {isRecentlyAdded ? (
-                  <div style={coverWrapStyle}>
-                    {b.coverUrl ? (
+                {b.coverUrl && (
+                  isRecentlyAdded ? (
+                    <div style={coverWrapStyle}>
                       <CoverImg
                         key={`cover-${b.id}-${b.coverUrl}-${b.updatedAt || 0}`}
                         src={toHttps(b.coverUrl)}
@@ -1868,22 +1868,18 @@ What should I add next? 👀
                         style={coverImg}
                         onError={() => handleCoverError(b.id)}
                       />
-                    ) : (
-                      <div style={coverPlaceholderCompact}>
-                        <div style={{ fontSize: 24, lineHeight: 1 }}>📖</div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <Cover
-                    key={`cover-${b.id}-${b.coverUrl || ""}-${b.updatedAt || 0}`}
-                    isbn13={b.isbn13}
-                    coverUrl={b.coverUrl || ""}
-                    title={b.title}
-                    authors={b.authors || []}
-                    onBadCover={() => handleCoverError(b.id)}
-                    updatedAt={b.updatedAt}
-                  />
+                    </div>
+                  ) : (
+                    <Cover
+                      key={`cover-${b.id}-${b.coverUrl || ""}-${b.updatedAt || 0}`}
+                      isbn13={b.isbn13}
+                      coverUrl={b.coverUrl || ""}
+                      title={b.title}
+                      authors={b.authors || []}
+                      onBadCover={() => handleCoverError(b.id)}
+                      updatedAt={b.updatedAt}
+                    />
+                  )
                 )}
 
                 {(() => {
@@ -2386,21 +2382,20 @@ function Cover({
   const candidates = [coverUrl ? toHttps(coverUrl) : ""].filter(Boolean);
   const src = candidates[0] || "";
 
+  // Only render container if we have a valid cover URL
+  if (!src) {
+    return null;
+  }
+
   return (
     <div style={coverWrap}>
-      {src ? (
-        <CoverImg
-          key={`cover-img-${coverUrl}-${updatedAt || 0}`}
-          src={src}
+      <CoverImg
+        key={`cover-img-${coverUrl}-${updatedAt || 0}`}
+        src={src}
         alt={title}
         style={coverImg}
-          onError={() => onBadCover?.()}
-        />
-      ) : (
-      <div style={coverPlaceholder}>
-          <div style={{ fontSize: 28, lineHeight: 1 }}>📖</div>
-      </div>
-      )}
+        onError={() => onBadCover?.()}
+      />
     </div>
   );
 }
