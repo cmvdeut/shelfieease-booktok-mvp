@@ -2584,10 +2584,12 @@ const coverWrapCompact: React.CSSProperties = {
 const coverImg: React.CSSProperties = {
   position: "absolute",
   inset: 0,
-  zIndex: 1,
+  zIndex: 10, // Higher z-index to ensure visibility
   width: "100%",
   height: "100%",
   objectFit: "cover",
+  opacity: 1, // Always visible
+  display: "block",
 };
 
 const coverPlaceholder: React.CSSProperties = {
