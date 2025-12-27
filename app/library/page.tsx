@@ -60,6 +60,13 @@ export default function LibraryPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeShelfId, setActiveShelfIdState] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [addedToast, setAddedToast] = useState<null | {
+    id: string;
+    title: string;
+    authors: string;
+    coverUrl: string;
+    isbn13: string;
+  }>(null);
   const [pendingIsbn, setPendingIsbn] = useState<string | null>(null);
   const [pendingData, setPendingData] = useState<{ title?: string; authors?: string[]; coverUrl?: string } | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -73,6 +80,17 @@ export default function LibraryPage() {
     setToast(message);
     window.setTimeout(() => setToast(null), 2000);
   }, []);
+
+  function showAddedToast(book: { id: string; title?: string; authors?: string[]; coverUrl?: string; isbn13: string }) {
+    setAddedToast({
+      id: book.id,
+      title: book.title || "Onbekende titel",
+      authors: (book.authors || []).join(", "),
+      coverUrl: book.coverUrl || "",
+      isbn13: book.isbn13,
+    });
+    window.setTimeout(() => setAddedToast(null), 7000);
+  }
 
   const handleBookAdded = useCallback(() => {
     console.log("onAdded callback called, reloading books");
@@ -442,7 +460,7 @@ export default function LibraryPage() {
 
     upsertBook(book);
     handleBookAdded();
-    showToast("Boek toegevoegd aan je shelf ✨");
+    showAddedToast(book);
     
     // Reset state and clean URL
     setAddModalOpen(false);
@@ -1951,6 +1969,146 @@ What should I add next? 👀
           {toast}
         </div>
       )}
+
+      {/* Added Book Toast */}
+      {addedToast && (() => {
+        const isCalm = typeof document !== "undefined" && document.documentElement.dataset.mood === "calm";
+        const isBold = typeof document !== "undefined" && document.documentElement.dataset.mood === "bold";
+        
+        // Mood-aware styling
+        const toastBg = isCalm 
+          ? "rgba(251, 244, 232, 0.95)" // Lichtere toast voor Calm
+          : isBold
+          ? "rgba(20, 20, 26, 0.95)" // Donkere toast voor Bold
+          : "rgba(20, 20, 26, 0.92)"; // Donkere toast voor Aesthetic/Default
+        
+        const toastBorder = isCalm
+          ? "rgba(58, 42, 26, 0.20)"
+          : "rgba(255,255,255,0.10)";
+        
+        const toastText = isCalm
+          ? "var(--text)" // Bruine tekst voor Calm
+          : "#fff"; // Witte tekst voor Aesthetic/Bold
+        
+        const toastTextMuted = isCalm
+          ? "var(--muted)"
+          : "rgba(255,255,255,0.75)";
+        
+        const buttonBg = isCalm
+          ? "rgba(58, 42, 26, 0.10)"
+          : "rgba(255,255,255,0.08)";
+        
+        const buttonBorder = isCalm
+          ? "rgba(58, 42, 26, 0.20)"
+          : "rgba(255,255,255,0.14)";
+        
+        return (
+          <div
+            style={{
+              position: "fixed",
+              left: 12,
+              right: 12,
+              bottom: 12,
+              margin: "0 auto",
+              maxWidth: 560,
+              borderRadius: 18,
+              border: `1px solid ${toastBorder}`,
+              background: toastBg,
+              backdropFilter: "blur(10px)",
+              boxShadow: isCalm 
+                ? "0 16px 44px rgba(58, 42, 26, 0.20)"
+                : "0 16px 44px rgba(0,0,0,0.55)",
+              padding: 12,
+              display: "flex",
+              gap: 12,
+              alignItems: "center",
+              zIndex: 9999,
+              cursor: "pointer",
+            }}
+            onClick={() => {
+              // Optie B later: open modal
+              // setQuickViewBookId(addedToast.id)
+            }}
+          >
+            <div
+              style={{
+                width: 44,
+                height: 66,
+                borderRadius: 12,
+                overflow: "hidden",
+                flex: "0 0 auto",
+                border: `1px solid ${toastBorder}`,
+                background: isCalm ? "rgba(58, 42, 26, 0.08)" : "rgba(255,255,255,0.06)",
+              }}
+            >
+              {addedToast.coverUrl ? (
+                <img
+                  src={addedToast.coverUrl}
+                  alt=""
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                />
+              ) : null}
+            </div>
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 950, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: toastText }}>
+                {addedToast.title}
+              </div>
+              <div style={{ fontWeight: 750, fontSize: 12, opacity: 0.75, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: toastTextMuted }}>
+                {addedToast.authors || " "}
+              </div>
+              <div style={{ marginTop: 4, fontSize: 12, opacity: 0.85, color: toastTextMuted }}>
+                Boek toegevoegd aan je shelf ✨
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 8, flex: "0 0 auto" }}>
+              <button
+                type="button"
+                style={{
+                  height: 34,
+                  padding: "0 10px",
+                  borderRadius: 999,
+                  border: `1px solid ${buttonBorder}`,
+                  background: buttonBg,
+                  color: toastText,
+                  fontWeight: 900,
+                  cursor: "pointer",
+                  fontSize: 13,
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(googleIsbnUrl(addedToast.isbn13), "_blank", "noopener,noreferrer");
+                }}
+              >
+                Google
+              </button>
+
+              <button
+                type="button"
+                style={{
+                  height: 34,
+                  padding: "0 10px",
+                  borderRadius: 999,
+                  border: `1px solid ${buttonBorder}`,
+                  background: "transparent",
+                  color: toastText,
+                  fontWeight: 900,
+                  cursor: "pointer",
+                  opacity: 0.85,
+                  fontSize: 13,
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setAddedToast(null);
+                }}
+              >
+                Sluiten
+              </button>
+            </div>
+          </div>
+        );
+      })()}
     </main>
   );
 }
