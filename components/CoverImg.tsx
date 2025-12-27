@@ -100,34 +100,47 @@ export function CoverImg({
     objectFit: "cover",
   };
 
+  // Merge passed style with default image style
+  const finalImageStyle: React.CSSProperties = {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: "100%",
+    height: "100%",
+    minWidth: "100%",
+    minHeight: "100%",
+    maxWidth: "100%",
+    maxHeight: "100%",
+    objectFit: "cover",
+    objectPosition: "center",
+    opacity: 1,
+    display: "block",
+    margin: 0,
+    padding: 0,
+    border: "none",
+    boxSizing: "border-box",
+    zIndex: 10,
+    ...style,
+    // Ensure critical properties are always set
+    position: style?.position || "absolute",
+    top: style?.top ?? 0,
+    left: style?.left ?? 0,
+    right: style?.right ?? 0,
+    bottom: style?.bottom ?? 0,
+    width: style?.width || "100%",
+    height: style?.height || "100%",
+    objectFit: style?.objectFit || "cover",
+  };
+
   return (
-    <div
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: "100%",
-        height: "100%",
-        zIndex: 2,
-        overflow: "hidden",
-      }}
-    >
+    <>
       <img
         ref={imgRef}
         src={src}
         alt={alt}
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          objectPosition: "center",
-          display: "block",
-          margin: 0,
-          padding: 0,
-          border: "none",
-        }}
+        style={finalImageStyle}
         onError={handleError}
         onLoad={handleLoad}
         loading="lazy"
@@ -149,7 +162,7 @@ export function CoverImg({
           IMG
         </div>
       )}
-    </div>
+    </>
   );
 }
 
