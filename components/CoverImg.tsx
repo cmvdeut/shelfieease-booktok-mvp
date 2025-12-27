@@ -49,15 +49,37 @@ export function CoverImg({
 
   const handleLoad = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const img = e.currentTarget;
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+
     console.log("CoverImg loaded successfully:", src, {
-      naturalWidth: img.naturalWidth,
-      naturalHeight: img.naturalHeight,
+      naturalWidth: w,
+      naturalHeight: h,
       clientWidth: img.clientWidth,
       clientHeight: img.clientHeight,
       offsetWidth: img.offsetWidth,
       offsetHeight: img.offsetHeight,
       computedStyle: window.getComputedStyle(img),
     });
+
+    // Detect strip/invalid cover
+    // Regels:
+    // - te laag: h < 120
+    // - of extreme verhouding: w / h > 2.2
+    // - of h === 0
+    if (!h || h < 120 || (h > 0 && w / h > 2.2)) {
+      console.warn("CoverImg: Invalid cover detected (strip/bad dimensions):", {
+        width: w,
+        height: h,
+        aspectRatio: h > 0 ? (w / h).toFixed(2) : "N/A",
+        src,
+      });
+      // Treat as error
+      setHasError(true);
+      onError?.();
+      return;
+    }
+
     setIsLoaded(true);
   };
 
