@@ -1934,24 +1934,26 @@ What should I add next? 👀
                   );
                 })()}
 
-                <div style={{ display: "grid", gap: isRecentlyAdded ? 4 : 6, marginTop: isRecentlyAdded ? 8 : 10 }}>
-                  <div style={titleStyle}>{b.title}</div>
-                  {b.authors?.length ? <div style={authorStyle}>by {b.authors.join(", ")}</div> : null}
-                  {scope === "all" && bookShelf && (
-                    <div style={{
-                      marginTop: 2,
-                      fontSize: 11,
-                      color: "var(--muted2)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}>
-                      <span>{bookShelf.emoji}</span>
-                      <span>{bookShelf.name}</span>
-                    </div>
-                )}
+                <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "space-between" }}>
+                  <div style={{ display: "grid", gap: isRecentlyAdded ? 4 : 6, marginTop: isRecentlyAdded ? 8 : 10 }}>
+                    <div style={titleStyle}>{b.title}</div>
+                    {b.authors?.length ? <div style={authorStyle}>by {b.authors.join(", ")}</div> : null}
+                    {scope === "all" && bookShelf && (
+                      <div style={{
+                        marginTop: 2,
+                        fontSize: 11,
+                        color: "var(--muted2)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                      }}>
+                        <span>{bookShelf.emoji}</span>
+                        <span>{bookShelf.name}</span>
+                      </div>
+                    )}
+                  </div>
 
-                <div style={metaRow}>
+                  <div style={metaRow}>
                     {(() => {
                       const s = b.status || "TBR";
                       const label = s === "Finished" ? "Read" : s;
@@ -1969,8 +1971,8 @@ What should I add next? 👀
                       </span>
                     )}
                     {!isRecentlyAdded && <span style={isbn}>ISBN {b.isbn13}</span>}
+                  </div>
                 </div>
-              </div>
             </div>
             );
           })}
