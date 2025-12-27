@@ -478,16 +478,13 @@ export default function LibraryPage() {
     
     console.warn("Cover image error for book:", book.title, "URL:", book.coverUrl);
     
-    // Only clear non-Open Library URLs (they might be broken)
-    // For Open Library, we keep the URL even if it's a placeholder
-    // because the placeholder is better than nothing
-    if (book.coverUrl && !book.coverUrl.includes("covers.openlibrary.org")) {
-      console.log("Clearing broken cover URL (not Open Library)");
+    // Clear cover URL - if CoverImg detected a strip/bad cover, remove it regardless of source
+    // This prevents the app from repeatedly trying to load invalid covers
+    if (book.coverUrl) {
+      console.log("Clearing bad cover URL (strip/invalid detected)");
       updateBook(bookId, { coverUrl: "", updatedAt: Date.now() });
       const updated = loadBooks();
       setBooks(updated);
-    } else {
-      console.log("Keeping Open Library URL (even if placeholder)");
     }
   }
 
@@ -1803,7 +1800,11 @@ What should I add next? 👀
                         style={coverImg}
                         onError={() => handleCoverError(b.id)}
                       />
-                    ) : null}
+                    ) : (
+                      <div style={coverPlaceholderCompact}>
+                        <div style={{ fontSize: 24, lineHeight: 1 }}>📖</div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <Cover
@@ -2276,7 +2277,7 @@ function Cover({
 
   return (
     <div style={coverWrap}>
-      {src && (
+      {src ? (
         <CoverImg
           key={`cover-img-${coverUrl}-${updatedAt || 0}`}
           src={src}
@@ -2284,6 +2285,10 @@ function Cover({
           style={coverImg}
           onError={() => onBadCover?.()}
         />
+      ) : (
+        <div style={coverPlaceholder}>
+          <div style={{ fontSize: 28, lineHeight: 1 }}>📖</div>
+        </div>
       )}
     </div>
   );
