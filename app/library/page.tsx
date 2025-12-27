@@ -1874,48 +1874,6 @@ What should I add next? 👀
                       </div>
                     )}
                   </div>
-                  
-                  {(() => {
-                    const nl = isNlUi();
-                    const isCalm = typeof document !== "undefined" && document.documentElement.dataset.mood === "calm";
-                    
-                    const miniLinkBtn: React.CSSProperties = {
-                      padding: "8px 10px",
-                      borderRadius: 12,
-                      border: isCalm 
-                        ? "1px solid rgba(58, 42, 26, 0.20)"
-                        : "1px solid rgba(255,255,255,0.14)",
-                      background: isCalm
-                        ? "rgba(58, 42, 26, 0.08)"
-                        : "rgba(255,255,255,0.06)",
-                      color: isCalm
-                        ? "var(--text)"
-                        : "rgba(255,255,255,0.92)",
-                      fontWeight: 850,
-                      fontSize: 12,
-                      cursor: "pointer",
-                    };
-
-                    return (
-                      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                        <button
-                          type="button"
-                          style={miniLinkBtn}
-                          onClick={() => window.open(googleSummaryUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
-                        >
-                          {nl ? "Samenvatting" : "Summary"}
-                        </button>
-
-                        <button
-                          type="button"
-                          style={miniLinkBtn}
-                          onClick={() => window.open(googleCoverUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
-                        >
-                          {nl ? "Cover zoeken" : "Find cover"}
-                        </button>
-                      </div>
-                    );
-                  })()}
                 ) : (
                   <Cover
                     key={`cover-${b.id}-${b.coverUrl || ""}-${b.updatedAt || 0}`}
