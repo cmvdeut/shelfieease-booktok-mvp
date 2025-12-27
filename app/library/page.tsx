@@ -2860,6 +2860,7 @@ const grid: React.CSSProperties = {
   gap: 14,
   marginTop: 14,
   gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+  gridAutoRows: "1fr", // Force all rows to have equal height
   position: "relative",
   zIndex: 1,
 };
@@ -2874,7 +2875,7 @@ const card: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
   height: "100%",
-  minHeight: 420, // Ensure consistent card height
+  minHeight: 450, // Ensure consistent card height
 };
 
 const cardCompact: React.CSSProperties = {
@@ -2887,7 +2888,7 @@ const cardCompact: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
   height: "100%",
-  minHeight: 420, // Ensure consistent card height
+  minHeight: 450, // Ensure consistent card height (same as regular card)
 };
 
 const coverWrap: React.CSSProperties = {
