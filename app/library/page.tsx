@@ -1507,6 +1507,38 @@ What should I add next? 👀
         </div>
       )}
 
+      {/* DEV ONLY: Test cover lookup */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{ padding: "16px", display: "flex", justifyContent: "center" }}>
+          <button
+            type="button"
+            onClick={async () => {
+              console.log("🧪 Testing cover lookup for ISBN: 9789401615877");
+              const result = await lookupByIsbn("9789401615877");
+              console.log("📋 Lookup result:", result);
+              console.log("🖼️ Cover URL:", result.coverUrl);
+              if (result.coverUrl) {
+                window.open(result.coverUrl, "_blank");
+              } else {
+                console.warn("❌ No cover URL found");
+              }
+            }}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 8,
+              border: "1px solid var(--border)",
+              background: "var(--accentSoft)",
+              color: "var(--text)",
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            🧪 Test cover
+          </button>
+        </div>
+      )}
+
       {/* Search and Filters */}
       {activeBooks.length > 0 && (
         <div style={{ padding: "0 16px 16px", display: "grid", gap: 12 }}>
