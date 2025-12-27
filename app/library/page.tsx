@@ -89,7 +89,9 @@ export default function LibraryPage() {
       coverUrl: book.coverUrl || "",
       isbn13: book.isbn13,
     });
-    window.setTimeout(() => setAddedToast(null), 7000);
+
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setAddedToast(null), 7000);
   }
 
   const handleBookAdded = useCallback(() => {
@@ -128,6 +130,14 @@ export default function LibraryPage() {
   const actionMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const shareCardRef = useRef<HTMLDivElement>(null);
   const handledIsbnRef = useRef<string | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
+
+  // Cleanup toast timer on unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   // Debug: Log coverPreview changes
   useEffect(() => {
