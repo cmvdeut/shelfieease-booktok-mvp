@@ -218,11 +218,26 @@ export default function LibraryPage() {
       return b;
     };
     
+    // Fix OpenLibrary URLs -> force default=false (prevents placeholder)
+    const fixOpenLibraryUrl = (b: Book) => {
+      const url = (b.coverUrl || "").trim();
+      if (!url) return b;
+      
+      // Fix OpenLibrary URLs -> force default=false (prevents placeholder)
+      if (url.includes("covers.openlibrary.org") && !url.includes("default=false")) {
+        const fixed = url + (url.includes("?") ? "&" : "?") + "default=false";
+        return { ...b, coverUrl: fixed };
+      }
+      return b;
+    };
+    
     let didStrip = false;
     const cleanedBooks = allBooks.map((b) => {
       let next = stripStaleOpenLibraryCover(b);
       next = cleanEmptyCoverUrl(next);
-      if (next !== b) didStrip = true;
+      next = fixOpenLibraryUrl(next);
+      // Check if coverUrl changed (detect any cleanup changes)
+      if (next.coverUrl !== b.coverUrl) didStrip = true;
       return next;
     });
 
@@ -1867,180 +1882,105 @@ What should I add next? 👀
                   </>
                 )}
 
-                {b.coverUrl && b.coverUrl.trim() !== "" ? (
-                  <>
-                    <CoverWrapper
-                      key={`cover-wrapper-${b.id}-${b.coverUrl}-${b.updatedAt || 0}`}
-                      coverUrl={toHttps(b.coverUrl)}
-                      alt={b.title}
-                      coverWrapStyle={coverWrapStyle}
-                      coverImgStyle={coverImg}
-                      onError={() => handleCoverError(b.id)}
-                    />
+                <Cover
+                  key={`cover-${b.id}-${b.coverUrl || "no-cover"}-${b.updatedAt || 0}`}
+                  isbn13={b.isbn13}
+                  coverUrl={b.coverUrl || ""}
+                  title={b.title}
+                  authors={b.authors || []}
+                  onBadCover={() => handleCoverError(b.id)}
+                  coverWrapStyle={coverWrapStyle}
+                />
 
-                    {(() => {
-                      const nl = isNlUi();
-                      const isCalm = typeof document !== "undefined" && document.documentElement.dataset.mood === "calm";
-                      
-                      const miniLinkBtn: React.CSSProperties = {
-                        padding: "8px 10px",
-                        borderRadius: 12,
-                        border: isCalm 
-                          ? "1px solid #D8C6A8"
-                          : "1px solid rgba(255,255,255,0.14)",
-                        background: isCalm
-                          ? "rgba(58, 42, 26, 0.08)"
-                          : "rgba(255,255,255,0.06)",
-                        color: isCalm
-                          ? "#4A3825"
-                          : "rgba(255,255,255,0.92)",
-                        fontWeight: 850,
-                        fontSize: 12,
-                        cursor: "pointer",
-                      };
+                {(() => {
+                  const nl = isNlUi();
+                  const isCalm = typeof document !== "undefined" && document.documentElement.dataset.mood === "calm";
+                  
+                  const miniLinkBtn: React.CSSProperties = {
+                    padding: "8px 10px",
+                    borderRadius: 12,
+                    border: isCalm 
+                      ? "1px solid #D8C6A8"
+                      : "1px solid rgba(255,255,255,0.14)",
+                    background: isCalm
+                      ? "rgba(58, 42, 26, 0.08)"
+                      : "rgba(255,255,255,0.06)",
+                    color: isCalm
+                      ? "#4A3825"
+                      : "rgba(255,255,255,0.92)",
+                    fontWeight: 850,
+                    fontSize: 12,
+                    cursor: "pointer",
+                  };
 
-                      return (
-                        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                          <button
-                            type="button"
-                            style={miniLinkBtn}
-                            onClick={() => window.open(googleSummaryUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
-                          >
-                            {nl ? "Samenvatting" : "Summary"}
-                          </button>
+                  return (
+                    <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        style={miniLinkBtn}
+                        onClick={() => window.open(googleSummaryUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
+                      >
+                        {nl ? "Samenvatting" : "Summary"}
+                      </button>
 
-                          <button
-                            type="button"
-                            style={miniLinkBtn}
-                            onClick={() => window.open(googleCoverUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
-                          >
-                            {nl ? "Cover zoeken" : "Find cover"}
-                          </button>
-                        </div>
-                      );
-                    })()}
-
-                    <div style={{ display: "grid", gap: isRecentlyAdded ? 4 : 6, marginTop: isRecentlyAdded ? 8 : 10 }}>
-                <div style={titleStyle}>{b.title}</div>
-                      {b.authors?.length ? <div style={authorStyle}>by {b.authors.join(", ")}</div> : null}
-                      {scope === "all" && bookShelf && (
-                        <div style={{
-                          marginTop: 2,
-                          fontSize: 11,
-                          color: "var(--muted2)",
+                      <button
+                        type="button"
+                        style={{
+                          ...miniLinkBtn,
                           display: "flex",
+                          flexDirection: "column",
                           alignItems: "center",
-                          gap: 4,
-                        }}>
-                          <span>{bookShelf.emoji}</span>
-                          <span>{bookShelf.name}</span>
-                        </div>
-                      )}
-
-                      <div style={metaRow}>
-                        {(() => {
-                          const s = b.status || "TBR";
-                          const label = s === "Finished" ? "Read" : s;
-                          return <span style={badgeFor(s)}>{label}</span>;
-                        })()}
-                        {(b.format || "physical") === "ebook" && (
-                          <span style={{
-                            fontSize: 11,
-                            color: "var(--muted2)",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 3,
-                          }}>
-                            📱
-                          </span>
-                        )}
-                        {!isRecentlyAdded && <span style={isbn}>ISBN {b.isbn13}</span>}
-                      </div>
+                          gap: 2,
+                          padding: "8px 10px",
+                        }}
+                        onClick={() => window.open(googleCoverUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
+                      >
+                        <span>{nl ? "Cover zoeken" : "Find cover"}</span>
+                        <span style={{ fontSize: 10, opacity: 0.7, fontWeight: 600 }}>
+                          {nl ? "Open in browser" : "Open in browser"}
+                        </span>
+                      </button>
                     </div>
-                  </>
-                ) : (
-                  <>
-                    <div style={{ display: "grid", gap: isRecentlyAdded ? 4 : 6 }}>
-                      <div style={titleStyle}>{b.title}</div>
-                      {b.authors?.length ? <div style={authorStyle}>by {b.authors.join(", ")}</div> : null}
-                      {scope === "all" && bookShelf && (
-                        <div style={{
-                          marginTop: 2,
-                          fontSize: 11,
-                          color: "var(--muted2)",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                        }}>
-                          <span>{bookShelf.emoji}</span>
-                          <span>{bookShelf.name}</span>
-                        </div>
+                  );
+                })()}
+
+                <div style={{ display: "grid", gap: isRecentlyAdded ? 4 : 6, marginTop: isRecentlyAdded ? 8 : 10 }}>
+                  <div style={titleStyle}>{b.title}</div>
+                  {b.authors?.length ? <div style={authorStyle}>by {b.authors.join(", ")}</div> : null}
+                  {scope === "all" && bookShelf && (
+                    <div style={{
+                      marginTop: 2,
+                      fontSize: 11,
+                      color: "var(--muted2)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}>
+                      <span>{bookShelf.emoji}</span>
+                      <span>{bookShelf.name}</span>
+                    </div>
                 )}
 
                 <div style={metaRow}>
-                        {(() => {
-                          const s = b.status || "TBR";
-                          const label = s === "Finished" ? "Read" : s;
-                          return <span style={badgeFor(s)}>{label}</span>;
-                        })()}
-                        {(b.format || "physical") === "ebook" && (
-                          <span style={{
-                            fontSize: 11,
-                            color: "var(--muted2)",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 3,
-                          }}>
-                            📱
-                          </span>
-                        )}
-                        {!isRecentlyAdded && <span style={isbn}>ISBN {b.isbn13}</span>}
+                    {(() => {
+                      const s = b.status || "TBR";
+                      const label = s === "Finished" ? "Read" : s;
+                      return <span style={badgeFor(s)}>{label}</span>;
+                    })()}
+                    {(b.format || "physical") === "ebook" && (
+                      <span style={{
+                        fontSize: 11,
+                        color: "var(--muted2)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 3,
+                      }}>
+                        📱
+                      </span>
+                    )}
+                    {!isRecentlyAdded && <span style={isbn}>ISBN {b.isbn13}</span>}
                 </div>
               </div>
-
-                    {(() => {
-                      const nl = isNlUi();
-                      const isCalm = typeof document !== "undefined" && document.documentElement.dataset.mood === "calm";
-                      
-                      const miniLinkBtn: React.CSSProperties = {
-                        padding: "8px 10px",
-                        borderRadius: 12,
-                        border: isCalm 
-                          ? "1px solid #D8C6A8"
-                          : "1px solid rgba(255,255,255,0.14)",
-                        background: isCalm
-                          ? "rgba(58, 42, 26, 0.08)"
-                          : "rgba(255,255,255,0.06)",
-                        color: isCalm
-                          ? "#4A3825"
-                          : "rgba(255,255,255,0.92)",
-                        fontWeight: 850,
-                        fontSize: 12,
-                        cursor: "pointer",
-                      };
-
-                      return (
-                        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                          <button
-                            type="button"
-                            style={miniLinkBtn}
-                            onClick={() => window.open(googleSummaryUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
-                          >
-                            {nl ? "Samenvatting" : "Summary"}
-                          </button>
-
-                          <button
-                            type="button"
-                            style={miniLinkBtn}
-                            onClick={() => window.open(googleCoverUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
-                          >
-                            {nl ? "Cover zoeken" : "Find cover"}
-                          </button>
-            </div>
-                      );
-                    })()}
-                  </>
-                )}
             </div>
             );
           })}
@@ -2428,61 +2368,69 @@ const ShareCard = React.forwardRef<
 
 ShareCard.displayName = "ShareCard";
 
-// Wrapper component that only renders container if cover loads successfully
-function CoverWrapper({
-  coverUrl,
-  alt,
-  coverWrapStyle,
-  coverImgStyle,
-  onError,
-}: {
-  coverUrl: string;
-  alt: string;
-  coverWrapStyle: React.CSSProperties;
-  coverImgStyle: React.CSSProperties;
-  onError?: () => void;
-}) {
-  const [coverLoaded, setCoverLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
+// Normalize cover URL: force HTTPS and ensure Open Library uses ?default=false
+function normalizeCoverUrl(url: string): string {
+  if (!url) return "";
+  let u = url.startsWith("http://") ? url.replace("http://", "https://") : url;
 
-  if (!coverUrl || coverUrl.trim() === "" || hasError) return null;
-
-  // Don't render anything visible until cover loads successfully
-  // This prevents empty white space when cover fails to load
-  if (!coverLoaded) {
-    // Use a hidden image to test if cover loads
-    return (
-      <img
-        src={coverUrl}
-        alt=""
-        style={{
-          position: "absolute",
-          width: 0,
-          height: 0,
-          opacity: 0,
-          pointerEvents: "none",
-        }}
-        onLoad={() => setCoverLoaded(true)}
-        onError={() => {
-          setHasError(true);
-          onError?.();
-        }}
-      />
-    );
+  // Safety: prevent OpenLibrary placeholder images
+  if (u.includes("covers.openlibrary.org") && !u.includes("default=false")) {
+    u += (u.includes("?") ? "&" : "?") + "default=false";
   }
+  return u;
+}
 
-  // Only render wrapper div after cover has loaded successfully
+// Cover component: always shows placeholder, only shows image if coverUrl exists
+function Cover({
+  isbn13,
+  coverUrl,
+  title,
+  authors,
+  onBadCover,
+  coverWrapStyle,
+}: {
+  isbn13: string;
+  coverUrl: string;
+  title: string;
+  authors: string[];
+  onBadCover?: () => void;
+  coverWrapStyle: React.CSSProperties;
+}) {
+  const src = normalizeCoverUrl(coverUrl);
+
   return (
     <div style={coverWrapStyle}>
-      <CoverImg
-        src={coverUrl}
-        alt={alt}
-        style={coverImgStyle}
-        onError={() => {
-          setHasError(true);
-          onError?.();
-        }}
-      />
+      {/* Altijd onze eigen rustige placeholder achtergrond */}
+      <div style={coverPlaceholder}>
+        <div style={{ fontSize: 28, lineHeight: 1 }}>📖</div>
+        <div style={{ fontWeight: 950, fontSize: 16, lineHeight: 1.2 }}>
+          {title || "Onbekende titel"}
+      </div>
+        {authors?.length ? (
+          <div style={{ marginTop: 6, fontSize: 12, color: "#d8d8ff" }}>
+            {authors.join(", ")}
+          </div>
+        ) : null}
+        <div style={{ marginTop: 10, fontSize: 12, color: "#b7b7b7" }}>
+          ISBN {isbn13}
+        </div>
+      </div>
+
+      {/* Alleen een <img> tonen als er echt een coverUrl is */}
+      {src ? (
+        <img
+          src={src}
+          alt={title || "Cover"}
+          style={coverImg}
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          onError={() => {
+            // Als cover stuk is: wis hem en val terug op placeholder (geen witte OpenLibrary!)
+            onBadCover?.();
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -2959,8 +2907,23 @@ const coverImg: React.CSSProperties = {
   height: "100%",
   objectFit: "cover",
   display: "block",
+  zIndex: 1,
 };
 
+const coverPlaceholder: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  width: "100%",
+  height: "100%",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "linear-gradient(135deg, rgba(109,94,252,0.15), rgba(255,73,240,0.10))",
+  padding: 16,
+  textAlign: "center",
+  zIndex: 0,
+};
 
 const title: React.CSSProperties = {
   fontSize: 15,

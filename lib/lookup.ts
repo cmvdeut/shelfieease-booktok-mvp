@@ -147,21 +147,23 @@ type OpenLibraryBooksResponse = {
 /**
  * Get cover from Open Library via search.json API (prevents 404 spam).
  * Uses search.json?isbn= to find cover_i, then builds cover URL.
- * Returns cover URL if found, "none" otherwise.
+ * Returns cover URL if found, empty string otherwise.
+ * IMPORTANT: Always uses ?default=false to prevent placeholder images.
  */
-async function openLibraryCoverByIsbn(isbn: string): Promise<string | "none"> {
-  if (!isbn) return "none";
+async function openLibraryCoverByIsbn(isbn: string): Promise<string> {
+  if (!isbn) return "";
   
   try {
     const url = `https://openlibrary.org/search.json?isbn=${encodeURIComponent(isbn)}`;
     const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return "none";
+    if (!res.ok) return "";
     const json = await res.json();
     const coverId = json?.docs?.[0]?.cover_i;
-    if (!coverId) return "none";
+    if (!coverId) return "";
+    // Always use ?default=false to prevent Open Library placeholder images
     return `https://covers.openlibrary.org/b/id/${coverId}-L.jpg?default=false`;
   } catch {
-    return "none";
+    return "";
   }
 }
 
@@ -204,8 +206,10 @@ async function openLibraryCoverByOlid(olid: string): Promise<string> {
  * Uses the search.json endpoint to find cover_i or edition_key, then builds cover URL.
  * Returns cover URL if found, empty string otherwise.
  * 
+ * IMPORTANT: Always uses ?default=false to prevent Open Library placeholder images.
+ * 
  * Fallback order:
- * 1. cover_i -> b/id/{cover_i}-L.jpg
+ * 1. cover_i -> b/id/{cover_i}-L.jpg?default=false
  * 2. edition_key[0] -> api/books -> cover.large/medium
  */
 async function openLibraryCoverBySearch(isbn13: string): Promise<string> {
@@ -230,7 +234,7 @@ async function openLibraryCoverBySearch(isbn13: string): Promise<string> {
     // Step 1: Try cover_i first (faster, direct URL)
     if (firstDoc.cover_i) {
       const cover_i = firstDoc.cover_i;
-      // Build cover URL using cover_i (large size)
+      // Build cover URL using cover_i (large size) - ALWAYS use ?default=false
       return `https://covers.openlibrary.org/b/id/${cover_i}-L.jpg?default=false`;
     }
     
@@ -305,20 +309,24 @@ export async function lookupByIsbn(isbn13: string): Promise<LookupResult> {
   // --- 2) Open Library fallback if Google Books didn't provide a cover ---
   if (!coverUrl) {
     // Try Open Library via search.json (prevents 404 spam)
+    // IMPORTANT: openLibraryCoverByIsbn returns "" (empty string) if no cover found
+    // This ensures we never get Open Library placeholder images
     const ol13 = await openLibraryCoverByIsbn(clean);
-    if (ol13 !== "none") {
+    if (ol13) {
       coverUrl = ol13;
     } else {
       // If ISBN-13 didn't work, try ISBN-10
       const isbn10 = isbn13to10(clean);
       if (isbn10) {
         const ol10 = await openLibraryCoverByIsbn(isbn10);
-        if (ol10 !== "none") {
+        if (ol10) {
           coverUrl = ol10;
         }
       }
     }
   }
 
+  // IMPORTANT: If no cover found from any source, return empty string
+  // This ensures UI shows our own placeholder, not Open Library's "image not available"
   return { title, authors, coverUrl };
 }
