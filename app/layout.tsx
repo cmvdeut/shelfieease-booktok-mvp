@@ -105,19 +105,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 
 [data-mood="calm"] {
-  --bg: #F6EAD7;                 /* Background */
-  --bg2: #F2E2C9;                /* Background 2 */
+  --bg: #F4EADB;                 /* Background */
+  --bg2: #EFE3D1;                /* Background 2 */
 
-  --panel: #FBF4E8;              /* Card background */
-  --panel2: #FBF4E8;             /* Card background 2 */
-  --panelSolid: #FBF4E8;          /* Solid panel */
+  --panel: #F7F0E4;              /* Card background */
+  --panel2: #F7F0E4;             /* Card background 2 */
+  --panelSolid: #F7F0E4;          /* Solid panel */
 
-  --border: rgba(58, 42, 26, 0.15);  /* Borders */
-  --borderStrong: rgba(58, 42, 26, 0.25);  /* Strong borders */
+  --border: #D8C6A8;  /* Borders */
+  --borderStrong: #D8C6A8;  /* Strong borders */
 
-  --text: #3A2A1A;               /* Primary text */
-  --muted: #5C4630;              /* Secondary text */
-  --muted2: #8A7358;             /* Muted text */
+  --text: #4A3825;               /* Primary text */
+  --muted: #6B553A;              /* Secondary text */
+  --muted2: #6B553A;             /* Muted text */
 
   --accent1: #9C6B2F;            /* Primary accent */
   --accent2: #9C6B2F;            /* Primary accent 2 */
@@ -125,9 +125,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   --accentSoft2: rgba(156, 107, 47, 0.10);  /* Soft accent 2 */
 
   --btnPrimaryBg: linear-gradient(90deg,#9C6B2F,#9C6B2F);
-  --btnPrimaryText: #FFFFFF;
+  --btnPrimaryText: #4A3825;
   --btnGhostBg: rgba(58, 42, 26, 0.06);
-  --btnGhostBorder: rgba(58, 42, 26, 0.15);
+  --btnGhostBorder: #D8C6A8;
 
   --shadow: rgba(58, 42, 26, 0.12);      /* Subtle shadows */
   --glow: transparent;            /* No glow */

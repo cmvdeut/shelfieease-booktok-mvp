@@ -1381,7 +1381,7 @@ What should I add next? 👀
                 Annuleren
               </button>
               <button
-                style={{ ...btnPrimary, background: "var(--danger)", color: "#fff" }}
+                style={{ ...btnPrimary, background: "var(--danger)", color: typeof document !== "undefined" && document.documentElement.dataset.mood === "calm" ? "#4A3825" : "#fff" }}
                 onClick={() => handleDeleteBook(showDeleteConfirm)}
               >
                 Verwijderen
@@ -1889,13 +1889,13 @@ What should I add next? 👀
                         padding: "8px 10px",
                         borderRadius: 12,
                         border: isCalm 
-                          ? "1px solid rgba(58, 42, 26, 0.20)"
+                          ? "1px solid #D8C6A8"
                           : "1px solid rgba(255,255,255,0.14)",
                         background: isCalm
                           ? "rgba(58, 42, 26, 0.08)"
                           : "rgba(255,255,255,0.06)",
                         color: isCalm
-                          ? "var(--text)"
+                          ? "#4A3825"
                           : "rgba(255,255,255,0.92)",
                         fontWeight: 850,
                         fontSize: 12,
@@ -2009,13 +2009,13 @@ What should I add next? 👀
                         padding: "8px 10px",
                         borderRadius: 12,
                         border: isCalm 
-                          ? "1px solid rgba(58, 42, 26, 0.20)"
+                          ? "1px solid #D8C6A8"
                           : "1px solid rgba(255,255,255,0.14)",
                         background: isCalm
                           ? "rgba(58, 42, 26, 0.08)"
                           : "rgba(255,255,255,0.06)",
                         color: isCalm
-                          ? "var(--text)"
+                          ? "#4A3825"
                           : "rgba(255,255,255,0.92)",
                         fontWeight: 850,
                         fontSize: 12,
