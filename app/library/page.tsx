@@ -131,6 +131,7 @@ export default function LibraryPage() {
   const shareCardRef = useRef<HTMLDivElement>(null);
   const handledIsbnRef = useRef<string | null>(null);
   const toastTimerRef = useRef<number | null>(null);
+  const lastToastIsbnRef = useRef<string | null>(null);
 
   // Cleanup toast timer on unmount
   useEffect(() => {
@@ -470,7 +471,12 @@ export default function LibraryPage() {
 
     upsertBook(book);
     handleBookAdded();
-    showAddedToast(book);
+    
+    // Show toast only once per ISBN
+    if (lastToastIsbnRef.current !== book.isbn13) {
+      lastToastIsbnRef.current = book.isbn13;
+      showAddedToast(book);
+    }
     
     // Reset state and clean URL
     setAddModalOpen(false);
