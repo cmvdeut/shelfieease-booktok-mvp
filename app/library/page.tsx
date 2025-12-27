@@ -2869,6 +2869,10 @@ const card: React.CSSProperties = {
   padding: 10,
   boxShadow: `0 14px 34px var(--shadow)`,
   animation: "popIn 420ms ease both",
+  display: "flex",
+  flexDirection: "column",
+  height: "100%",
+  minHeight: 420, // Ensure consistent card height
 };
 
 const cardCompact: React.CSSProperties = {
@@ -2878,6 +2882,10 @@ const cardCompact: React.CSSProperties = {
   padding: 7.5, // ~25% reduction from 10px
   boxShadow: `0 8px 20px var(--shadow)`, // Softer shadow
   animation: "popIn 420ms ease both",
+  display: "flex",
+  flexDirection: "column",
+  height: "100%",
+  minHeight: 420, // Ensure consistent card height
 };
 
 const coverWrap: React.CSSProperties = {
