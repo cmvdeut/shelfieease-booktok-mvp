@@ -88,6 +88,17 @@ export default function LibraryPage() {
   const shareCardRef = useRef<HTMLDivElement>(null);
   const handledIsbnRef = useRef<string | null>(null);
 
+  // Debug: Log coverPreview changes
+  useEffect(() => {
+    if (coverPreview) {
+      console.log("🎨 Cover preview state changed:", coverPreview);
+      console.log("🔗 Cover URL:", coverPreview.coverUrl);
+      console.log("📖 Book title:", coverPreview.title);
+    } else {
+      console.log("🎨 Cover preview cleared");
+    }
+  }, [coverPreview]);
+
   // Handle addIsbn query parameter - open modal instead of auto-adding
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -495,14 +506,18 @@ export default function LibraryPage() {
       
       if (newCoverUrl) {
         const httpsUrl = toHttps(newCoverUrl);
-        console.log("Opening cover preview modal with URL:", httpsUrl);
+        console.log("🔍 Searching cover for book:", book.title, "ISBN:", book.isbn13);
+        console.log("✅ Found cover URL:", newCoverUrl);
+        console.log("🔗 Opening cover preview modal with HTTPS URL:", httpsUrl);
         // Open preview modal instead of saving directly
         setCoverPreview({
           bookId,
           coverUrl: httpsUrl,
           title: book.title,
         });
+        console.log("📋 Cover preview state set:", { bookId, coverUrl: httpsUrl, title: book.title });
       } else {
+        console.log("❌ No cover URL found for book:", book.title);
         showToast("Geen cover gevonden");
       }
     } catch (error) {
@@ -1332,12 +1347,19 @@ What should I add next? 👀
       )}
 
       {coverPreview && (
-        <div style={modalOverlay} onClick={handleCloseCoverPreview}>
+        <div 
+          style={{
+            ...modalOverlay,
+            zIndex: 10000,
+          }} 
+          onClick={handleCloseCoverPreview}
+        >
           <div 
             style={{
               ...modal,
               maxWidth: 400,
               padding: 24,
+              zIndex: 10001,
             }} 
             onClick={(e) => e.stopPropagation()}
           >
@@ -1361,39 +1383,45 @@ What should I add next? 👀
                 justifyContent: "center",
               }}
             >
-              <img
-                key={`cover-preview-${coverPreview.coverUrl}`}
-                src={toHttps(coverPreview.coverUrl)}
-                alt={coverPreview.title}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "contain",
-                  objectPosition: "center",
-                  display: "block",
-                }}
-                onLoad={(e) => {
-                  console.log("Cover preview image loaded successfully:", coverPreview.coverUrl);
-                  console.log("Image dimensions:", {
-                    naturalWidth: e.currentTarget.naturalWidth,
-                    naturalHeight: e.currentTarget.naturalHeight,
-                    clientWidth: e.currentTarget.clientWidth,
-                    clientHeight: e.currentTarget.clientHeight,
-                    src: e.currentTarget.src,
-                  });
-                }}
-                onError={(e) => {
-                  console.error("Cover preview image error:", coverPreview.coverUrl, e);
-                  console.error("Image element:", {
-                    src: e.currentTarget.src,
-                    complete: e.currentTarget.complete,
-                    naturalWidth: e.currentTarget.naturalWidth,
-                    naturalHeight: e.currentTarget.naturalHeight,
-                  });
-                  showToast("Fout bij laden cover");
-                  // Don't close modal automatically, let user decide
-                }}
-              />
+              {coverPreview.coverUrl ? (
+                <img
+                  key={`cover-preview-${coverPreview.coverUrl}`}
+                  src={toHttps(coverPreview.coverUrl)}
+                  alt={coverPreview.title}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    objectPosition: "center",
+                    display: "block",
+                  }}
+                  onLoad={(e) => {
+                    console.log("✅ Cover preview image loaded successfully:", coverPreview.coverUrl);
+                    console.log("Image dimensions:", {
+                      naturalWidth: e.currentTarget.naturalWidth,
+                      naturalHeight: e.currentTarget.naturalHeight,
+                      clientWidth: e.currentTarget.clientWidth,
+                      clientHeight: e.currentTarget.clientHeight,
+                      src: e.currentTarget.src,
+                    });
+                  }}
+                  onError={(e) => {
+                    console.error("❌ Cover preview image error:", coverPreview.coverUrl, e);
+                    console.error("Image element:", {
+                      src: e.currentTarget.src,
+                      complete: e.currentTarget.complete,
+                      naturalWidth: e.currentTarget.naturalWidth,
+                      naturalHeight: e.currentTarget.naturalHeight,
+                    });
+                    showToast("Fout bij laden cover");
+                    // Don't close modal automatically, let user decide
+                  }}
+                />
+              ) : (
+                <div style={{ padding: 20, textAlign: "center", color: "var(--muted)" }}>
+                  Geen cover URL beschikbaar
+                </div>
+              )}
             </div>
             <div style={modalActions}>
               <button style={btnGhost} onClick={handleCloseCoverPreview}>
