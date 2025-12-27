@@ -33,6 +33,18 @@ function boostGoogleThumb(url: string) {
   if (!url) return "";
   let u = url;
   u = forceHttps(u);
+  
+  // If this is a content URL (not a thumbnail), try to convert it
+  if (u.includes("/books/content?id=")) {
+    const idMatch = u.match(/id=([^&]+)/);
+    if (idMatch) {
+      const bookId = idMatch[1];
+      // Use the thumbnail format instead which gives proper cover images
+      u = `https://books.google.com/books/publisher/content/images/frontcover/${bookId}?fife=w400-h600`;
+      return u;
+    }
+  }
+  
   if (u.includes("zoom=1")) u = u.replace("zoom=1", "zoom=2");
   // Remove edge=curl if present (adds visual curl effect we don't want)
   u = u.replace("&edge=curl", "");
