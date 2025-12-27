@@ -3,7 +3,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 
-type Props = React.ImgHTMLAttributes<HTMLImageElement> & {
+type Props = Omit<React.ImgHTMLAttributes<HTMLImageElement>, "onError"> & {
   onError?: () => void;
 };
 
@@ -52,7 +52,6 @@ export function CoverImg({ onError, ...props }: Props) {
       }}
       onError={(e) => {
         markBad();
-        props.onError?.(e);
       }}
     />
   );
