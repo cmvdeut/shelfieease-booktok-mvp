@@ -1003,7 +1003,7 @@ What should I add next? 👀
               <button style={btnGhost} onClick={() => setShareModalOpen(false)}>
                 Close
               </button>
-            </div>
+        </div>
           </div>
         </div>
       )}
@@ -1179,7 +1179,7 @@ What should I add next? 👀
             {addLoading ? (
               <div style={{ padding: "20px 0", textAlign: "center", color: "var(--muted)" }}>
                 Bezig met ophalen...
-              </div>
+                </div>
             ) : (
               <>
                 {pendingData && (
@@ -1203,7 +1203,7 @@ What should I add next? 👀
                       }}
                     >
                       {pendingData.title || "Onbekend"}
-                    </div>
+              </div>
 
                     {/* Authors */}
                     {pendingData.authors && pendingData.authors.length > 0 && (
@@ -1215,7 +1215,7 @@ What should I add next? 👀
                         }}
                       >
                         {pendingData.authors.join(", ")}
-                      </div>
+            </div>
                     )}
                   </div>
                 )}
@@ -1363,8 +1363,8 @@ What should I add next? 👀
                         Terug
                       </button>
                     </div>
-                  </div>
-                )}
+        </div>
+      )}
               </>
             )}
           </div>
@@ -1487,8 +1487,8 @@ What should I add next? 👀
                       setCoverImageError(false);
                     }
                   }}
-                  onError={(e) => {
-                    const img = e.currentTarget;
+        onError={(e) => {
+          const img = e.currentTarget;
                     console.error("❌ Cover preview image FAILED to load");
                     console.error("Original URL:", coverPreview.coverUrl);
                     
@@ -1510,8 +1510,8 @@ What should I add next? 👀
                   <div style={{ marginBottom: 8 }}>⚠️ Cover kon niet worden geladen</div>
                   <div style={{ fontSize: 12, opacity: 0.7 }}>
                     URL: {coverPreview.coverUrl?.substring(0, 50)}...
-                  </div>
-                </div>
+      </div>
+    </div>
               ) : (
                 <div style={{ padding: 20, textAlign: "center", color: "var(--muted)" }}>
                   Geen cover URL beschikbaar
@@ -1621,8 +1621,8 @@ What should I add next? 👀
                   color: "var(--muted)",
                   fontSize: 18,
                   cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
+  display: "flex",
+  alignItems: "center",
                   justifyContent: "center",
                   lineHeight: 1,
                 }}
@@ -1869,97 +1869,181 @@ What should I add next? 👀
                 )}
 
                 {b.coverUrl && b.coverUrl.trim() !== "" ? (
-                  <CoverImg
-                    key={`cover-${b.id}-${b.coverUrl}-${b.updatedAt || 0}`}
-                    src={toHttps(b.coverUrl)}
-                    alt={b.title}
-                    style={{
-                      ...coverWrapStyle,
-                      ...coverImg,
-                    }}
-                    onError={() => handleCoverError(b.id)}
-                  />
-                ) : null}
+                  <>
+                    <CoverImg
+                      key={`cover-${b.id}-${b.coverUrl}-${b.updatedAt || 0}`}
+                      src={toHttps(b.coverUrl)}
+                      alt={b.title}
+                      style={{
+                        ...coverWrapStyle,
+                        ...coverImg,
+                      }}
+                      onError={() => handleCoverError(b.id)}
+                    />
 
-                {(() => {
-                  const nl = isNlUi();
-                  const isCalm = typeof document !== "undefined" && document.documentElement.dataset.mood === "calm";
-                  
-                  const miniLinkBtn: React.CSSProperties = {
-                    padding: "8px 10px",
-                    borderRadius: 12,
-                    border: isCalm 
-                      ? "1px solid rgba(58, 42, 26, 0.20)"
-                      : "1px solid rgba(255,255,255,0.14)",
-                    background: isCalm
-                      ? "rgba(58, 42, 26, 0.08)"
-                      : "rgba(255,255,255,0.06)",
-                    color: isCalm
-                      ? "var(--text)"
-                      : "rgba(255,255,255,0.92)",
-                    fontWeight: 850,
-                    fontSize: 12,
-                    cursor: "pointer",
-                  };
-
-                  return (
-                    <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                      <button
-                        type="button"
-                        style={miniLinkBtn}
-                        onClick={() => window.open(googleSummaryUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
-                      >
-                        {nl ? "Samenvatting" : "Summary"}
-                      </button>
-
-                      <button
-                        type="button"
-                        style={miniLinkBtn}
-                        onClick={() => window.open(googleCoverUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
-                      >
-                        {nl ? "Cover zoeken" : "Find cover"}
-                      </button>
-                    </div>
-                  );
-                })()}
-
-                <div style={{ display: "grid", gap: isRecentlyAdded ? 4 : 6, marginTop: isRecentlyAdded ? 8 : 10 }}>
-                  <div style={titleStyle}>{b.title}</div>
-                  {b.authors?.length ? <div style={authorStyle}>by {b.authors.join(", ")}</div> : null}
-                  {scope === "all" && bookShelf && (
-                    <div style={{
-                      marginTop: 2,
-                      fontSize: 11,
-                      color: "var(--muted2)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}>
-                      <span>{bookShelf.emoji}</span>
-                      <span>{bookShelf.name}</span>
-                    </div>
-                )}
-
-                <div style={metaRow}>
                     {(() => {
-                      const s = b.status || "TBR";
-                      const label = s === "Finished" ? "Read" : s;
-                      return <span style={badgeFor(s)}>{label}</span>;
+                      const nl = isNlUi();
+                      const isCalm = typeof document !== "undefined" && document.documentElement.dataset.mood === "calm";
+                      
+                      const miniLinkBtn: React.CSSProperties = {
+                        padding: "8px 10px",
+                        borderRadius: 12,
+                        border: isCalm 
+                          ? "1px solid rgba(58, 42, 26, 0.20)"
+                          : "1px solid rgba(255,255,255,0.14)",
+                        background: isCalm
+                          ? "rgba(58, 42, 26, 0.08)"
+                          : "rgba(255,255,255,0.06)",
+                        color: isCalm
+                          ? "var(--text)"
+                          : "rgba(255,255,255,0.92)",
+                        fontWeight: 850,
+                        fontSize: 12,
+                        cursor: "pointer",
+                      };
+
+                      return (
+                        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            style={miniLinkBtn}
+                            onClick={() => window.open(googleSummaryUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
+                          >
+                            {nl ? "Samenvatting" : "Summary"}
+                          </button>
+
+                          <button
+                            type="button"
+                            style={miniLinkBtn}
+                            onClick={() => window.open(googleCoverUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
+                          >
+                            {nl ? "Cover zoeken" : "Find cover"}
+                          </button>
+                        </div>
+                      );
                     })()}
-                    {(b.format || "physical") === "ebook" && (
-                      <span style={{
-                        fontSize: 11,
-                        color: "var(--muted2)",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 3,
-                      }}>
-                        📱
-                      </span>
-                    )}
-                    {!isRecentlyAdded && <span style={isbn}>ISBN {b.isbn13}</span>}
-                </div>
-              </div>
+
+                    <div style={{ display: "grid", gap: isRecentlyAdded ? 4 : 6, marginTop: isRecentlyAdded ? 8 : 10 }}>
+                      <div style={titleStyle}>{b.title}</div>
+                      {b.authors?.length ? <div style={authorStyle}>by {b.authors.join(", ")}</div> : null}
+                      {scope === "all" && bookShelf && (
+                        <div style={{
+                          marginTop: 2,
+                          fontSize: 11,
+                          color: "var(--muted2)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}>
+                          <span>{bookShelf.emoji}</span>
+                          <span>{bookShelf.name}</span>
+                        </div>
+                      )}
+
+                      <div style={metaRow}>
+                        {(() => {
+                          const s = b.status || "TBR";
+                          const label = s === "Finished" ? "Read" : s;
+                          return <span style={badgeFor(s)}>{label}</span>;
+                        })()}
+                        {(b.format || "physical") === "ebook" && (
+                          <span style={{
+                            fontSize: 11,
+                            color: "var(--muted2)",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 3,
+                          }}>
+                            📱
+                          </span>
+                        )}
+                        {!isRecentlyAdded && <span style={isbn}>ISBN {b.isbn13}</span>}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ display: "grid", gap: isRecentlyAdded ? 4 : 6 }}>
+                      <div style={titleStyle}>{b.title}</div>
+                      {b.authors?.length ? <div style={authorStyle}>by {b.authors.join(", ")}</div> : null}
+                      {scope === "all" && bookShelf && (
+                        <div style={{
+                          marginTop: 2,
+                          fontSize: 11,
+                          color: "var(--muted2)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}>
+                          <span>{bookShelf.emoji}</span>
+                          <span>{bookShelf.name}</span>
+                        </div>
+                      )}
+
+                      <div style={metaRow}>
+                        {(() => {
+                          const s = b.status || "TBR";
+                          const label = s === "Finished" ? "Read" : s;
+                          return <span style={badgeFor(s)}>{label}</span>;
+                        })()}
+                        {(b.format || "physical") === "ebook" && (
+                          <span style={{
+                            fontSize: 11,
+                            color: "var(--muted2)",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 3,
+                          }}>
+                            📱
+                          </span>
+                        )}
+                        {!isRecentlyAdded && <span style={isbn}>ISBN {b.isbn13}</span>}
+                      </div>
+                    </div>
+
+                    {(() => {
+                      const nl = isNlUi();
+                      const isCalm = typeof document !== "undefined" && document.documentElement.dataset.mood === "calm";
+                      
+                      const miniLinkBtn: React.CSSProperties = {
+                        padding: "8px 10px",
+                        borderRadius: 12,
+                        border: isCalm 
+                          ? "1px solid rgba(58, 42, 26, 0.20)"
+                          : "1px solid rgba(255,255,255,0.14)",
+                        background: isCalm
+                          ? "rgba(58, 42, 26, 0.08)"
+                          : "rgba(255,255,255,0.06)",
+                        color: isCalm
+                          ? "var(--text)"
+                          : "rgba(255,255,255,0.92)",
+                        fontWeight: 850,
+                        fontSize: 12,
+                        cursor: "pointer",
+                      };
+
+                      return (
+                        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            style={miniLinkBtn}
+                            onClick={() => window.open(googleSummaryUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
+                          >
+                            {nl ? "Samenvatting" : "Summary"}
+                          </button>
+
+                          <button
+                            type="button"
+                            style={miniLinkBtn}
+                            onClick={() => window.open(googleCoverUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
+                          >
+                            {nl ? "Cover zoeken" : "Find cover"}
+                          </button>
+                        </div>
+                      );
+                    })()}
+                  </>
+                )}
             </div>
             );
           })}
@@ -2068,7 +2152,7 @@ function ShareCardPreview({ variant }: { variant: ShareCardVariant }) {
         height: 250,
         borderRadius: 14,
         overflow: "hidden",
-        position: "relative",
+  position: "relative",
         background: tokens.cardBg,
         boxShadow: "0 14px 36px rgba(0,0,0,0.55)",
         border: isBold ? "2px solid rgba(255,255,255,0.10)" : "1px solid rgba(255,255,255,0.08)",
@@ -2174,10 +2258,10 @@ const ShareCard = React.forwardRef<
     return (
       <div
         style={{
-          width: "100%",
+  width: "100%",
           aspectRatio: "2 / 3",
           borderRadius: 18,
-          overflow: "hidden",
+  overflow: "hidden",
           position: "relative",
           border: tokens.tileBorder,
           boxShadow: tokens.tileShadow,
@@ -2209,11 +2293,11 @@ const ShareCard = React.forwardRef<
           src={src || ""}
           alt="Book cover"
           style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
+  position: "absolute",
+  inset: 0,
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
             filter: tokens.tileFilter,
           }}
         />
@@ -2251,8 +2335,8 @@ const ShareCard = React.forwardRef<
     >
       <div
         style={{
-          position: "absolute",
-          inset: 0,
+  position: "absolute",
+  inset: 0,
           background: "linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0) 35%, rgba(0,0,0,0.55) 100%)",
           pointerEvents: "none",
         }}
@@ -2284,7 +2368,7 @@ const ShareCard = React.forwardRef<
             width: "100%",
             maxWidth: useTwoByTwo ? 720 : 900,
             margin: "0 auto",
-            display: "grid",
+  display: "grid",
             gridTemplateColumns: useTwoByTwo ? "repeat(2, 1fr)" : "repeat(3, 1fr)",
             gridTemplateRows: "repeat(2, auto)",
             gap: useTwoByTwo ? 18 : 16,
