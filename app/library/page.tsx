@@ -2394,7 +2394,11 @@ function Cover({
         src={src}
         alt={title}
         style={coverImg}
-        onError={() => onBadCover?.()}
+        onError={() => {
+          // Always call onBadCover when CoverImg detects a bad cover (strip/invalid)
+          // This ensures coverUrl is cleared from storage via handleCoverError
+          onBadCover?.();
+        }}
       />
     </div>
   );
