@@ -2447,16 +2447,20 @@ function CoverWrapper({
 
   if (!coverUrl || coverUrl.trim() === "" || hasError) return null;
 
-  // Only render wrapper div if cover has loaded successfully
+  // Don't render anything visible until cover loads successfully
   // This prevents empty white space when cover fails to load
   if (!coverLoaded) {
+    // Use a hidden image to test if cover loads
     return (
-      <CoverImg
+      <img
         src={coverUrl}
-        alt={alt}
+        alt=""
         style={{
-          ...coverWrapStyle,
-          ...coverImgStyle,
+          position: "absolute",
+          width: 0,
+          height: 0,
+          opacity: 0,
+          pointerEvents: "none",
         }}
         onLoad={() => setCoverLoaded(true)}
         onError={() => {
@@ -2467,6 +2471,7 @@ function CoverWrapper({
     );
   }
 
+  // Only render wrapper div after cover has loaded successfully
   return (
     <div style={coverWrapStyle}>
       <CoverImg
