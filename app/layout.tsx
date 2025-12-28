@@ -12,7 +12,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="nl">
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#6d5efc" />

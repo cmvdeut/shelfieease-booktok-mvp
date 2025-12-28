@@ -29,8 +29,16 @@ export function MoodSwitcher() {
     const handleStorageChange = () => {
       setCurrentMood(getMood());
     };
+    // Also listen for custom moodchange event for immediate updates
+    const handleMoodChange = () => {
+      setCurrentMood(getMood());
+    };
     window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+    window.addEventListener("moodchange", handleMoodChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("moodchange", handleMoodChange);
+    };
   }, [mounted]);
 
   useEffect(() => {

@@ -70,8 +70,19 @@ function getCurrentMood(): Mood {
 
 function applyMood(mood: Mood) {
   if (typeof document === "undefined") return;
+  
+  // Update dataset immediately
   document.documentElement.dataset.mood = mood;
   saveMoodToStorage(mood);
+  
+  // Force a reflow to ensure CSS variables are applied immediately
+  // This ensures the browser recalculates styles with the new data attribute
+  void document.documentElement.offsetHeight;
+  
+  // Dispatch custom event so components can react to mood changes
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("moodchange", { detail: { mood } }));
+  }
 }
 
 export function MoodProvider({ children }: { children: React.ReactNode }) {

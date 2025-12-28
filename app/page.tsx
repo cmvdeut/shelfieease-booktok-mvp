@@ -1,8 +1,98 @@
+"use client";
+
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { getMood, type Mood } from "@/components/MoodProvider";
+import { detectUiLang, t } from "@/lib/i18n";
+
+// Headlines per mood with NL/EN
+const headlines = {
+  default: {
+    nl: "Maak je eigen boekenshelf in seconden.",
+    en: "Build your bookshelf in seconds.",
+  },
+  bold: {
+    nl: "Scan. Orden. Deel je boeken.",
+    en: "Scan. Sort. Share your books.",
+  },
+  calm: {
+    nl: "Al je boeken, rustig op één plek.",
+    en: "All your books, calmly in one place.",
+  },
+};
+
+// Subheadlines per mood with NL/EN
+const subheadlines = {
+  default: {
+    nl: "Scan een ISBN of typ 'm in. Zet boeken in shelves. Klaar.",
+    en: "Scan an ISBN or type it in. Sort into shelves. Done.",
+  },
+  bold: {
+    nl: "In seconden van barcode naar overzicht.",
+    en: "From barcode to bookshelf in seconds.",
+  },
+  calm: {
+    nl: "Scan of voeg toe. Jij bepaalt het tempo.",
+    en: "Scan or add. You set the pace.",
+  },
+};
+
+// Helper function to get headline based on mood and language
+function getHeadlineByMood(mood: Mood | null, lang: ReturnType<typeof detectUiLang>): string {
+  const effectiveMood = mood || "default";
+  const dict = headlines[effectiveMood] || headlines.default;
+  return t(dict, lang);
+}
+
+// Helper function to get subheadline based on mood and language
+function getSubHeadlineByMood(mood: Mood | null, lang: ReturnType<typeof detectUiLang>): string {
+  const effectiveMood = mood || "default";
+  const dict = subheadlines[effectiveMood] || subheadlines.default;
+  return t(dict, lang);
+}
 
 export default function HomePage() {
+  // Always start with "default" to match server render and avoid hydration mismatch
+  const [currentMood, setCurrentMood] = useState<Mood>("default");
+  const [isMounted, setIsMounted] = useState(false);
+  
+  // Detect UI language
+  const lang = detectUiLang();
+
+  // Set initial mood after mount to avoid hydration mismatch
+  useEffect(() => {
+    setIsMounted(true);
+    const initialMood = getMood();
+    setCurrentMood(initialMood);
+  }, []);
+
+  // Listen for mood changes to update headlines live
+  useEffect(() => {
+    if (!isMounted) return;
+
+    const handleMoodChange = () => {
+      const newMood = getMood();
+      setCurrentMood(newMood);
+    };
+    
+    // Listen for custom moodchange event
+    window.addEventListener("moodchange", handleMoodChange);
+    
+    // Also check on mount and periodically (as fallback)
+    const intervalId = setInterval(() => {
+      const newMood = getMood();
+      if (newMood !== currentMood) {
+        setCurrentMood(newMood);
+      }
+    }, 100);
+    
+    return () => {
+      window.removeEventListener("moodchange", handleMoodChange);
+      clearInterval(intervalId);
+    };
+  }, [currentMood, isMounted]);
   return (
-    <main style={{ minHeight: "100dvh", background: "var(--bg)", color: "var(--text)" }}>
+    <main style={{ minHeight: "100dvh", background: "var(--bg)", color: "var(--text)" }} data-ui-lang={lang}>
       {/* Background glow - mood-aware via CSS vars */}
       <div style={{ pointerEvents: "none", position: "fixed", inset: 0 }}>
         <div style={{
@@ -50,7 +140,7 @@ export default function HomePage() {
               ShelfieEase
             </h1>
             <p style={{ marginTop: 4, fontSize: 14, color: "var(--muted)" }}>
-              Scan • Shelf • Share
+              {t({ nl: "Scan · Shelf · Deel", en: "Scan · Shelf · Share" }, lang)}
             </p>
           </div>
         </header>
@@ -58,10 +148,10 @@ export default function HomePage() {
         {/* Hero */}
         <section style={{ marginTop: 24 }}>
           <h2 style={{ fontSize: "clamp(1.25rem, 1.5rem, 1.5rem)", fontWeight: 600, lineHeight: 1.25, color: "var(--text)" }}>
-            Maak je BookTok-shelf in seconden.
+            {getHeadlineByMood(currentMood, lang)}
           </h2>
           <p style={{ marginTop: 8, fontSize: "clamp(0.875rem, 1rem, 1rem)", color: "var(--muted)" }}>
-            Scan een ISBN of typ 'm in. Zet boeken in shelves. Klaar.
+            {getSubHeadlineByMood(currentMood, lang)}
           </p>
 
           {/* Actions */}
@@ -77,11 +167,7 @@ export default function HomePage() {
                 padding: "14px 20px",
                 fontSize: "clamp(1rem, 1.125rem, 1.125rem)",
                 fontWeight: 600,
-                background: (() => {
-                  const mood = typeof document !== "undefined" ? document.documentElement.dataset.mood : "default";
-                  if (mood === "default" || mood === "bold" || mood === "calm") return "var(--btnPrimaryBg)";
-                  return "linear-gradient(135deg, var(--accent1), var(--accent2))";
-                })(),
+                background: "var(--btnPrimaryBg)",
                 boxShadow: `0 8px 24px var(--shadow)`,
                 border: "1px solid var(--border)",
                 color: "var(--text)",
@@ -89,7 +175,7 @@ export default function HomePage() {
               }}
             >
               <span style={{ fontSize: 20 }}>📷</span>
-              Scan a book
+              {t({ nl: "Scan een boek", en: "Scan a book" }, lang)}
               <span style={{ opacity: 0.8 }}>→</span>
             </Link>
 
@@ -112,7 +198,7 @@ export default function HomePage() {
                   textDecoration: "none",
                 }}
               >
-                <span>📚</span> My Shelf
+                <span>📚</span> {t({ nl: "Mijn shelf", en: "My Shelf" }, lang)}
               </Link>
 
               <Link
@@ -132,7 +218,7 @@ export default function HomePage() {
                   textDecoration: "none",
                 }}
               >
-                <span>⌨️</span> Handmatig
+                <span>⌨️</span> {t({ nl: "Handmatig", en: "Manual" }, lang)}
               </Link>
             </div>
           </div>
