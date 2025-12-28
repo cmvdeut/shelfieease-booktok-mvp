@@ -115,6 +115,7 @@ export default function LibraryPage() {
   const [copyImageStatus, setCopyImageStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [copyCaptionStatus, setCopyCaptionStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [searchQuery, setSearchQuery] = useState("");
+  const [duplicateWarning, setDuplicateWarning] = useState<{ isbn: string; existingShelf: Shelf | null } | null>(null);
   const [scope, setScope] = useState<"shelf" | "all">("all");
   const [statusFilter, setStatusFilter] = useState<Set<BookStatus>>(new Set());
   const [sortBy, setSortBy] = useState<"recent" | "title" | "author">("recent");
@@ -172,6 +173,9 @@ export default function LibraryPage() {
     openInBrowser: t({ nl: "Open in browser", en: "Open in browser" }, lang),
     searchPlaceholder: t({ nl: "Zoek op titel, auteur of ISBN", en: "Search by title, author or ISBN" }, lang),
     sortBooks: t({ nl: "Sorteer boeken", en: "Sort books" }, lang),
+    duplicateWarning: t({ nl: "Dit boek bestaat al", en: "This book already exists" }, lang),
+    duplicateWarningText: t({ nl: "Dit boek staat al in shelf:", en: "This book is already in shelf:" }, lang),
+    addAnyway: t({ nl: "Toch toevoegen", en: "Add anyway" }, lang),
   };
 
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -539,6 +543,24 @@ export default function LibraryPage() {
   function handleAddBookToShelf() {
     if (!pendingIsbn || !targetShelfId) return;
 
+    // Check if book already exists
+    const allBooks = loadBooks();
+    const existingBook = allBooks.find((b) => b.isbn13 === pendingIsbn);
+    
+    if (existingBook) {
+      // Find the shelf where the book already exists
+      const existingShelf = shelves.find((s) => s.id === existingBook.shelfId);
+      setDuplicateWarning({ isbn: pendingIsbn, existingShelf: existingShelf || null });
+      return;
+    }
+
+    // No duplicate, proceed with adding
+    addBookToShelfInternal();
+  }
+
+  function addBookToShelfInternal() {
+    if (!pendingIsbn || !targetShelfId) return;
+
     const now = Date.now();
     const book: Book = {
       id: pendingIsbn,
@@ -560,6 +582,7 @@ export default function LibraryPage() {
     setPendingIsbn(null);
     setPendingData(null);
     setTargetShelfId(null);
+    setDuplicateWarning(null);
     handledIsbnRef.current = null;
     router.replace("/library");
   }
@@ -777,7 +800,13 @@ What should I add next? 👀
             </button>
 
             {showShelfDropdown && (
-              <div style={dropdown}>
+              <div style={{
+                ...dropdown,
+                backdropFilter: "blur(16px)",
+                background: typeof document !== "undefined" && document.documentElement.dataset.mood === "default"
+                  ? "rgba(20, 19, 29, 0.95)"
+                  : "var(--panelSolid)",
+              }}>
                 {shelves.map((shelf) => {
                   const shelfBookCount = books.filter((b) => b.shelfId === shelf.id).length;
                   return (
@@ -1375,6 +1404,38 @@ What should I add next? 👀
                 onClick={() => handleDeleteBook(showDeleteConfirm)}
               >
                 {copy.delete}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {duplicateWarning && (
+        <div style={modalOverlay} onClick={() => setDuplicateWarning(null)}>
+          <div style={modal} onClick={(e) => e.stopPropagation()}>
+            <h2 style={modalTitle}>{copy.duplicateWarning}</h2>
+            <p style={{ color: "var(--muted)", margin: "0 0 24px" }}>
+              {copy.duplicateWarningText}{" "}
+              {duplicateWarning.existingShelf ? (
+                <span style={{ fontWeight: 700, color: "var(--text)" }}>
+                  {duplicateWarning.existingShelf.emoji} {duplicateWarning.existingShelf.name}
+                </span>
+              ) : (
+                <span style={{ fontWeight: 700, color: "var(--text)" }}>{t({ nl: "Onbekende shelf", en: "Unknown shelf" }, lang)}</span>
+              )}
+            </p>
+            <div style={modalActions}>
+              <button style={btnGhost} onClick={() => setDuplicateWarning(null)}>
+                {copy.cancel}
+              </button>
+              <button
+                style={btnPrimary}
+                onClick={() => {
+                  setDuplicateWarning(null);
+                  addBookToShelfInternal();
+                }}
+              >
+                {copy.addAnyway}
               </button>
             </div>
           </div>
