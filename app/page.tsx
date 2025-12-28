@@ -235,9 +235,9 @@ export default function HomePage() {
               padding: "10px 16px",
             }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Geen stress stats</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{t({ nl: "Geen stress stats", en: "No stress stats" }, lang)}</div>
                 <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
-                  TBR • Reading • Finished
+                  {t({ nl: "TBR • Bezig • Gelezen", en: "TBR • Reading • Finished" }, lang)}
                 </div>
               </div>
               <div style={{
@@ -263,9 +263,9 @@ export default function HomePage() {
               padding: "10px 16px",
             }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Shelves met emoji</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{t({ nl: "Shelves met emoji", en: "Shelves with emoji" }, lang)}</div>
                 <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
-                  Mini-collecties (📖🌙🔥💜)
+                  {t({ nl: "Mini-collecties (📖🌙🔥💜)", en: "Mini-collections (📖🌙🔥💜)" }, lang)}
                 </div>
               </div>
               <div style={{
@@ -291,9 +291,9 @@ export default function HomePage() {
               padding: "10px 16px",
             }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Deel je Shelfie</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{t({ nl: "Deel je Shelfie", en: "Share your Shelfie" }, lang)}</div>
                 <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
-                  9:16 share-card
+                  {t({ nl: "9:16 share-card", en: "9:16 share-card" }, lang)}
                 </div>
               </div>
               <div style={{
@@ -311,7 +311,7 @@ export default function HomePage() {
           </div>
 
           <footer style={{ marginTop: 16, fontSize: 11, color: "var(--muted)", opacity: 0.7 }}>
-            Tip: Handmatig invoeren blijft altijd mogelijk.
+            {t({ nl: "Tip: Handmatig invoeren blijft altijd mogelijk.", en: "Tip: Manual entry is always possible." }, lang)}
           </footer>
         </section>
       </div>
