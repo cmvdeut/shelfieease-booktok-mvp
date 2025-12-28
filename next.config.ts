@@ -22,6 +22,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Cloudflare Pages compatibility - use static export when CF_PAGES env is set
+  // Note: All pages must be client-side ("use client") for static export to work
+  output: process.env.CF_PAGES === "1" ? "export" : undefined,
 };
 
 export default nextConfig;
