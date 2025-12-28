@@ -62,7 +62,11 @@ function googleCoverUrl(title: string, authors: string, isbn: string, nl: boolea
 
 export default function LibraryPage() {
   const router = useRouter();
-  const lang = detectUiLang();
+  const [lang, setLang] = useState<ReturnType<typeof detectUiLang>>(() => {
+    // Default to "nl" for SSR to avoid hydration mismatch
+    if (typeof window === "undefined") return "nl";
+    return detectUiLang();
+  });
   const nl = lang === "nl";
   
   const [books, setBooks] = useState<Book[]>([]);
@@ -120,8 +124,8 @@ export default function LibraryPage() {
   const [statusFilter, setStatusFilter] = useState<Set<BookStatus>>(new Set());
   const [sortBy, setSortBy] = useState<"recent" | "title" | "author">("recent");
 
-  // Translations
-  const copy = {
+  // Translations - useMemo to recalculate when lang changes
+  const copy = useMemo(() => ({
     myShelf: t({ nl: "Mijn shelf", en: "My Shelf" }, lang),
     total: t({ nl: "Totaal", en: "Total" }, lang),
     tbr: t({ nl: "TBR", en: "TBR" }, lang),
@@ -176,7 +180,7 @@ export default function LibraryPage() {
     duplicateWarning: t({ nl: "Dit boek bestaat al", en: "This book already exists" }, lang),
     duplicateWarningText: t({ nl: "Dit boek staat al in shelf:", en: "This book is already in shelf:" }, lang),
     addAnyway: t({ nl: "Toch toevoegen", en: "Add anyway" }, lang),
-  };
+  }), [lang]);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const actionMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -228,6 +232,11 @@ export default function LibraryPage() {
       }
     })();
   }, [router]);
+
+  // Update lang on client mount to ensure correct language detection
+  useEffect(() => {
+    setLang(detectUiLang());
+  }, []);
 
   // Listen for mood changes to force re-render and apply CSS variables immediately
   useEffect(() => {
