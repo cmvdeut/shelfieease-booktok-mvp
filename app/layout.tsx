@@ -4,6 +4,7 @@ import Script from "next/script";
 import { ClientErrorTrap } from "@/components/ClientErrorTrap";
 import { MoodProvider } from "@/components/MoodProvider";
 import { MoodSwitcher } from "@/components/MoodSwitcher";
+import UiBoot from "@/components/UiBoot";
 
 export const metadata = {
   title: "ShelfieEase",
@@ -196,6 +197,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           color: "var(--text)"
         }}
       >
+        <UiBoot />
         <MoodProvider>
           <ClientErrorTrap />
           {children}

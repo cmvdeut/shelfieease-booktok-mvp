@@ -3,6 +3,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Scanner from "@/components/Scanner";
+import { detectUiLang, t } from "@/lib/i18n";
 
 function normalizeIsbn(raw: string) {
   return raw.toUpperCase().replace(/[^0-9X]/g, "");
@@ -10,6 +11,7 @@ function normalizeIsbn(raw: string) {
 
 export default function ScanPage() {
   const router = useRouter();
+  const lang = detectUiLang();
   const [manual, setManual] = useState("");
   const [lastScan, setLastScan] = useState<string | null>(null);
 
@@ -49,9 +51,9 @@ export default function ScanPage() {
           onClick={() => router.push("/")}
           type="button"
         >
-          ← Home
+          ← {t({ nl: "Home", en: "Home" }, lang)}
         </button>
-        <div style={{ fontSize: 14, color: "var(--muted)" }}>Scan ISBN</div>
+        <div style={{ fontSize: 14, color: "var(--muted)" }}>{t({ nl: "Scan ISBN", en: "Scan ISBN" }, lang)}</div>
         <button
           style={{
             padding: "8px 12px",
@@ -66,7 +68,7 @@ export default function ScanPage() {
           onClick={() => router.push("/library")}
           type="button"
         >
-          My Shelf
+          {t({ nl: "Mijn shelf", en: "My Shelf" }, lang)}
         </button>
       </div>
 
@@ -78,7 +80,7 @@ export default function ScanPage() {
         />
         {lastScan ? (
           <div style={{ marginTop: 12, fontSize: 12, color: "var(--muted)" }}>
-            Laatste scan: <span style={{ fontWeight: 600 }}>{lastScan}</span>
+            {t({ nl: "Laatste scan: ", en: "Last scan: " }, lang)}<span style={{ fontWeight: 600 }}>{lastScan}</span>
           </div>
         ) : null}
       </div>
@@ -90,7 +92,7 @@ export default function ScanPage() {
         background: "var(--panel)",
         padding: 16,
       }}>
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: "var(--text)" }}>Of voer ISBN handmatig in</div>
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: "var(--text)" }}>{t({ nl: "Of voer ISBN handmatig in", en: "Or enter ISBN manually" }, lang)}</div>
 
         <div style={{ display: "flex", gap: 8 }}>
           <input
@@ -99,8 +101,8 @@ export default function ScanPage() {
             value={manual}
             onChange={(e) => setManual(e.target.value)}
             inputMode="numeric"
-            placeholder="Bijv. 9789022591260"
-            aria-label="ISBN invoeren"
+            placeholder={t({ nl: "Bijv. 9789022591260", en: "E.g. 9789022591260" }, lang)}
+            aria-label={t({ nl: "ISBN invoeren", en: "Enter ISBN" }, lang)}
             style={{
               width: "100%",
               borderRadius: 12,
@@ -125,12 +127,12 @@ export default function ScanPage() {
             }}
             type="button"
           >
-            Zoek
+            {t({ nl: "Zoek", en: "Search" }, lang)}
           </button>
         </div>
 
         <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)" }}>
-          Tip: kopieer ook gerust een ISBN uit de productpagina van een boek.
+          {t({ nl: "Tip: kopieer ook gerust een ISBN uit de productpagina van een boek.", en: "Tip: feel free to copy an ISBN from a book's product page." }, lang)}
         </div>
       </div>
     </div>

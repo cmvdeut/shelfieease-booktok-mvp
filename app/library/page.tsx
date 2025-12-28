@@ -30,13 +30,11 @@ import { lookupByIsbn, isBadCoverUrl } from "@/lib/lookup";
 import { CoverImg } from "@/components/CoverImg";
 import { CoverPlaceholder } from "@/components/CoverPlaceholder";
 import { toBlob } from "html-to-image";
+import { detectUiLang, t } from "@/lib/i18n";
 
 // Helper functions
 function isNlUi(): boolean {
-  if (typeof document === "undefined") return false;
-  const htmlLang = document.documentElement.lang?.toLowerCase() || "";
-  const navLang = navigator.language?.toLowerCase() || "";
-  return htmlLang.startsWith("nl") || navLang.startsWith("nl");
+  return detectUiLang() === "nl";
 }
 
 function googleSearchUrl(q: string): string {
@@ -64,6 +62,9 @@ function googleCoverUrl(title: string, authors: string, isbn: string, nl: boolea
 
 export default function LibraryPage() {
   const router = useRouter();
+  const lang = detectUiLang();
+  const nl = lang === "nl";
+  
   const [books, setBooks] = useState<Book[]>([]);
   const [shelves, setShelves] = useState<Shelf[]>([]);
   const [activeShelfId, setActiveShelfIdState] = useState<string | null>(null);
@@ -117,6 +118,61 @@ export default function LibraryPage() {
   const [scope, setScope] = useState<"shelf" | "all">("all");
   const [statusFilter, setStatusFilter] = useState<Set<BookStatus>>(new Set());
   const [sortBy, setSortBy] = useState<"recent" | "title" | "author">("recent");
+
+  // Translations
+  const copy = {
+    myShelf: t({ nl: "Mijn shelf", en: "My Shelf" }, lang),
+    total: t({ nl: "Totaal", en: "Total" }, lang),
+    tbr: t({ nl: "TBR", en: "TBR" }, lang),
+    reading: t({ nl: "Bezig", en: "Reading" }, lang),
+    read: t({ nl: "Gelezen", en: "Read" }, lang),
+    shareShelfie: t({ nl: "Deel shelfie", en: "Share shelfie" }, lang),
+    generating: t({ nl: "Bezig…", en: "Generating…" }, lang),
+    scan: t({ nl: "+ Scannen", en: "+ Scan" }, lang),
+    noBooksYet: t({ nl: "Nog geen boeken. Tijd om te scannen 📚✨", en: "No books yet. Time to scan 📚✨" }, lang),
+    scanFirstBook: t({ nl: "Scan je eerste boek", en: "Scan your first book" }, lang),
+    newShelf: t({ nl: "Nieuwe shelf", en: "New shelf" }, lang),
+    name: t({ nl: "Naam", en: "Name" }, lang),
+    emoji: t({ nl: "Emoji", en: "Emoji" }, lang),
+    cancel: t({ nl: "Annuleren", en: "Cancel" }, lang),
+    create: t({ nl: "Aanmaken", en: "Create" }, lang),
+    deleteBook: t({ nl: "Boek verwijderen", en: "Delete book" }, lang),
+    deleteBookQuestion: t({ nl: "Boek verwijderen?", en: "Delete book?" }, lang),
+    cannotUndo: t({ nl: "Dit kan niet ongedaan gemaakt worden.", en: "This action cannot be undone." }, lang),
+    delete: t({ nl: "Verwijderen", en: "Delete" }, lang),
+    moveToShelf: t({ nl: "Verplaats naar shelf", en: "Move to shelf" }, lang),
+    changeStatus: t({ nl: "Status wijzigen", en: "Change status" }, lang),
+    shareModalTitle: t({ nl: "Deel shelfie", en: "Share shelfie" }, lang),
+    shareModalTip: t({ nl: "Tip: Op mobiel krijg je de deel-knop van je telefoon.", en: "Tip: On mobile you'll get the native share sheet." }, lang),
+    downloadPng: t({ nl: "Download PNG", en: "Download PNG" }, lang),
+    copyImage: t({ nl: "Kopieer afbeelding", en: "Copy image" }, lang),
+    copied: t({ nl: "Gekopieerd!", en: "Copied!" }, lang),
+    copyFailed: t({ nl: "Kopiëren mislukt", en: "Copy failed" }, lang),
+    copyCaption: t({ nl: "Kopieer tekst", en: "Copy caption" }, lang),
+    copiedCaption: t({ nl: "Tekst gekopieerd!", en: "Copied caption!" }, lang),
+    openTikTok: t({ nl: "Open TikTok (web)", en: "Open TikTok (web)" }, lang),
+    openSystemShare: t({ nl: "Open deelmenu", en: "Open system share" }, lang),
+    close: t({ nl: "Sluiten", en: "Close" }, lang),
+    finished: t({ nl: "Finished", en: "Finished" }, lang),
+    addBook: t({ nl: "Boek toevoegen", en: "Add book" }, lang),
+    loading: t({ nl: "Bezig met ophalen...", en: "Loading..." }, lang),
+    chooseShelf: t({ nl: "Kies een shelf", en: "Choose a shelf" }, lang),
+    addToShelf: t({ nl: "Zet in deze shelf", en: "Add to this shelf" }, lang),
+    makeShelf: t({ nl: "Maak shelf", en: "Create shelf" }, lang),
+    back: t({ nl: "Terug", en: "Back" }, lang),
+    noBooksFound: t({ nl: "Geen boeken gevonden", en: "No books found" }, lang),
+    checkFilters: t({ nl: "Check je filters of zoekterm.", en: "Check your filters or search term." }, lang),
+    thisShelf: t({ nl: "This shelf", en: "This shelf" }, lang),
+    allShelves: t({ nl: "All shelves", en: "All shelves" }, lang),
+    sortRecent: t({ nl: "Sort: Recent", en: "Sort: Recent" }, lang),
+    sortTitle: t({ nl: "Sort: Title A–Z", en: "Sort: Title A–Z" }, lang),
+    sortAuthor: t({ nl: "Sort: Author A–Z", en: "Sort: Author A–Z" }, lang),
+    summary: t({ nl: "Samenvatting", en: "Summary" }, lang),
+    findCover: t({ nl: "Cover zoeken", en: "Find cover" }, lang),
+    openInBrowser: t({ nl: "Open in browser", en: "Open in browser" }, lang),
+    searchPlaceholder: t({ nl: "Zoek op titel, auteur of ISBN", en: "Search by title, author or ISBN" }, lang),
+    sortBooks: t({ nl: "Sorteer boeken", en: "Sort books" }, lang),
+  };
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const actionMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -530,7 +586,7 @@ export default function LibraryPage() {
   function handleChangeStatus(bookId: string, status: BookStatus) {
     const updated = updateBook(bookId, { status });
     setBooks(updated);
-    showToast(`Status updated to ${status === "Finished" ? "Read" : status}`);
+    showToast(t({ nl: `Status bijgewerkt naar ${status === "Finished" ? "Gelezen" : status === "Reading" ? "Bezig" : "TBR"}`, en: `Status updated to ${status === "Finished" ? "Read" : status}` }, lang));
   }
 
   function handleChangeFormat(bookId: string, format: BookFormat) {
@@ -607,7 +663,12 @@ export default function LibraryPage() {
       if (!blob) return;
 
       const filename = `${activeShelf.name.replace(/\s+/g, "-")}-shelf.png`;
-      const caption = `✨ My ${activeShelf.emoji || "📚"} ${activeShelf.name} shelf update!
+      const caption = nl
+        ? `✨ Mijn ${activeShelf.emoji || "📚"} ${activeShelf.name} shelf update!
+📚 Totaal: ${stats.total} | TBR: ${stats.tbr} | Bezig: ${stats.reading} | Gelezen: ${stats.read}
+Wat moet ik hierna toevoegen? 👀
+#BookTok #TBR #ReadingCommunity #Shelfie #Bookish`
+        : `✨ My ${activeShelf.emoji || "📚"} ${activeShelf.name} shelf update!
 📚 Total: ${stats.total} | TBR: ${stats.tbr} | Reading: ${stats.reading} | Read: ${stats.read}
 What should I add next? 👀
 #BookTok #TBR #ReadingCommunity #Shelfie #Bookish`;
@@ -711,26 +772,29 @@ What should I add next? 👀
           <div style={{ position: "relative", display: "inline-block" }} ref={dropdownRef}>
             <button style={shelfSelector} onClick={() => setShowShelfDropdown(!showShelfDropdown)}>
               <span style={{ fontSize: 24 }}>{activeShelf?.emoji || "📚"}</span>
-              <span style={{ fontSize: 20, fontWeight: 950 }}>{activeShelf?.name || "My Shelf"}</span>
+              <span style={{ fontSize: 20, fontWeight: 950 }}>{activeShelf?.name || copy.myShelf}</span>
               <span style={{ fontSize: 12, opacity: 0.7 }}>▼</span>
             </button>
 
             {showShelfDropdown && (
               <div style={dropdown}>
-                {shelves.map((shelf) => (
-                  <button
-                    key={shelf.id}
-                    style={{
-                      ...dropdownItem,
-                      ...(shelf.id === activeShelfId ? dropdownItemActive : {}),
-                    }}
-                    onClick={() => handleShelfSelect(shelf.id)}
-                  >
-                    <span>{shelf.emoji}</span>
-                    <span>{shelf.name}</span>
-                    {shelf.id === activeShelfId && <span style={{ fontSize: 10 }}>✓</span>}
-                  </button>
-                ))}
+                {shelves.map((shelf) => {
+                  const shelfBookCount = books.filter((b) => b.shelfId === shelf.id).length;
+                  return (
+                    <button
+                      key={shelf.id}
+                      style={{
+                        ...dropdownItem,
+                        ...(shelf.id === activeShelfId ? dropdownItemActive : {}),
+                      }}
+                      onClick={() => handleShelfSelect(shelf.id)}
+                    >
+                      <span>{shelf.emoji}</span>
+                      <span>{shelf.name} ({shelfBookCount})</span>
+                      {shelf.id === activeShelfId && <span style={{ fontSize: 10 }}>✓</span>}
+                    </button>
+                  );
+                })}
                 <div style={dropdownDivider} />
                 <button
                   style={dropdownItem}
@@ -740,7 +804,7 @@ What should I add next? 👀
                   }}
                 >
                   <span>+</span>
-                  <span>New shelf</span>
+                  <span>{copy.newShelf}</span>
                 </button>
         </div>
             )}
@@ -749,19 +813,19 @@ What should I add next? 👀
           <div style={shelfStats}>
             <div style={statItem}>
               <span style={statNumber}>{stats.total}</span>
-              <span style={statLabel}>Total</span>
+              <span style={statLabel}>{copy.total}</span>
             </div>
             <div style={statItem}>
               <span style={statNumber}>{stats.tbr}</span>
-              <span style={statLabel}>TBR</span>
+              <span style={statLabel}>{copy.tbr}</span>
             </div>
             <div style={statItem}>
               <span style={statNumber}>{stats.reading}</span>
-              <span style={statLabel}>Reading</span>
+              <span style={statLabel}>{copy.reading}</span>
             </div>
             <div style={statItem}>
               <span style={statNumber}>{stats.read}</span>
-              <span style={statLabel}>Read</span>
+              <span style={statLabel}>{copy.read}</span>
             </div>
           </div>
         </div>
@@ -780,15 +844,15 @@ What should I add next? 👀
               style={btnGhost}
               onClick={handleShareShelf}
               disabled={sharing || !activeShelf || activeBooks.length === 0}
-              aria-label={sharing ? "Generating share image" : "Share Shelfie"}
-              title={sharing ? "Generating…" : "Share Shelfie"}
+              aria-label={sharing ? t({ nl: "Bezig met genereren…", en: "Generating share image" }, lang) : copy.shareShelfie}
+              title={sharing ? copy.generating : copy.shareShelfie}
             >
-              {sharing ? "Generating…" : "Share Shelfie"}
+              {sharing ? copy.generating : copy.shareShelfie}
             </button>
           )}
 
         <Link href="/scan">
-          <button style={btnPrimary}>+ Scan</button>
+          <button style={btnPrimary}>{copy.scan}</button>
         </Link>
         </div>
       </div>
@@ -819,10 +883,10 @@ What should I add next? 👀
           }}
         >
           <div style={modal} onClick={(e) => e.stopPropagation()}>
-            <h2 style={modalTitle}>Share Shelfie</h2>
+            <h2 style={modalTitle}>{copy.shareModalTitle}</h2>
 
             <p style={{ margin: "6px 0 12px", color: "var(--muted)", fontWeight: 700 }}>
-              Tip: On mobile you'll get the native share sheet.
+              {copy.shareModalTip}
             </p>
 
             <div style={{ display: "grid", gap: 10 }}>
@@ -833,7 +897,7 @@ What should I add next? 👀
                   downloadImage(shareBlob, shareFilename);
                 }}
               >
-                Download PNG
+                {copy.downloadPng}
               </button>
 
               <button
@@ -863,10 +927,10 @@ What should I add next? 👀
                 }
               >
                 {copyImageStatus === "copied"
-                  ? "Copied!"
+                  ? copy.copied
                   : copyImageStatus === "failed"
-                    ? "Copy failed"
-                    : "Copy image"}
+                    ? copy.copyFailed
+                    : copy.copyImage}
               </button>
 
               <button
@@ -885,10 +949,10 @@ What should I add next? 👀
                 title={(navigator as any)?.clipboard?.writeText ? "Copy caption" : "Copy caption not supported"}
               >
                 {copyCaptionStatus === "copied"
-                  ? "Copied caption!"
+                  ? copy.copiedCaption
                   : copyCaptionStatus === "failed"
-                    ? "Copy caption failed"
-                    : "Copy caption"}
+                    ? t({ nl: "Kopiëren tekst mislukt", en: "Copy caption failed" }, lang)
+                    : copy.copyCaption}
               </button>
 
               <button
@@ -899,7 +963,7 @@ What should I add next? 👀
                   if (!w) window.open("https://www.tiktok.com/", "_blank", "noopener,noreferrer");
                 }}
               >
-                Open TikTok (web)
+                {copy.openTikTok}
               </button>
 
               <button
@@ -923,11 +987,11 @@ What should I add next? 👀
                 }}
                 title="Open system share (optional)"
               >
-                Open system share
+                {copy.openSystemShare}
               </button>
 
               <button style={btnGhost} onClick={() => setShareModalOpen(false)}>
-                Close
+                {copy.close}
               </button>
         </div>
           </div>
@@ -949,10 +1013,10 @@ What should I add next? 👀
           }}
         >
           <div style={modal} onClick={(e) => e.stopPropagation()}>
-            <h2 style={modalTitle}>New Shelf</h2>
+            <h2 style={modalTitle}>{copy.newShelf}</h2>
             <div style={modalForm}>
               <div style={formGroup}>
-                <label htmlFor="new-shelf-name" style={formLabel}>Name</label>
+                <label htmlFor="new-shelf-name" style={formLabel}>{copy.name}</label>
                 <input
                   id="new-shelf-name"
                   name="new-shelf-name"
@@ -963,7 +1027,7 @@ What should I add next? 👀
                     // Reset emojiTouched when name is cleared
                     if (!e.target.value.trim()) setEmojiTouched(false);
                   }}
-                  placeholder="My Shelf"
+                  placeholder={copy.myShelf}
                   maxLength={24}
                   style={formInput}
                   autoFocus
@@ -977,7 +1041,7 @@ What should I add next? 👀
               </div>
 
               <div style={formGroup}>
-                <label htmlFor="new-shelf-emoji" style={formLabel}>Emoji</label>
+                <label htmlFor="new-shelf-emoji" style={formLabel}>{copy.emoji}</label>
                 <div style={emojiPicker}>
                   {(() => {
                     const defaultEmojis = ["📚", "✨", "🔥", "💖", "🧙", "🗡️", "🌙", "🧋", "😭", "🕯️", "🏰", "🐉"];
@@ -1039,10 +1103,10 @@ What should I add next? 👀
                     setNewShelfMood(currentMood === "default" ? "aesthetic" : currentMood);
                   }}
                 >
-                  Cancel
+                  {copy.cancel}
                 </button>
                 <button style={btnPrimary} onClick={handleCreateShelf} disabled={!name.trim()}>
-                  Create
+                  {copy.create}
                 </button>
               </div>
             </div>
@@ -1099,12 +1163,12 @@ What should I add next? 👀
                 color: "var(--text)",
               }}
             >
-              Boek toevoegen
+              {copy.addBook}
             </h2>
 
             {addLoading ? (
               <div style={{ padding: "20px 0", textAlign: "center", color: "var(--muted)" }}>
-                Bezig met ophalen...
+                {copy.loading}
                 </div>
             ) : (
               <>
@@ -1149,7 +1213,7 @@ What should I add next? 👀
                 {!showNewShelfInAddModal ? (
                   <>
                     <div style={{ ...formGroup, marginBottom: 20 }}>
-                      <label htmlFor="add-book-shelf" style={{ ...formLabel, color: "var(--text)" }}>Kies een shelf</label>
+                      <label htmlFor="add-book-shelf" style={{ ...formLabel, color: "var(--text)" }}>{copy.chooseShelf}</label>
                       <select
                         id="add-book-shelf"
                         name="add-book-shelf"
@@ -1179,7 +1243,7 @@ What should I add next? 👀
                         }}
                         onClick={() => setShowNewShelfInAddModal(true)}
                       >
-                        + Nieuwe shelf
+                        + {copy.newShelf}
                       </button>
                     </div>
 
@@ -1200,7 +1264,7 @@ What should I add next? 👀
                         }}
                         onClick={handleCancelAddBook}
                       >
-                        Annuleren
+                        {copy.cancel}
                       </button>
                       <button
                         style={{
@@ -1211,21 +1275,21 @@ What should I add next? 👀
                         onClick={handleAddBookToShelf}
                         disabled={!targetShelfId}
                       >
-                        Zet in deze shelf
+                        {copy.addToShelf}
                       </button>
                     </div>
                   </>
                 ) : (
                   <div style={modalForm}>
                     <div style={formGroup}>
-                      <label htmlFor="add-book-new-shelf-name" style={{ ...formLabel, color: "var(--text)" }}>Naam</label>
+                      <label htmlFor="add-book-new-shelf-name" style={{ ...formLabel, color: "var(--text)" }}>{copy.name}</label>
                       <input
                         id="add-book-new-shelf-name"
                         name="add-book-new-shelf-name"
                         type="text"
                         value={newShelfName}
                         onChange={(e) => setNewShelfName(e.target.value.slice(0, 24))}
-                        placeholder="My Shelf"
+                        placeholder={copy.myShelf}
                         maxLength={24}
                         style={{
                           ...formInput,
@@ -1237,7 +1301,7 @@ What should I add next? 👀
                       />
                     </div>
                     <div style={formGroup}>
-                      <label htmlFor="add-book-new-shelf-emoji" style={{ ...formLabel, color: "var(--text)" }}>Emoji</label>
+                      <label htmlFor="add-book-new-shelf-emoji" style={{ ...formLabel, color: "var(--text)" }}>{copy.emoji}</label>
                       <input
                         id="add-book-new-shelf-emoji"
                         name="add-book-new-shelf-emoji"
@@ -1272,7 +1336,7 @@ What should I add next? 👀
                         onClick={handleCreateShelfInAddModal}
                         disabled={!newShelfName.trim()}
                       >
-                        Maak shelf
+                        {copy.makeShelf}
                       </button>
                       <button
                         style={{
@@ -1286,7 +1350,7 @@ What should I add next? 👀
                           setNewShelfEmoji("📚");
                         }}
                       >
-                        Terug
+                        {copy.back}
                       </button>
                     </div>
         </div>
@@ -1300,17 +1364,17 @@ What should I add next? 👀
       {showDeleteConfirm && (
         <div style={modalOverlay} onClick={() => setShowDeleteConfirm(null)}>
           <div style={modal} onClick={(e) => e.stopPropagation()}>
-            <h2 style={modalTitle}>Boek verwijderen?</h2>
-            <p style={{ color: "var(--muted)", margin: "0 0 24px" }}>Deze actie kan niet ongedaan worden gemaakt.</p>
+            <h2 style={modalTitle}>{copy.deleteBookQuestion}</h2>
+            <p style={{ color: "var(--muted)", margin: "0 0 24px" }}>{copy.cannotUndo}</p>
             <div style={modalActions}>
               <button style={btnGhost} onClick={() => setShowDeleteConfirm(null)}>
-                Annuleren
+                {copy.cancel}
               </button>
               <button
                 style={{ ...btnPrimary, background: "var(--danger)", color: typeof document !== "undefined" && document.documentElement.dataset.mood === "calm" ? "#4A3825" : "#fff" }}
                 onClick={() => handleDeleteBook(showDeleteConfirm)}
               >
-                Verwijderen
+                {copy.delete}
               </button>
             </div>
           </div>
@@ -1328,8 +1392,8 @@ What should I add next? 👀
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Zoek op titel, auteur of ISBN"
-              aria-label="Zoek op titel, auteur of ISBN"
+              placeholder={copy.searchPlaceholder}
+              aria-label={copy.searchPlaceholder}
               style={{
                 width: "100%",
                 padding: "12px 16px",
@@ -1390,7 +1454,7 @@ What should I add next? 👀
                   transition: "all 150ms ease",
                 }}
               >
-                This shelf
+                {copy.thisShelf}
               </button>
               <button
                 type="button"
@@ -1407,7 +1471,7 @@ What should I add next? 👀
                   transition: "all 150ms ease",
                 }}
               >
-                All shelves
+                {copy.allShelves}
               </button>
             </div>
 
@@ -1441,7 +1505,7 @@ What should I add next? 👀
                   transition: "all 150ms ease",
                 }}
               >
-                {status === "TBR" ? "TBR" : status === "Reading" ? "Reading" : "Finished"}
+                {status === "TBR" ? copy.tbr : status === "Reading" ? copy.reading : copy.finished}
               </button>
             ))}
 
@@ -1451,7 +1515,7 @@ What should I add next? 👀
               name="book-sort"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as "recent" | "title" | "author")}
-              aria-label="Sorteer boeken"
+              aria-label={copy.sortBooks}
               style={{
                 padding: "6px 12px",
                 paddingRight: 32,
@@ -1469,9 +1533,9 @@ What should I add next? 👀
                 backgroundPosition: "right 8px center",
               }}
             >
-              <option value="recent">Sort: Recent</option>
-              <option value="title">Sort: Title A–Z</option>
-              <option value="author">Sort: Author A–Z</option>
+              <option value="recent">{copy.sortRecent}</option>
+              <option value="title">{copy.sortTitle}</option>
+              <option value="author">{copy.sortAuthor}</option>
             </select>
           </div>
         </div>
@@ -1479,15 +1543,15 @@ What should I add next? 👀
 
       {activeBooks.length === 0 ? (
         <div style={emptyCard}>
-          <p style={{ color: "var(--muted)", marginTop: 0, fontWeight: 700 }}>No books yet. Time to scan 📚✨</p>
+          <p style={{ color: "var(--muted)", marginTop: 0, fontWeight: 700 }}>{copy.noBooksYet}</p>
           <Link href="/scan">
-            <button style={btnPrimary}>Scan your first book</button>
+            <button style={btnPrimary}>{copy.scanFirstBook}</button>
           </Link>
         </div>
       ) : visibleBooks.length === 0 ? (
         <div style={emptyCard}>
-          <p style={{ color: "var(--muted)", marginTop: 0, fontWeight: 700 }}>Geen boeken gevonden</p>
-          <p style={{ color: "var(--muted2)", marginTop: 8, fontSize: 14 }}>Check je filters of zoekterm.</p>
+          <p style={{ color: "var(--muted)", marginTop: 0, fontWeight: 700 }}>{copy.noBooksFound}</p>
+          <p style={{ color: "var(--muted2)", marginTop: 8, fontSize: 14 }}>{copy.checkFilters}</p>
         </div>
       ) : (
         <div style={grid}>
@@ -1526,7 +1590,7 @@ What should I add next? 👀
                     >
                       <div style={actionMenuHandle} />
                       <div style={actionMenuSection}>
-                        <div style={actionMenuLabel}>Move to shelf</div>
+                        <div style={actionMenuLabel}>{copy.moveToShelf}</div>
                         {shelves.map((shelf) => (
                           <button
                             key={shelf.id}
@@ -1546,7 +1610,7 @@ What should I add next? 👀
                       <div style={actionMenuDivider} />
 
                       <div style={actionMenuSection}>
-                        <div style={actionMenuLabel}>Change status</div>
+                        <div style={actionMenuLabel}>{copy.changeStatus}</div>
                         {(["TBR", "Reading", "Finished"] as BookStatus[]).map((status) => (
                           <button
                             key={status}
@@ -1556,7 +1620,7 @@ What should I add next? 👀
                             }}
                             onClick={() => handleChangeStatus(b.id, status)}
                           >
-                            <span>{status === "Finished" ? "Read" : status}</span>
+                            <span>{status === "Finished" ? copy.read : status === "Reading" ? copy.reading : copy.tbr}</span>
                             {b.status === status && <span style={{ fontSize: 10 }}>✓</span>}
                           </button>
                         ))}
@@ -1590,7 +1654,7 @@ What should I add next? 👀
                           setShowDeleteConfirm(b.id);
                         }}
                       >
-                        <span>🗑️ Verwijder boek</span>
+                        <span>🗑️ {copy.deleteBook}</span>
                       </button>
                     </div>
                   </>
@@ -1645,7 +1709,7 @@ What should I add next? 👀
                           style={miniLinkBtn}
                           onClick={() => window.open(googleSummaryUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
                         >
-                          {nl ? "Samenvatting" : "Summary"}
+                          {copy.summary}
                         </button>
 
                         <button
@@ -1656,7 +1720,15 @@ What should I add next? 👀
                             window.open(coverUrl, "_blank", "noopener,noreferrer");
                           }}
                         >
-                          {nl ? "Cover zoeken" : "Find cover"}
+                          {copy.findCover}
+                        </button>
+
+                        <button
+                          type="button"
+                          style={miniLinkBtn}
+                          onClick={() => window.open(googleIsbnUrl(b.isbn13), "_blank", "noopener,noreferrer")}
+                        >
+                          {copy.openInBrowser}
                         </button>
             </div>
 
@@ -1664,7 +1736,7 @@ What should I add next? 👀
                       <div style={cardBottom}>
                         {(() => {
                           const s = b.status || "TBR";
-                          const label = s === "Finished" ? "Read" : s;
+                          const label = s === "Finished" ? copy.read : s === "Reading" ? copy.reading : copy.tbr;
                           return <span style={badgeFor(s)}>{label}</span>;
                         })()}
                         {(b.format || "physical") === "ebook" && (
@@ -2272,11 +2344,16 @@ const dropdownItem: React.CSSProperties = {
   fontSize: 14,
   textAlign: "left",
   minHeight: 36,
+  boxShadow: "0px 4px 12px 0px rgba(0, 0, 0, 0.15)",
+  fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+  backgroundImage: "none",
+  backgroundClip: "unset",
+  WebkitBackgroundClip: "unset",
 };
 
 const dropdownItemActive: React.CSSProperties = {
   background: "var(--accentSoft)",
-  color: "var(--muted)",
+  color: "var(--accent1)",
 };
 
 const dropdownDivider: React.CSSProperties = {
@@ -2398,7 +2475,7 @@ const actionButton: React.CSSProperties = {
   height: 32,
   borderRadius: 8,
   border: "1px solid #2a2a32",
-  background: "rgba(21, 21, 28, 0.9)",
+  background: "var(--accent1)",
   color: "#fff",
   fontSize: 18,
   fontWeight: 900,
@@ -2417,8 +2494,8 @@ const actionButtonCompact: React.CSSProperties = {
   width: 28,
   height: 28,
   borderRadius: 6,
-  border: "1px solid #2a2a32",
-  background: "rgba(21, 21, 28, 0.7)",
+  border: "1px solid var(--accent1)",
+  background: "var(--accent1)",
   color: "#fff",
   fontSize: 16,
   fontWeight: 900,
@@ -2481,7 +2558,7 @@ const actionMenuItem: React.CSSProperties = {
 
 const actionMenuItemActive: React.CSSProperties = {
   background: "rgba(109,94,252,0.18)",
-  color: "var(--accentSoft2)",
+  color: "var(--accent1)",
 };
 
 const actionMenuDivider: React.CSSProperties = {
@@ -2622,33 +2699,16 @@ const isbn: React.CSSProperties = {
 };
 
 function badgeFor(status: string): React.CSSProperties {
-  const base: React.CSSProperties = {
-  fontSize: 12,
-    fontWeight: 950,
-    padding: "6px 10px",
-    borderRadius: 999,
+  // Use same style as filter buttons - neutral beige background with dark text
+  return {
+    fontSize: 13,
+    fontWeight: 700,
+    padding: "6px 12px",
+    borderRadius: 12,
     border: "1px solid var(--border)",
+    background: "var(--btnGhostBg)",
+    color: "var(--text)",
   };
-
-  // Check if we're in Calm mood
-  const isCalm = typeof document !== "undefined" && document.documentElement.dataset.mood === "calm";
-  
-  if (status === "Finished") {
-    if (isCalm) {
-      return { ...base, background: `color-mix(in srgb, var(--accent1) 14%, transparent)`, color: "var(--text)" };
-    }
-    return { ...base, background: "rgba(79, 209, 197, 0.18)", color: "#bff7ef" };
-  }
-  if (status === "Reading") {
-    if (isCalm) {
-      return { ...base, background: `color-mix(in srgb, var(--accent1) 12%, transparent)`, color: "var(--text)" };
-    }
-    return { ...base, background: "rgba(255, 203, 76, 0.16)", color: "#ffe2a3" };
-  }
-  if (isCalm) {
-    return { ...base, background: `color-mix(in srgb, var(--accent1) 14%, transparent)`, color: "var(--text)" };
-  }
-  return { ...base, background: "rgba(109,94,252,0.18)", color: "#d8d8ff" };
 }
 
 const css = `
