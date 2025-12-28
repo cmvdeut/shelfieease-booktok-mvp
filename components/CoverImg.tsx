@@ -1,58 +1,50 @@
-// components/CoverImg.tsx
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 
-type Props = Omit<React.ImgHTMLAttributes<HTMLImageElement>, "onError"> & {
-  onError?: () => void;
-};
-
-export function CoverImg({ onError, ...props }: Props) {
-  const imgRef = useRef<HTMLImageElement | null>(null);
-  const [hidden, setHidden] = useState(false);
-
-  const markBad = () => {
-    if (!hidden) setHidden(true);
-    onError?.();
-  };
-
-  const validateNaturalSize = (img: HTMLImageElement) => {
-    const w = img.naturalWidth || 0;
-    const h = img.naturalHeight || 0;
-    if (!w || !h) return;
-
-    const ratio = w / h;
-
-    // BAD: very wide "strip" (e.g. 300x48) or tiny-height placeholders
-    if (ratio > 1.35 || h < 120) {
-      markBad();
-    }
-  };
+export function CoverImg(props: React.ImgHTMLAttributes<HTMLImageElement>) {
+  const { src, onError, style, ...rest } = props;
+  const [ok, setOk] = useState(false);
 
   useEffect(() => {
-    const img = imgRef.current;
-    if (!img) return;
+    setOk(false);
+  }, [src]);
 
-    // if cached, validate immediately
-    if (img.complete) {
-      validateNaturalSize(img);
-    }
-  }, [props.src]);
+  if (!src) return null;
 
-  if (!props.src || hidden) return null;
+  const lower = String(src).toLowerCase();
+  if (lower.includes("image_not_available") || (lower.includes("image") && lower.includes("not") && lower.includes("available"))) {
+    return null;
+  }
 
   return (
     <img
-      {...props}
-      ref={imgRef}
+      {...rest}
+      src={src}
+      style={{
+        ...(style || {}),
+        opacity: ok ? 1 : 0,
+        transition: "opacity 160ms ease",
+      }}
       onLoad={(e) => {
         const img = e.currentTarget;
-        validateNaturalSize(img);
-        props.onLoad?.(e);
+        const bad =
+          img.naturalWidth <= 2 ||
+          img.naturalHeight <= 2 ||
+          String(img.currentSrc || src).toLowerCase().includes("image_not_available");
+
+        if (bad) {
+          setOk(false);
+          onError?.(e as any);
+          return;
+        }
+        setOk(true);
       }}
       onError={(e) => {
-        markBad();
+        setOk(false);
+        onError?.(e as any);
       }}
+      alt={props.alt || "cover"}
     />
   );
 }
