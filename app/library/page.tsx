@@ -26,8 +26,9 @@ import {
 
 import { getMood } from "@/components/MoodProvider";
 
-import { lookupByIsbn } from "@/lib/lookup";
+import { lookupByIsbn, isBadCoverUrl } from "@/lib/lookup";
 import { CoverImg } from "@/components/CoverImg";
+import { CoverPlaceholder } from "@/components/CoverPlaceholder";
 import { toBlob } from "html-to-image";
 
 // Helper functions
@@ -57,7 +58,8 @@ function googleCoverUrl(title: string, authors: string, isbn: string, nl: boolea
   const keyword = nl ? "cover" : "cover";
   const extra = nl ? "boekomslag cover" : "book cover";
   const query = `${title} ${authors} ${isbn} ${extra}`;
-  return googleSearchUrl(query);
+  // Open Google Images (tbm=isch)
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=isch`;
 }
 
 export default function LibraryPage() {
@@ -98,9 +100,6 @@ export default function LibraryPage() {
   const [newShelfMood, setNewShelfMood] = useState<Mood>("aesthetic");
   const [actionMenuBookId, setActionMenuBookId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-  const [coverPreview, setCoverPreview] = useState<{ bookId: string; coverUrl: string; title: string } | null>(null);
-  const [coverPreviewLoading, setCoverPreviewLoading] = useState(false);
-  const [coverImageError, setCoverImageError] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [shareCoverUrls, setShareCoverUrls] = useState<string[]>([]);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -119,16 +118,6 @@ export default function LibraryPage() {
   const shareCardRef = useRef<HTMLDivElement>(null);
   const handledIsbnRef = useRef<string | null>(null);
 
-  // Debug: Log coverPreview changes
-  useEffect(() => {
-    if (coverPreview) {
-      console.log("🎨 Cover preview state changed:", coverPreview);
-      console.log("🔗 Cover URL:", coverPreview.coverUrl);
-      console.log("📖 Book title:", coverPreview.title);
-    } else {
-      console.log("🎨 Cover preview cleared");
-    }
-  }, [coverPreview]);
 
   // Handle addIsbn query parameter - open modal instead of auto-adding
   useEffect(() => {
@@ -222,6 +211,11 @@ export default function LibraryPage() {
     const fixOpenLibraryUrl = (b: Book) => {
       const url = (b.coverUrl || "").trim();
       if (!url) return b;
+      
+      // Reject known bad cover URLs
+      if (isBadCoverUrl(url)) {
+        return { ...b, coverUrl: "" };
+      }
       
       // Fix OpenLibrary URLs -> force default=false (prevents placeholder)
       if (url.includes("covers.openlibrary.org") && !url.includes("default=false")) {
@@ -526,91 +520,8 @@ export default function LibraryPage() {
     setShowDeleteConfirm(null);
   }
 
-  function handleCoverError(bookId: string) {
-    const book = books.find((b) => b.id === bookId);
-    if (!book) {
-      console.warn("handleCoverError: Book not found:", bookId);
-      return;
-    }
-    
-    console.warn("Cover image error for book:", book.title, "URL:", book.coverUrl);
-    
-    // Clear cover URL - if CoverImg detected a strip/bad cover, remove it regardless of source
-    // This prevents the app from repeatedly trying to load invalid covers
-    // After clearing, refreshCovers or new lookup can set a better URL
-    if (book.coverUrl) {
-      console.log("Clearing bad cover URL (strip/invalid/placeholder detected)");
-      updateBook(bookId, { coverUrl: "", updatedAt: Date.now() });
-      const updated = loadBooks();
-      setBooks(updated);
-      console.log("Cover URL cleared from storage for book:", book.title);
-    } else {
-      console.log("Book already has no coverUrl, nothing to clear");
-    }
-  }
+  // Removed handleSearchCover - users should use "Find cover" button instead
 
-  async function handleSearchCover(bookId: string) {
-    const book = books.find((b) => b.id === bookId);
-    if (!book) return;
-
-    setActionMenuBookId(null);
-    setCoverPreviewLoading(true);
-    
-    try {
-      const data = await lookupByIsbn(book.isbn13);
-      const newCoverUrl = data.coverUrl || "";
-      
-      console.log("Searching cover for book:", book.title, "ISBN:", book.isbn13);
-      console.log("Found cover URL:", newCoverUrl);
-      
-      if (newCoverUrl) {
-        const httpsUrl = toHttps(newCoverUrl);
-        console.log("🔍 Searching cover for book:", book.title, "ISBN:", book.isbn13);
-        console.log("✅ Found cover URL:", newCoverUrl);
-        console.log("🔗 Opening cover preview modal with HTTPS URL:", httpsUrl);
-        // Open preview modal instead of saving directly
-        setCoverPreview({
-          bookId,
-          coverUrl: httpsUrl,
-          title: book.title,
-        });
-        console.log("📋 Cover preview state set:", { bookId, coverUrl: httpsUrl, title: book.title });
-      } else {
-        console.log("❌ No cover URL found for book:", book.title);
-        showToast("Geen cover gevonden");
-      }
-    } catch (error) {
-      console.error("Failed to search cover:", error);
-      showToast("Fout bij zoeken cover");
-    } finally {
-      setCoverPreviewLoading(false);
-    }
-  }
-
-  function handleSaveCover() {
-    if (!coverPreview) return;
-    
-    const now = Date.now();
-    const { bookId, coverUrl } = coverPreview;
-    
-    // Update book in storage
-    updateBook(bookId, {
-      coverUrl,
-      updatedAt: now,
-    });
-    
-    // Update state
-    const updated = loadBooks();
-    setBooks(updated.map(b => b.id === bookId ? { ...b, coverUrl, updatedAt: now } : b));
-    
-    showToast("Cover opgeslagen ✨");
-    setCoverPreview(null);
-  }
-
-  function handleCloseCoverPreview() {
-    setCoverPreview(null);
-    setCoverImageError(false);
-  }
 
   async function refreshCovers() {
     setRefreshing(true);
@@ -623,14 +534,17 @@ export default function LibraryPage() {
             ...b,
             title: b.title && b.title !== "Unknown title" ? b.title : (data.title || b.title),
             authors: b.authors?.length ? b.authors : (data.authors || b.authors || []),
-            // Always respect lookup result (even if empty) so stale/broken URLs get cleared.
-            coverUrl: data.coverUrl,
+            // Don't update coverUrl - users should use "Find cover" button
             updatedAt: Date.now(),
           };
         })
       );
       saveBooks(updated);
       setBooks(updated);
+      showToast("Books refreshed");
+    } catch (error) {
+      console.error("Failed to refresh books:", error);
+      showToast("Fout bij refreshen");
     } finally {
       setRefreshing(false);
     }
@@ -1406,159 +1320,6 @@ What should I add next? 👀
         </div>
       )}
 
-      {coverPreview && (
-        <div 
-          style={{
-            ...modalOverlay,
-            zIndex: 10000,
-          }} 
-          onClick={handleCloseCoverPreview}
-        >
-          <div 
-            style={{
-              ...modal,
-              maxWidth: 400,
-              padding: 24,
-              zIndex: 10001,
-            }} 
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 style={modalTitle}>Cover gevonden</h2>
-            <p style={{ color: "var(--muted)", margin: "0 0 20px", fontSize: 14 }}>
-              {coverPreview.title}
-            </p>
-            <div
-              style={{
-                width: "100%",
-                aspectRatio: "2 / 3",
-                borderRadius: 12,
-                overflow: "hidden",
-                border: "1px solid var(--border)",
-                background: "var(--panel2)",
-                marginBottom: 24,
-                position: "relative",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {coverPreview.coverUrl && !coverImageError ? (
-                <img
-                  key={`cover-preview-${coverPreview.coverUrl}`}
-                  src={toHttps(coverPreview.coverUrl)}
-                  alt={coverPreview.title}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "contain",
-                    objectPosition: "center",
-                    display: "block",
-                  }}
-                  onLoad={async (e) => {
-                    const img = e.currentTarget;
-                    console.log("✅ Cover preview image loaded successfully!");
-                    console.log("Original URL:", coverPreview.coverUrl);
-                    console.log("Loaded URL:", img.src);
-                    console.log("Image dimensions:", {
-                      naturalWidth: img.naturalWidth,
-                      naturalHeight: img.naturalHeight,
-                      clientWidth: img.clientWidth,
-                      clientHeight: img.clientHeight,
-                    });
-                    
-                    // Check if this looks like a copyright placeholder
-                    // Copyright placeholders are usually very small or have wrong aspect ratio
-                    const aspectRatio = img.naturalWidth / img.naturalHeight;
-                    const isSuspicious = 
-                      img.naturalWidth < 100 || 
-                      img.naturalHeight < 100 ||
-                      aspectRatio < 0.3 || 
-                      aspectRatio > 3.0;
-                    
-                    if (isSuspicious && coverPreview.coverUrl?.includes("books.google.com")) {
-                      console.log("⚠️ Suspicious image dimensions detected, trying Open Library fallback...");
-                      // Try Open Library as fallback
-                      const book = books.find((b) => b.id === coverPreview.bookId);
-                      if (book?.isbn13) {
-                        const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${book.isbn13}-L.jpg?default=false`;
-                        console.log("🔄 Trying Open Library URL:", openLibraryUrl);
-                        // Create a new image to test if Open Library has a better cover
-                        const testImg = new Image();
-                        testImg.onload = () => {
-                          // Open Library image loaded successfully, use it
-                          console.log("✅ Open Library cover found, switching to it");
-                          img.src = openLibraryUrl;
-                        };
-                        testImg.onerror = () => {
-                          console.log("❌ Open Library also failed, keeping Google Books image");
-                          setCoverImageError(false);
-                        };
-                        testImg.src = openLibraryUrl;
-                      } else {
-                        setCoverImageError(false);
-                      }
-                    } else {
-                      setCoverImageError(false);
-                    }
-                  }}
-        onError={(e) => {
-          const img = e.currentTarget;
-                    console.error("❌ Cover preview image FAILED to load");
-                    console.error("Original URL:", coverPreview.coverUrl);
-                    
-                    // Try Open Library as fallback
-                    const book = books.find((b) => b.id === coverPreview.bookId);
-                    if (book?.isbn13) {
-                      const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${book.isbn13}-L.jpg?default=false`;
-                      console.log("🔄 Trying Open Library fallback:", openLibraryUrl);
-                      img.src = openLibraryUrl;
-                    } else {
-                      console.error("❌ No fallback available (no ISBN)");
-                      setCoverImageError(true);
-                      showToast("Fout bij laden cover");
-                    }
-                  }}
-                />
-              ) : coverImageError ? (
-                <div style={{ padding: 20, textAlign: "center", color: "var(--muted)" }}>
-                  <div style={{ marginBottom: 8 }}>⚠️ Cover kon niet worden geladen</div>
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    URL: {coverPreview.coverUrl?.substring(0, 50)}...
-      </div>
-    </div>
-              ) : (
-                <div style={{ padding: 20, textAlign: "center", color: "var(--muted)" }}>
-                  Geen cover URL beschikbaar
-                </div>
-              )}
-            </div>
-            <div style={modalActions}>
-              <button style={btnGhost} onClick={handleCloseCoverPreview}>
-                Sluiten
-              </button>
-              <button style={btnPrimary} onClick={handleSaveCover}>
-                Opslaan
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {coverPreviewLoading && (
-        <div style={modalOverlay}>
-          <div 
-            style={{
-              ...modal,
-              maxWidth: 300,
-              padding: 24,
-            }} 
-          >
-            <p style={{ color: "var(--text)", margin: 0, textAlign: "center" }}>
-              Cover zoeken...
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* DEV ONLY: Test cover lookup */}
       {process.env.NODE_ENV === 'development' && (
@@ -1573,7 +1334,7 @@ What should I add next? 👀
               if (result.coverUrl) {
                 window.open(result.coverUrl, "_blank");
               } else {
-                console.warn("❌ No cover URL found");
+                // No cover URL found
               }
             }}
             style={{
@@ -1776,7 +1537,6 @@ What should I add next? 👀
             const buttonStyle = isRecentlyAdded ? actionButtonCompact : actionButton;
             const titleStyle = isRecentlyAdded ? titleCompact : title;
             const authorStyle = isRecentlyAdded ? authorCompact : author;
-            const coverWrapStyle = isRecentlyAdded ? coverWrapCompact : coverWrap;
             const bookShelf = shelves.find((s) => s.id === b.shelfId);
 
             return (
@@ -1872,16 +1632,6 @@ What should I add next? 👀
                   </>
                 )}
 
-                <Cover
-                  key={`cover-${b.id}-${b.coverUrl || "no-cover"}-${b.updatedAt || 0}`}
-                  isbn13={b.isbn13}
-                  coverUrl={b.coverUrl || ""}
-                  title={b.title}
-                  authors={b.authors || []}
-                  onBadCover={() => handleCoverError(b.id)}
-                  coverWrapStyle={coverWrapStyle}
-                />
-
                 {(() => {
                   const nl = isNlUi();
                   const isCalm = typeof document !== "undefined" && document.documentElement.dataset.mood === "calm";
@@ -1904,75 +1654,80 @@ What should I add next? 👀
                   };
 
                   return (
-                    <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                      <button
-                        type="button"
-                        style={miniLinkBtn}
-                        onClick={() => window.open(googleSummaryUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
-                      >
-                        {nl ? "Samenvatting" : "Summary"}
-                      </button>
+                    <>
+                      {/* cardTop: titel, auteur, ISBN klein */}
+                      <div style={cardTop}>
+                        <div style={titleStyle}>{b.title}</div>
+                        {b.authors?.length ? <div style={authorStyle}>by {b.authors.join(", ")}</div> : null}
+                        {scope === "all" && bookShelf && (
+                          <div style={{
+                            fontSize: 11,
+                            color: "var(--muted2)",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}>
+                            <span>{bookShelf.emoji}</span>
+                            <span>{bookShelf.name}</span>
+                </div>
+                        )}
+                        <span style={{ ...isbn, fontSize: 10 }}>ISBN {b.isbn13}</span>
+              </div>
 
-                      <button
-                        type="button"
-                        style={{
-                          ...miniLinkBtn,
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: 2,
-                          padding: "8px 10px",
-                        }}
-                        onClick={() => window.open(googleCoverUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
-                      >
-                        <span>{nl ? "Cover zoeken" : "Find cover"}</span>
-                        <span style={{ fontSize: 10, opacity: 0.7, fontWeight: 600 }}>
-                          {nl ? "Open in browser" : "Open in browser"}
-                        </span>
-                      </button>
-                    </div>
+                      {/* cardActions: Samenvatting / Cover zoeken */}
+                      <div style={cardActions}>
+                        <button
+                          type="button"
+                          style={miniLinkBtn}
+                          onClick={() => window.open(googleSummaryUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
+                        >
+                          {nl ? "Samenvatting" : "Summary"}
+                        </button>
+
+                        <button
+                          type="button"
+                          style={{
+                            ...miniLinkBtn,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 2,
+                            padding: "8px 10px",
+                          }}
+                          onClick={() => {
+                            const coverUrl = googleCoverUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl);
+                            window.open(coverUrl, "_blank", "noopener,noreferrer");
+                          }}
+                        >
+                          <span>{nl ? "Cover zoeken" : "Find cover"}</span>
+                          <span style={{ fontSize: 10, opacity: 0.7, fontWeight: 600 }}>
+                            {nl ? "Open in browser" : "Open in browser"}
+                          </span>
+                        </button>
+            </div>
+
+                      {/* cardBottom: badge */}
+                      <div style={cardBottom}>
+                        {(() => {
+                          const s = b.status || "TBR";
+                          const label = s === "Finished" ? "Read" : s;
+                          return <span style={badgeFor(s)}>{label}</span>;
+                        })()}
+                        {(b.format || "physical") === "ebook" && (
+                          <span style={{
+                            fontSize: 11,
+                            color: "var(--muted2)",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 3,
+                          }}>
+                            📱
+                          </span>
+                        )}
+                      </div>
+                    </>
                   );
                 })()}
-
-                <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "space-between" }}>
-                  <div style={{ display: "grid", gap: isRecentlyAdded ? 4 : 6, marginTop: isRecentlyAdded ? 8 : 10 }}>
-                    <div style={titleStyle}>{b.title}</div>
-                    {b.authors?.length ? <div style={authorStyle}>by {b.authors.join(", ")}</div> : null}
-                    {scope === "all" && bookShelf && (
-                      <div style={{
-                        marginTop: 2,
-                        fontSize: 11,
-                        color: "var(--muted2)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4,
-                      }}>
-                        <span>{bookShelf.emoji}</span>
-                        <span>{bookShelf.name}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={metaRow}>
-                    {(() => {
-                      const s = b.status || "TBR";
-                      const label = s === "Finished" ? "Read" : s;
-                      return <span style={badgeFor(s)}>{label}</span>;
-                    })()}
-                    {(b.format || "physical") === "ebook" && (
-                      <span style={{
-                        fontSize: 11,
-                        color: "var(--muted2)",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 3,
-                      }}>
-                        📱
-                      </span>
-                    )}
-                    {!isRecentlyAdded && <span style={isbn}>ISBN {b.isbn13}</span>}
-                  </div>
-                </div>
             </div>
             );
           })}
@@ -2185,8 +1940,9 @@ const ShareCard = React.forwardRef<
 
   const slots: Array<string | null> = Array.from({ length: slotCount }, (_, i) => coverUrls[i] || null);
 
-  const CoverTile = ({ src, index }: { src: string | null; index: number }) => {
+  const CoverTile = ({ src, index, title }: { src: string | null; index: number; title?: string }) => {
     const tilt = useTwoByTwo ? 0.22 : 0.35;
+    
     return (
       <div
         style={{
@@ -2202,28 +1958,33 @@ const ShareCard = React.forwardRef<
           transform: isBold ? "none" : index % 2 === 0 ? `rotate(-${tilt}deg)` : `rotate(${tilt}deg)`,
         }}
       >
-        <CoverImg
-          src={src || ""}
-          alt="Book cover"
-          style={{
+        {src ? (
+          <>
+            <CoverImg
+              src={src}
+              alt="Book cover"
+              style={{
   position: "absolute",
   inset: 0,
   width: "100%",
   height: "100%",
   objectFit: "cover",
-            filter: tokens.tileFilter,
-          }}
-        />
-
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0) 35%, rgba(0,0,0,0.20) 100%)",
-            pointerEvents: "none",
-          }}
-        />
+                filter: tokens.tileFilter,
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0) 35%, rgba(0,0,0,0.20) 100%)",
+                pointerEvents: "none",
+              }}
+            />
+          </>
+        ) : (
+          <CoverPlaceholder title={title || "Unknown"} />
+        )}
       </div>
     );
   };
@@ -2363,6 +2124,8 @@ ShareCard.displayName = "ShareCard";
 // Normalize cover URL: force HTTPS and ensure Open Library uses ?default=false
 function normalizeCoverUrl(url: string): string {
   if (!url) return "";
+  if (isBadCoverUrl(url)) return "";
+  
   let u = url.startsWith("http://") ? url.replace("http://", "https://") : url;
 
   // Safety: prevent OpenLibrary placeholder images
@@ -2372,67 +2135,6 @@ function normalizeCoverUrl(url: string): string {
   return u;
 }
 
-// Cover component: always shows placeholder, only shows image if coverUrl exists
-function Cover({
-  isbn13,
-  coverUrl,
-  title,
-  authors,
-  onBadCover,
-  coverWrapStyle,
-}: {
-  isbn13: string;
-  coverUrl: string;
-  title: string;
-  authors: string[];
-  onBadCover?: () => void;
-  coverWrapStyle: React.CSSProperties;
-}) {
-  const [imageFailed, setImageFailed] = useState(false);
-  const src = normalizeCoverUrl(coverUrl);
-
-  // Reset failed state when src changes
-  useEffect(() => {
-    setImageFailed(false);
-  }, [src]);
-
-  return (
-    <div style={coverWrapStyle}>
-      {/* Altijd onze eigen rustige placeholder achtergrond */}
-      <div style={coverPlaceholder}>
-        <div style={{ fontSize: 28, lineHeight: 1 }}>📖</div>
-        <div style={{ fontWeight: 950, fontSize: 16, lineHeight: 1.2 }}>
-          {title || "Onbekende titel"}
-        </div>
-        {authors?.length ? (
-          <div style={{ marginTop: 6, fontSize: 12, color: "#d8d8ff" }}>
-            {authors.join(", ")}
-          </div>
-        ) : null}
-        <div style={{ marginTop: 10, fontSize: 12, color: "#b7b7b7" }}>
-          ISBN {isbn13}
-        </div>
-      </div>
-
-      {/* Alleen een <img> tonen als er echt een coverUrl is EN de image niet is gefaald */}
-      {src && !imageFailed ? (
-        <img
-          src={src}
-          alt={title || "Cover"}
-          style={coverImg}
-          loading="lazy"
-          decoding="async"
-          referrerPolicy="no-referrer"
-          onError={() => {
-            // Als cover stuk is: verberg image en val terug op placeholder (geen witte browser placeholder!)
-            setImageFailed(true);
-            onBadCover?.();
-          }}
-        />
-      ) : null}
-    </div>
-  );
-}
 
 /* ------- styles ------- */
 
@@ -2860,7 +2562,8 @@ const grid: React.CSSProperties = {
   gap: 14,
   marginTop: 14,
   gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-  gridAutoRows: "1fr", // Force all rows to have equal height
+  gridAutoRows: "1fr",
+  alignItems: "stretch", // All cards stretch to same height
   position: "relative",
   zIndex: 1,
 };
@@ -2869,69 +2572,51 @@ const card: React.CSSProperties = {
   background: "var(--panel)",
   border: "1px solid var(--border)",
   borderRadius: 18,
-  padding: 10,
+  padding: 14,
   boxShadow: `0 14px 34px var(--shadow)`,
   animation: "popIn 420ms ease both",
   display: "flex",
   flexDirection: "column",
+  gap: 10,
   height: "100%",
-  minHeight: 450, // Ensure consistent card height
+  minHeight: 210,
 };
 
 const cardCompact: React.CSSProperties = {
   background: "var(--panel)",
   border: "1px solid var(--border)",
   borderRadius: 14,
-  padding: 7.5, // ~25% reduction from 10px
-  boxShadow: `0 8px 20px var(--shadow)`, // Softer shadow
+  padding: 14,
+  boxShadow: `0 8px 20px var(--shadow)`,
   animation: "popIn 420ms ease both",
   display: "flex",
   flexDirection: "column",
+  gap: 10,
   height: "100%",
-  minHeight: 450, // Ensure consistent card height (same as regular card)
+  minHeight: 210,
 };
 
-const coverWrap: React.CSSProperties = {
-  position: "relative",
-  width: "100%",
-  borderRadius: 14,
-  overflow: "hidden",
-  aspectRatio: "2 / 3",
-};
-
-const coverWrapCompact: React.CSSProperties = {
-  position: "relative",
-  width: "100%",
-  borderRadius: 10,
-  overflow: "hidden",
-  height: 120,
-  aspectRatio: "2 / 3",
-};
-
-const coverImg: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  width: "100%",
-  height: "100%",
-  objectFit: "cover",
-  display: "block",
-  zIndex: 1,
-};
-
-const coverPlaceholder: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  width: "100%",
-  height: "100%",
+const cardTop: React.CSSProperties = {
+  flex: "1 1 auto",
+  minHeight: 84,
   display: "flex",
   flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "linear-gradient(135deg, rgba(109,94,252,0.15), rgba(255,73,240,0.10))",
-  padding: 16,
-  textAlign: "center",
-  zIndex: 0,
+  gap: 6,
 };
+
+const cardActions: React.CSSProperties = {
+  display: "flex",
+  gap: 10,
+  flexWrap: "wrap",
+};
+
+const cardBottom: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginTop: "auto",
+};
+
 
 const title: React.CSSProperties = {
   fontSize: 15,

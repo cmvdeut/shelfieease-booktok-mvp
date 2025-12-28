@@ -4,6 +4,25 @@ export type LookupResult = {
   coverUrl: string; // may be "" -> UI shows placeholder
 };
 
+/**
+ * Check if a cover URL is a known "bad cover" placeholder.
+ * Returns true if the URL should be rejected (treated as no cover).
+ */
+export function isBadCoverUrl(url?: string | null): boolean {
+  if (!url) return true;
+  const u = url.toLowerCase();
+
+  // Google "no cover" placeholders / transparant gif / etc.
+  if (u.includes("books.google.com") && u.includes("image") && u.includes("not") && u.includes("available")) return true;
+
+  // Sommige varianten:
+  if (u.includes("image_not_available")) return true;
+
+  // Open Library: default=false geeft 404 als er geen cover is — die laten we al checken,
+  // maar als er tóch iets als 1x1 terugkomt kan dit ook nog afgevangen worden via CoverImg (zie opdracht 2).
+  return false;
+}
+
 type GoogleBooksVolume = {
   id?: string;
   volumeInfo?: {
@@ -307,25 +326,30 @@ export async function lookupByIsbn(isbn13: string): Promise<LookupResult> {
   }
 
   // --- 2) Open Library fallback if Google Books didn't provide a cover ---
-  if (!coverUrl) {
+  let foundCoverUrl = coverUrl;
+  if (!foundCoverUrl) {
     // Try Open Library via search.json (prevents 404 spam)
     // IMPORTANT: openLibraryCoverByIsbn returns "" (empty string) if no cover found
     // This ensures we never get Open Library placeholder images
     const ol13 = await openLibraryCoverByIsbn(clean);
     if (ol13) {
-      coverUrl = ol13;
+      foundCoverUrl = ol13;
     } else {
       // If ISBN-13 didn't work, try ISBN-10
       const isbn10 = isbn13to10(clean);
       if (isbn10) {
         const ol10 = await openLibraryCoverByIsbn(isbn10);
         if (ol10) {
-          coverUrl = ol10;
+          foundCoverUrl = ol10;
         }
       }
     }
   }
 
+  // --- 3) Final check: reject known bad cover URLs ---
+  coverUrl = foundCoverUrl || "";
+  if (isBadCoverUrl(coverUrl)) coverUrl = "";
+  
   // IMPORTANT: If no cover found from any source, return empty string
   // This ensures UI shows our own placeholder, not Open Library's "image not available"
   return { title, authors, coverUrl };
