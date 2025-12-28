@@ -24,7 +24,7 @@ import {
   type Mood,
 } from "@/lib/storage";
 
-import { getMood } from "@/components/MoodProvider";
+import { getMood, type Mood as DocumentMood } from "@/components/MoodProvider";
 
 import { lookupByIsbn, isBadCoverUrl } from "@/lib/lookup";
 import { CoverImg } from "@/components/CoverImg";
@@ -66,9 +66,14 @@ export default function LibraryPage() {
   const router = useRouter();
   const [books, setBooks] = useState<Book[]>([]);
   const [shelves, setShelves] = useState<Shelf[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
   const [activeShelfId, setActiveShelfIdState] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [currentMood, setCurrentMood] = useState<DocumentMood>(() => {
+    if (typeof window !== "undefined") {
+      return getMood();
+    }
+    return "default";
+  });
   const [pendingIsbn, setPendingIsbn] = useState<string | null>(null);
   const [pendingData, setPendingData] = useState<{ title?: string; authors?: string[]; coverUrl?: string } | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -109,8 +114,8 @@ export default function LibraryPage() {
   const [copyImageStatus, setCopyImageStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [copyCaptionStatus, setCopyCaptionStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [searchQuery, setSearchQuery] = useState("");
-  const [scope, setScope] = useState<"shelf" | "all">("shelf");
-  const [statusFilter, setStatusFilter] = useState<Set<BookStatus>>(new Set(["TBR", "Reading", "Finished"]));
+  const [scope, setScope] = useState<"shelf" | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<Set<BookStatus>>(new Set());
   const [sortBy, setSortBy] = useState<"recent" | "title" | "author">("recent");
 
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -163,6 +168,30 @@ export default function LibraryPage() {
       }
     })();
   }, [router]);
+
+  // Listen for mood changes to force re-render and apply CSS variables immediately
+  useEffect(() => {
+    const handleMoodChange = () => {
+      const newMood = getMood();
+      setCurrentMood(newMood);
+    };
+    
+    // Listen for custom moodchange event
+    window.addEventListener("moodchange", handleMoodChange);
+    
+    // Also check on mount and periodically (as fallback)
+    const intervalId = setInterval(() => {
+      const newMood = getMood();
+      if (newMood !== currentMood) {
+        setCurrentMood(newMood);
+      }
+    }, 100);
+    
+    return () => {
+      window.removeEventListener("moodchange", handleMoodChange);
+      clearInterval(intervalId);
+    };
+  }, [currentMood]);
 
   useEffect(() => {
     // Ensure default shelves exist
@@ -522,34 +551,6 @@ export default function LibraryPage() {
 
   // Removed handleSearchCover - users should use "Find cover" button instead
 
-
-  async function refreshCovers() {
-    setRefreshing(true);
-    try {
-      const current = loadBooks();
-      const updated = await Promise.all(
-        current.map(async (b) => {
-          const data = await lookupByIsbn(b.isbn13);
-          return {
-            ...b,
-            title: b.title && b.title !== "Unknown title" ? b.title : (data.title || b.title),
-            authors: b.authors?.length ? b.authors : (data.authors || b.authors || []),
-            // Don't update coverUrl - users should use "Find cover" button
-            updatedAt: Date.now(),
-          };
-        })
-      );
-      saveBooks(updated);
-      setBooks(updated);
-      showToast("Books refreshed");
-    } catch (error) {
-      console.error("Failed to refresh books:", error);
-      showToast("Fout bij refreshen");
-    } finally {
-      setRefreshing(false);
-    }
-  }
-
   async function handleShareShelf() {
     if (!shareCardRef.current || !activeShelf) return;
 
@@ -773,10 +774,6 @@ What should I add next? 👀
             pointerEvents: showShelfDropdown ? "none" : "auto",
           }}
         >
-          <button style={btnGhost} onClick={refreshCovers} disabled={refreshing}>
-            {refreshing ? "Refreshing…" : "Refresh covers"}
-          </button>
-
           {/* Only show Share Shelfie if total books >= 2 and add modal is not open */}
           {showShareButton && (
             <button
@@ -1320,39 +1317,6 @@ What should I add next? 👀
         </div>
       )}
 
-
-      {/* DEV ONLY: Test cover lookup */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{ padding: "16px", display: "flex", justifyContent: "center" }}>
-          <button
-            type="button"
-            onClick={async () => {
-              console.log("🧪 Testing cover lookup for ISBN: 9789401615877");
-              const result = await lookupByIsbn("9789401615877");
-              console.log("📋 Lookup result:", result);
-              console.log("🖼️ Cover URL:", result.coverUrl);
-              if (result.coverUrl) {
-                window.open(result.coverUrl, "_blank");
-              } else {
-                // No cover URL found
-              }
-            }}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 8,
-              border: "1px solid var(--border)",
-              background: "var(--accentSoft)",
-              color: "var(--text)",
-              fontSize: 14,
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            🧪 Test cover
-          </button>
-        </div>
-      )}
-
       {/* Search and Filters */}
       {activeBooks.length > 0 && (
         <div style={{ padding: "0 16px 16px", display: "grid", gap: 12 }}>
@@ -1573,7 +1537,7 @@ What should I add next? 👀
                             onClick={() => handleMoveBook(b.id, shelf.id)}
                           >
                             <span>{shelf.emoji}</span>
-                            <span>{shelf.name}</span>
+                            <span style={{ color: "var(--accent1)" }}>{shelf.name}</span>
                             {shelf.id === b.shelfId && <span style={{ fontSize: 10 }}>✓</span>}
                           </button>
                         ))}
@@ -1686,23 +1650,13 @@ What should I add next? 👀
 
                         <button
                           type="button"
-                          style={{
-                            ...miniLinkBtn,
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            gap: 2,
-                            padding: "8px 10px",
-                          }}
+                          style={miniLinkBtn}
                           onClick={() => {
                             const coverUrl = googleCoverUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl);
                             window.open(coverUrl, "_blank", "noopener,noreferrer");
                           }}
                         >
-                          <span>{nl ? "Cover zoeken" : "Find cover"}</span>
-                          <span style={{ fontSize: 10, opacity: 0.7, fontWeight: 600 }}>
-                            {nl ? "Open in browser" : "Open in browser"}
-                          </span>
+                          {nl ? "Cover zoeken" : "Find cover"}
                         </button>
             </div>
 
@@ -2142,6 +2096,8 @@ const page: React.CSSProperties = {
   padding: 16,
   maxWidth: 1060,
   margin: "0 auto",
+  backgroundColor: "var(--accentSoft2)",
+  color: "var(--text)",
 };
 
 const hero: React.CSSProperties = {
@@ -2525,7 +2481,7 @@ const actionMenuItem: React.CSSProperties = {
 
 const actionMenuItemActive: React.CSSProperties = {
   background: "rgba(109,94,252,0.18)",
-  color: "#d8d8ff",
+  color: "var(--accentSoft2)",
 };
 
 const actionMenuDivider: React.CSSProperties = {
