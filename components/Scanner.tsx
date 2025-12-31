@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { canAddBook } from "@/lib/demo";
 
 export type ScannerProps = {
   onDetected: (code: string) => void;
@@ -8,6 +10,7 @@ export type ScannerProps = {
 };
 
 export function Scanner({ onDetected, onClose }: ScannerProps) {
+  const router = useRouter();
   // Use useRef instead of useMemo to avoid hydration mismatch
   // Generate ID only once on client mount
   const regionIdRef = useRef<string | null>(null);
@@ -115,35 +118,44 @@ export function Scanner({ onDetected, onClose }: ScannerProps) {
         const containerWidth = container.clientWidth || 300;
         const containerHeight = container.clientHeight || 200;
         
+        const scanConfig = {
+          fps: isMobileDevice ? 10 : 8, // Slightly lower FPS for better quality per frame
+          // Optimized scan area for better focus
+          qrbox: isAndroid
+            ? { width: Math.min(containerWidth * 0.85, 350), height: Math.min(containerHeight * 0.85, 300) }
+            : isMobileDevice
+            ? { width: Math.min(containerWidth * 0.9, 300), height: Math.min(containerHeight * 0.7, 400) } // Larger scan area for iPhone
+            : { width: 300, height: 120 },
+          aspectRatio: isMobileDevice ? 1.0 : 16 / 9,
+          disableFlip: false, // Allow rotation for better detection on all angles
+          videoConstraints: {
+            facingMode: "environment",
+            width: { ideal: isAndroid ? 1280 : 1280 },
+            height: { ideal: isAndroid ? 720 : 720 },
+          } as any,
+          // Additional options for better Android detection
+          ...(isAndroid && {
+            experimentalFeatures: {
+              useBarCodeDetectorIfSupported: true,
+            },
+          }),
+        } as any;
+
         await qr.start(
           { facingMode: "environment" },
-          {
-            fps: isMobileDevice ? 10 : 8, // Slightly lower FPS for better quality per frame
-            // Optimized scan area for better focus
-            qrbox: isAndroid
-              ? { width: Math.min(containerWidth * 0.85, 350), height: Math.min(containerHeight * 0.85, 300) }
-              : isMobileDevice ? { width: Math.min(containerWidth * 0.9, 300), height: Math.min(containerHeight * 0.7, 400) } // Larger scan area for iPhone
-              : { width: 300, height: 120 },
-            aspectRatio: isMobileDevice ? 1.0 : 16 / 9,
-            disableFlip: false, // Allow rotation for better detection on all angles
-            
-            videoConstraints: {
-              facingMode: "environment",
-              width: { ideal: isAndroid ? 1280 : 1280 },
-              height: { ideal: isAndroid ? 720 : 720 },
-              
-            } as any,
-            // Additional options for better Android detection
-            ...(isAndroid && {
-              experimentalFeatures: {
-                useBarCodeDetectorIfSupported: true,
-              } as any,
-            }),
-          },
+          scanConfig,
           async (decodedText) => {
             if (!mountedRef.current) return;
 
             const text = decodedText.trim();
+
+            // Check demo limit before adding book
+            if (!canAddBook()) {
+              // Stop camera and redirect to library to show demo limit modal
+              await stopAndClear();
+              router.push(`/library?showDemoLimit=true`);
+              return;
+            }
 
             // Stop camera asap, then callback
             await stopAndClear();
@@ -187,6 +199,8 @@ export function Scanner({ onDetected, onClose }: ScannerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onDetected]); // regionId is now stable via ref, no need in deps
 
+  const mobileHeight = "min(600px, calc(100dvh - 180px))";
+
   return (
     <div className="w-full">
       <div className="flex justify-end gap-2 mb-3">
@@ -207,7 +221,8 @@ export function Scanner({ onDetected, onClose }: ScannerProps) {
         id={regionId}
         style={{
           width: "100%",
-          height: isMobile ? "min(600px, calc(100dvh - 180px))" // Increased height for iPhone, use more viewport space
+          height: isMobile 
+            ? mobileHeight // Increased height for iPhone, use more viewport space
             : 200,
           minHeight: isMobile ? 400 : 200, // Increased minimum height for better scanning area
           borderRadius: 16,
