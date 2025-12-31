@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useRef } from "react";
 
@@ -137,12 +137,12 @@ export function Scanner({ onDetected, onClose }: ScannerProps) {
                 { focusMode: "continuous" },
                 { whiteBalanceMode: "continuous" },
               ],
-            },
+            } as any,
             // Additional options for better Android detection
             ...(isAndroid && {
               experimentalFeatures: {
                 useBarCodeDetectorIfSupported: true,
-              },
+              } as any,
             }),
           },
           async (decodedText) => {
