@@ -53,12 +53,11 @@ export default function ScanPage() {
   return (
     <div style={{ 
       minHeight: "100dvh",
-      minHeight: "-webkit-fill-available", // iOS Safari fix
       padding: "16px 16px env(safe-area-inset-bottom, 40px)",
       paddingTop: "env(safe-area-inset-top, 16px)",
       background: "var(--bg)", 
       color: "var(--text)" 
-    }}>
+    }} className="scan-page-container">
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
         <button

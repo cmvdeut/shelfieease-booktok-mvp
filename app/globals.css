@@ -24,3 +24,8 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* iOS Safari viewport height fix */
+.scan-page-container {
+  min-height: -webkit-fill-available;
+}
