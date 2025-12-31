@@ -677,6 +677,18 @@ export default function LibraryPage() {
   async function startCheckout() {
     setCheckoutLoading(true);
     try {
+      // First check which env vars are missing (for debugging)
+      const envCheck = await fetch("/api/check-env").catch(() => null);
+      if (envCheck) {
+        const envStatus = await envCheck.json().catch(() => null);
+        if (envStatus && !envStatus.allSet) {
+          const missing = Object.entries(envStatus.required)
+            .filter(([_, isSet]) => !isSet)
+            .map(([name]) => name);
+          console.error("Missing environment variables:", missing);
+        }
+      }
+
       const res = await fetch("/api/checkout", { method: "POST" });
       
       if (!res.ok) {
@@ -685,7 +697,20 @@ export default function LibraryPage() {
         
         // Check if it's a missing environment variables error
         const errorText = errorData?.error || "";
-        if (errorText.includes("Missing environment variables") || errorText.includes("STRIPE")) {
+        if (errorText.includes("Missing environment variables")) {
+          // Extract missing vars from error message
+          const missingMatch = errorText.match(/Missing environment variables: ([^.]+)/);
+          const missingVars = missingMatch ? missingMatch[1] : "some variables";
+          console.error("Missing vars:", missingVars);
+          
+          showToast(
+            t({ 
+              nl: `Payment setup incomplete. Missing: ${missingVars}`, 
+              en: `Payment setup incomplete. Missing: ${missingVars}` 
+            }, lang),
+            6000
+          );
+        } else if (errorText.includes("STRIPE")) {
           showToast(
             t({ 
               nl: "Payment setup incomplete. Please contact support.", 
