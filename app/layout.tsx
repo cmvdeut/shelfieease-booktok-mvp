@@ -9,13 +9,14 @@ import UiBoot from "@/components/UiBoot";
 export const metadata = {
   title: "ShelfieEase",
   description: "Scan books. Build your shelf. Share the vibe.",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-    viewportFit: "cover", // For iPhone safe areas
-  },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover", // For iPhone safe areas
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
