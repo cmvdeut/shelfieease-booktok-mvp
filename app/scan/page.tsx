@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Scanner from "@/components/Scanner";
 import { detectUiLang, t } from "@/lib/i18n";
+import { canAddBook } from "@/lib/demo";
 
 function normalizeIsbn(raw: string) {
   return raw.toUpperCase().replace(/[^0-9X]/g, "");
@@ -38,6 +39,13 @@ export default function ScanPage() {
     (isbn: string) => {
       setLastScan(isbn);
 
+      // Check demo limit before navigating
+      if (!canAddBook()) {
+        // Navigate to library to show demo limit modal
+        router.push(`/library?showDemoLimit=true`);
+        return;
+      }
+
       // Navigate to library with addIsbn parameter
       router.push(`/library?addIsbn=${encodeURIComponent(isbn)}`);
     },
@@ -47,6 +55,14 @@ export default function ScanPage() {
   const submitManual = useCallback(() => {
     const v = manualNormalized;
     if (!v) return;
+
+    // Check demo limit before navigating
+    if (!canAddBook()) {
+      // Navigate to library to show demo limit modal
+      router.push(`/library?showDemoLimit=true`);
+      return;
+    }
+
     router.push(`/library?addIsbn=${encodeURIComponent(v)}`);
   }, [manualNormalized, router]);
 
