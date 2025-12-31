@@ -680,14 +680,28 @@ export default function LibraryPage() {
       const res = await fetch("/api/checkout", { method: "POST" });
       
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        const errorData = await res.json().catch(() => ({ error: "" }));
         console.error("Checkout API error:", res.status, errorData);
-        showToast(
-          t({ 
-            nl: `Fout bij openen betaalpagina: ${errorData.error || res.statusText}`, 
-            en: `Error opening payment page: ${errorData.error || res.statusText}` 
-          }, lang)
-        );
+        
+        // Check if it's a missing environment variables error
+        const errorText = errorData?.error || "";
+        if (errorText.includes("Missing environment variables") || errorText.includes("STRIPE")) {
+          showToast(
+            t({ 
+              nl: "Payment setup incomplete. Please contact support.", 
+              en: "Payment setup incomplete. Please contact support." 
+            }, lang),
+            5000
+          );
+        } else {
+          showToast(
+            t({ 
+              nl: "Could not open payment page. Please try again.", 
+              en: "Could not open payment page. Please try again." 
+            }, lang),
+            4000
+          );
+        }
         setCheckoutLoading(false);
         return;
       }
@@ -699,20 +713,21 @@ export default function LibraryPage() {
         console.error("No checkout URL received", data);
         showToast(
           t({ 
-            nl: `Fout: ${data.error || "Geen checkout URL ontvangen"}`, 
-            en: `Error: ${data.error || "No checkout URL received"}` 
-          }, lang)
+            nl: "Payment page unavailable. Please try again.", 
+            en: "Payment page unavailable. Please try again." 
+          }, lang),
+          4000
         );
         setCheckoutLoading(false);
       }
     } catch (error) {
       console.error("Checkout error:", error);
-      const errorMsg = error instanceof Error ? error.message : String(error);
       showToast(
         t({ 
-          nl: `Fout bij openen betaalpagina: ${errorMsg}`, 
-          en: `Error opening payment page: ${errorMsg}` 
-        }, lang)
+          nl: "Connection error. Please check your internet.", 
+          en: "Connection error. Please check your internet." 
+        }, lang),
+        4000
       );
       setCheckoutLoading(false);
     }
@@ -2034,7 +2049,8 @@ What should I add next? 👀
             pointerEvents: "none",
             color: "var(--text)",
             fontSize: 14,
-            whiteSpace: "nowrap",
+            maxWidth: "calc(100vw - 40px)",
+            textAlign: "center",
             boxShadow: `0 8px 24px var(--shadow)`,
             opacity: 0.95,
           }}
