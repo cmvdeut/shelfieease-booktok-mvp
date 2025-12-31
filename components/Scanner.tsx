@@ -207,8 +207,7 @@ export function Scanner({ onDetected, onClose }: ScannerProps) {
         id={regionId}
         style={{
           width: "100%",
-          height: isMobile 
-            ? min(600px, calc(100dvh - 180px)) // Increased height for iPhone, use more viewport space
+          height: isMobile ? "min(600px, calc(100dvh - 180px))" // Increased height for iPhone, use more viewport space
             : 200,
           minHeight: isMobile ? 400 : 200, // Increased minimum height for better scanning area
           borderRadius: 16,
