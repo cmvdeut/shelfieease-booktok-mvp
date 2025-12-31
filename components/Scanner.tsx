@@ -127,7 +127,7 @@ export function Scanner({ onDetected, onClose }: ScannerProps) {
               : { width: 300, height: 120 },
             aspectRatio: isMobileDevice ? 1.0 : 16 / 9,
             disableFlip: false, // Allow rotation for better detection on all angles
-            rememberLastUsedCameraDevice: true,
+            
             videoConstraints: {
               facingMode: "environment",
               width: { ideal: isAndroid ? 1280 : 1280 },
