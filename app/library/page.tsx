@@ -31,6 +31,7 @@ import { CoverImg } from "@/components/CoverImg";
 import { CoverPlaceholder } from "@/components/CoverPlaceholder";
 import { toBlob } from "html-to-image";
 import { detectUiLang, t } from "@/lib/i18n";
+import { canAddBook, demoRemaining, isProUser } from "@/lib/demo";
 
 // Helper functions
 function isNlUi(): boolean {
@@ -88,9 +89,9 @@ export default function LibraryPage() {
   const [newShelfEmoji, setNewShelfEmoji] = useState("📚");
   const [showNewShelfInAddModal, setShowNewShelfInAddModal] = useState(false);
 
-  const showToast = useCallback((message: string) => {
+  const showToast = useCallback((message: string, duration: number = 2000) => {
     setToast(message);
-    window.setTimeout(() => setToast(null), 2000);
+    window.setTimeout(() => setToast(null), duration);
   }, []);
 
 
@@ -112,6 +113,12 @@ export default function LibraryPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [shareCoverUrls, setShareCoverUrls] = useState<string[]>([]);
+  const [shareBookTitles, setShareBookTitles] = useState<string[]>([]);
+  const [shareBookAuthors, setShareBookAuthors] = useState<string[][]>([]);
+  const [shareBookIsbns, setShareBookIsbns] = useState<string[]>([]);
+  const [shareBookCount, setShareBookCount] = useState<1 | 2>(2);
+  const [shareMood, setShareMood] = useState<"aesthetic" | "bold" | "calm">("aesthetic");
+  const [showShareBookCountModal, setShowShareBookCountModal] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareBlob, setShareBlob] = useState<Blob | null>(null);
   const [shareFilename, setShareFilename] = useState("");
@@ -120,6 +127,7 @@ export default function LibraryPage() {
   const [copyCaptionStatus, setCopyCaptionStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [searchQuery, setSearchQuery] = useState("");
   const [duplicateWarning, setDuplicateWarning] = useState<{ isbn: string; existingShelf: Shelf | null } | null>(null);
+  const [showDemoLimitModal, setShowDemoLimitModal] = useState(false);
   const [scope, setScope] = useState<"shelf" | "all">("all");
   const [statusFilter, setStatusFilter] = useState<Set<BookStatus>>(new Set());
   const [sortBy, setSortBy] = useState<"recent" | "title" | "author">("recent");
@@ -187,6 +195,16 @@ export default function LibraryPage() {
   const shareCardRef = useRef<HTMLDivElement>(null);
   const handledIsbnRef = useRef<string | null>(null);
 
+
+  // Handle showDemoLimit query parameter
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("showDemoLimit") === "true") {
+      setShowDemoLimitModal(true);
+      router.replace("/library");
+    }
+  }, [router]);
 
   // Handle addIsbn query parameter - open modal instead of auto-adding
   useEffect(() => {
@@ -570,6 +588,12 @@ export default function LibraryPage() {
   function addBookToShelfInternal() {
     if (!pendingIsbn || !targetShelfId) return;
 
+    // Check demo limit before adding book
+    if (!canAddBook()) {
+      setShowDemoLimitModal(true);
+      return;
+    }
+
     const now = Date.now();
     const book: Book = {
       id: pendingIsbn,
@@ -585,6 +609,14 @@ export default function LibraryPage() {
 
     upsertBook(book);
     handleBookAdded();
+    
+    // Check remaining books for demo feedback
+    const remaining = demoRemaining();
+    if (remaining === 1) {
+      showToast(t({ nl: "✨ Nog 1 boek over in de demo", en: "✨ 1 book remaining in demo" }, lang), 5000); // 5 seconds
+    } else if (remaining === 0) {
+      showToast(t({ nl: "🎉 Demo compleet", en: "🎉 Demo complete" }, lang), 5000); // 5 seconds
+    }
     
     // Reset state and clean URL
     setAddModalOpen(false);
@@ -640,10 +672,23 @@ export default function LibraryPage() {
   // Removed handleSearchCover - users should use "Find cover" button instead
 
   async function handleShareShelf() {
+    if (!activeShelf) return;
+    
+    // Show modal to choose 1 or 2 books
+    setShowShareBookCountModal(true);
+  }
+
+  async function generateShareCard(bookCount: 1 | 2) {
     if (!shareCardRef.current || !activeShelf) return;
 
     setSharing(true);
+    setShowShareBookCountModal(false);
     try {
+      // Capture current mood at generation time
+      const currentMood = typeof document !== "undefined" ? (document.documentElement.dataset.mood || "default") : "default";
+      const capturedMood: "aesthetic" | "bold" | "calm" = currentMood === "bold" ? "bold" : currentMood === "calm" ? "calm" : "aesthetic";
+      setShareMood(capturedMood);
+      
       const title = `${activeShelf.emoji || "📚"} ${activeShelf.name}`;
       const isMobile =
         typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -661,30 +706,54 @@ export default function LibraryPage() {
       }
 
       const picked: string[] = [];
+      const pickedTitles: string[] = [];
+      const pickedAuthors: string[][] = [];
+      const pickedIsbns: string[] = [];
       const seen = new Set<string>();
 
       for (const b of activeBooks) {
-        if (picked.length >= 6) break;
+        if (picked.length >= bookCount) break;
 
+        const bookTitle = b.title || "Unknown";
+        const bookAuthors = b.authors || [];
+        const bookIsbn = b.isbn13 || "";
         const candidates = [
           // IMPORTANT: do not synthesize Open Library URLs here; it produces 404 spam
           // (and the ShareCard already has placeholders for missing covers).
           b.coverUrl ? toHttps(b.coverUrl) : "",
         ].filter(Boolean);
 
+        let foundCover = false;
         for (const url of candidates) {
-          if (picked.length >= 6) break;
+          if (picked.length >= bookCount) break;
           if (seen.has(url)) continue;
           seen.add(url);
           if (await canUseCover(url)) {
             picked.push(url);
+            pickedTitles.push(bookTitle);
+            pickedAuthors.push(bookAuthors);
+            pickedIsbns.push(bookIsbn);
+            seen.add(url);
+            foundCover = true;
             break; // use first working candidate per book
           }
         }
+
+        // If no valid cover found, still add the book with empty cover URL but with title, authors, and ISBN
+        if (!foundCover && picked.length < bookCount) {
+          picked.push("");
+          pickedTitles.push(bookTitle);
+          pickedAuthors.push(bookAuthors);
+          pickedIsbns.push(bookIsbn);
+        }
       }
 
-      // Update the hidden ShareCard contents (covers) before capture.
+      // Update the hidden ShareCard contents (covers, titles, authors, and ISBNs) before capture.
       setShareCoverUrls(picked);
+      setShareBookTitles(pickedTitles);
+      setShareBookAuthors(pickedAuthors);
+      setShareBookIsbns(pickedIsbns);
+      setShareBookCount(bookCount);
       await new Promise<void>((r) => requestAnimationFrame(() => r()));
 
       const blob = await toBlob(shareCardRef.current, {
@@ -897,8 +966,11 @@ What should I add next? 👀
 
       {/* Hidden Share Card for rendering */}
       {activeShelf && (() => {
-        const currentMood = typeof document !== "undefined" ? document.documentElement.dataset.mood : "default";
+        // Use captured mood from state, fallback to current mood if not set
+        const currentMood = shareMood || (typeof document !== "undefined" ? (document.documentElement.dataset.mood || "default") : "default");
+        // Preserve the mood: bold -> bold, calm -> aesthetic (calm style), default/aesthetic -> aesthetic
         const shareVariant: "aesthetic" | "bold" = currentMood === "bold" ? "bold" : "aesthetic";
+        const finalMood: "aesthetic" | "bold" | "calm" = currentMood === "calm" ? "calm" : currentMood === "bold" ? "bold" : "aesthetic";
         return (
           <div style={{ position: "fixed", left: "-10000px", top: 0, opacity: 0, pointerEvents: "none" }}>
             <ShareCard
@@ -906,7 +978,12 @@ What should I add next? 👀
               mode="shelfie"
               shelf={activeShelf}
               coverUrls={shareCoverUrls}
+              bookTitles={shareBookTitles}
+              bookAuthors={shareBookAuthors}
+              bookIsbns={shareBookIsbns}
+              bookCount={shareBookCount}
               variant={shareVariant}
+              mood={finalMood}
               stats={stats}
             />
           </div>
@@ -1451,6 +1528,68 @@ What should I add next? 👀
         </div>
       )}
 
+      {showShareBookCountModal && (
+        <div style={modalOverlay} onClick={() => setShowShareBookCountModal(false)}>
+          <div style={modal} onClick={(e) => e.stopPropagation()}>
+            <h2 style={modalTitle}>{t({ nl: "Kies aantal boeken", en: "Choose number of books" }, lang)}</h2>
+            <p style={{ color: "var(--muted)", lineHeight: 1.5, marginBottom: 24 }}>
+              {t({ nl: "Hoeveel boeken wil je delen?", en: "How many books do you want to share?" }, lang)}
+            </p>
+            <div style={modalActions}>
+              <button
+                style={btnPrimary}
+                onClick={() => generateShareCard(1)}
+                disabled={sharing || activeBooks.length < 1}
+              >
+                {t({ nl: "1 boek", en: "1 book" }, lang)}
+              </button>
+              <button
+                style={btnPrimary}
+                onClick={() => generateShareCard(2)}
+                disabled={sharing || activeBooks.length < 2}
+              >
+                {t({ nl: "2 boeken", en: "2 books" }, lang)}
+              </button>
+              <button style={btnGhost} onClick={() => setShowShareBookCountModal(false)}>
+                {copy.cancel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDemoLimitModal && (
+        <div style={modalOverlay} onClick={() => setShowDemoLimitModal(false)}>
+          <div style={modal} onClick={(e) => e.stopPropagation()}>
+            <h2 style={modalTitle}>{t({ nl: "Demo bereikt ✨", en: "Demo limit reached ✨" }, lang)}</h2>
+            <p style={{ color: "var(--muted)", lineHeight: 1.5 }}>
+              {t({ nl: "Je hebt 10 boeken opgeslagen.", en: "You have saved 10 books." }, lang)}
+              <br />
+              {t({ nl: "Ontgrendel onbeperkt boeken en shelves.", en: "Unlock unlimited books and shelves." }, lang)}
+            </p>
+
+            <div style={modalActions}>
+              <button
+                style={btnPrimary}
+                onClick={() => {
+                  // later: betaalflow
+                  alert(t({ nl: "Betaalde versie komt hier", en: "Paid version coming here" }, lang));
+                }}
+              >
+                {t({ nl: "Ontgrendel volledig", en: "Unlock fully" }, lang)}
+              </button>
+
+              <button
+                style={btnGhost}
+                onClick={() => setShowDemoLimitModal(false)}
+              >
+                {t({ nl: "Later", en: "Later" }, lang)}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Search and Filters */}
       {activeBooks.length > 0 && (
         <div style={{ padding: "0 16px 16px", display: "grid", gap: 12 }}>
@@ -1860,6 +1999,12 @@ What should I add next? 👀
         </div>
       )}
 
+      {!isProUser() && (
+        <div style={{ fontSize: 11, opacity: 0.6, marginTop: 8, textAlign: "center", padding: "16px", color: "var(--muted)" }}>
+          {t({ nl: "Demo-versie · max. 10 boeken", en: "Demo version · max. 10 books" }, lang)}
+        </div>
+      )}
+
     </main>
   );
 }
@@ -2016,28 +2161,37 @@ const ShareCard = React.forwardRef<
     mode?: "share" | "shelfie";
     shelf: Shelf;
     coverUrls: string[];
+    bookTitles?: string[];
+    bookAuthors?: string[][];
+    bookIsbns?: string[];
+    bookCount?: 1 | 2;
     variant: ShareCardVariant;
+    mood?: "aesthetic" | "bold" | "calm";
     stats: { total: number; tbr: number; reading: number; read: number };
   }
->(({ mode: modeProp, shelf, coverUrls, variant, stats }, ref) => {
+>(({ mode: modeProp, shelf, coverUrls, bookTitles = [], bookAuthors = [], bookIsbns = [], bookCount = 2, variant, mood = "aesthetic", stats }, ref) => {
   const mode = modeProp ?? "share";
   const width = 1080;
-  const height = 1920;
+  const height = 1400; // Reduced from 1920 to make cards less tall
 
   const cardRadius = 24;
   const isBold = variant === "bold";
+  const isCalm = mood === "calm";
   const tokens = getShareCardTokens(variant);
 
   const titleText = `${shelf.emoji || "📚"} ${shelf.name}`;
 
-  const coverCount = coverUrls.filter(Boolean).length;
-  const useTwoByTwo = coverCount <= 4;
-  const slotCount = useTwoByTwo ? 4 : 6;
-
+  // Use bookCount to determine layout: 1 or 2 books
+  const slotCount = bookCount;
   const slots: Array<string | null> = Array.from({ length: slotCount }, (_, i) => coverUrls[i] || null);
 
-  const CoverTile = ({ src, index, title }: { src: string | null; index: number; title?: string }) => {
-    const tilt = useTwoByTwo ? 0.22 : 0.35;
+  const CoverTile = ({ src, index, title, authors, isbn }: { src: string | null; index: number; title?: string; authors?: string[]; isbn?: string }) => {
+    const tilt = bookCount === 1 ? 0 : 0.22;
+    
+    // Use mood-aware background for placeholder tiles
+    const tileBackground = isCalm
+      ? "linear-gradient(135deg, rgba(156, 107, 47, 0.12), rgba(156, 107, 47, 0.06)), #0f0f14"
+      : "radial-gradient(700px 500px at 15% 15%, rgba(255,73,240,0.22), rgba(255,73,240,0) 55%), radial-gradient(700px 500px at 85% 20%, rgba(109,94,252,0.26), rgba(109,94,252,0) 60%), linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0)), #0f0f14";
     
     return (
       <div
@@ -2049,8 +2203,7 @@ const ShareCard = React.forwardRef<
           position: "relative",
           border: tokens.tileBorder,
           boxShadow: tokens.tileShadow,
-          background:
-            "radial-gradient(700px 500px at 15% 15%, rgba(255,73,240,0.22), rgba(255,73,240,0) 55%), radial-gradient(700px 500px at 85% 20%, rgba(109,94,252,0.26), rgba(109,94,252,0) 60%), linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0)), #0f0f14",
+          background: tileBackground,
           transform: isBold ? "none" : index % 2 === 0 ? `rotate(-${tilt}deg)` : `rotate(${tilt}deg)`,
         }}
       >
@@ -2077,9 +2230,39 @@ const ShareCard = React.forwardRef<
                 pointerEvents: "none",
               }}
             />
+            {title && (
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  padding: "16px 12px 12px",
+                  background: "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.85) 100%)",
+                  pointerEvents: "none",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 950,
+                    color: "#fff",
+                    lineHeight: 1.2,
+                    textAlign: "center",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical" as any,
+                    overflow: "hidden",
+                    textShadow: "0 2px 8px rgba(0,0,0,0.8)",
+                  }}
+                >
+                  {title}
+                </div>
+              </div>
+            )}
           </>
         ) : (
-          <CoverPlaceholder title={title || "Unknown"} />
+          <CoverPlaceholder title={title || "Unknown"} authors={authors} isbn={isbn} mood={mood} />
         )}
       </div>
     );
@@ -2097,7 +2280,7 @@ const ShareCard = React.forwardRef<
         position: "relative",
         display: "flex",
         flexDirection: "column",
-        padding: "82px 72px",
+        padding: "60px 72px",
         boxSizing: "border-box",
         fontFamily: "system-ui, -apple-system, sans-serif",
         boxShadow: tokens.cardShadow,
@@ -2112,7 +2295,7 @@ const ShareCard = React.forwardRef<
         }}
       />
 
-      <div style={{ position: "relative", zIndex: 2, marginBottom: 34, textAlign: "center" }}>
+      <div style={{ position: "relative", zIndex: 2, marginBottom: 24, textAlign: "center" }}>
         <div
           style={{
             fontSize: tokens.titleSize,
@@ -2136,17 +2319,17 @@ const ShareCard = React.forwardRef<
         <div
           style={{
             width: "100%",
-            maxWidth: useTwoByTwo ? 720 : 900,
+            maxWidth: bookCount === 1 ? 500 : 720,
             margin: "0 auto",
-  display: "grid",
-            gridTemplateColumns: useTwoByTwo ? "repeat(2, 1fr)" : "repeat(3, 1fr)",
-            gridTemplateRows: "repeat(2, auto)",
-            gap: useTwoByTwo ? 18 : 16,
+            display: "grid",
+            gridTemplateColumns: bookCount === 1 ? "1fr" : "repeat(2, 1fr)",
+            gridTemplateRows: "auto",
+            gap: bookCount === 1 ? 0 : 18,
             justifyContent: "center",
           }}
         >
           {slots.map((src, i) => (
-            <CoverTile key={`${src || ""}-${i}`} src={src} index={i} />
+            <CoverTile key={`${src || ""}-${i}`} src={src} index={i} title={bookTitles[i]} authors={bookAuthors[i]} isbn={bookIsbns[i]} />
           ))}
         </div>
       </div>
@@ -2159,8 +2342,8 @@ const ShareCard = React.forwardRef<
           justifyContent: "center",
           flexWrap: "wrap",
           gap: 12,
-          marginTop: 28,
-          marginBottom: 22,
+          marginTop: 20,
+          marginBottom: 16,
         }}
       >
         {(
