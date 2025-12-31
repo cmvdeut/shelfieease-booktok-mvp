@@ -122,8 +122,7 @@ export function Scanner({ onDetected, onClose }: ScannerProps) {
             // Optimized scan area for better focus
             qrbox: isAndroid
               ? { width: Math.min(containerWidth * 0.85, 350), height: Math.min(containerHeight * 0.85, 300) }
-              : isMobileDevice
-              ? { width: 250, height: 250 }
+              : isMobileDevice ? { width: Math.min(containerWidth * 0.9, 300), height: Math.min(containerHeight * 0.7, 400) } // Larger scan area for iPhone
               : { width: 300, height: 120 },
             aspectRatio: isMobileDevice ? 1.0 : 16 / 9,
             disableFlip: false, // Allow rotation for better detection on all angles
@@ -208,7 +207,10 @@ export function Scanner({ onDetected, onClose }: ScannerProps) {
         id={regionId}
         style={{
           width: "100%",
-          height: isMobile ? 400 : 200, // Use state instead of navigator check
+          height: isMobile 
+            ? min(600px, calc(100dvh - 180px)) // Increased height for iPhone, use more viewport space
+            : 200,
+          minHeight: isMobile ? 400 : 200, // Increased minimum height for better scanning area
           borderRadius: 16,
           overflow: "hidden",
           background: "#111",
