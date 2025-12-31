@@ -2,28 +2,11 @@ export type UiLang = "nl" | "en";
 
 /**
  * Detect the UI language based on browser settings.
- * Safe for SSR - returns "nl" as default if navigator is undefined.
+ * Safe for SSR - returns "en" as default if navigator is undefined.
+ * App is always in English - books keep their original language.
  */
 export function detectUiLang(): UiLang {
-  if (typeof navigator === "undefined") {
-    return "nl"; // Default for SSR
-  }
-
-  // Check navigator.language
-  if (navigator.language?.toLowerCase().startsWith("nl")) {
-    return "nl";
-  }
-
-  // Check navigator.languages array
-  if (navigator.languages && navigator.languages.length > 0) {
-    for (const lang of navigator.languages) {
-      if (lang.toLowerCase().startsWith("nl")) {
-        return "nl";
-      }
-    }
-  }
-
-  // Default to English
+  // App is always in English
   return "en";
 }
 
