@@ -678,17 +678,42 @@ export default function LibraryPage() {
     setCheckoutLoading(true);
     try {
       const res = await fetch("/api/checkout", { method: "POST" });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        console.error("Checkout API error:", res.status, errorData);
+        showToast(
+          t({ 
+            nl: `Fout bij openen betaalpagina: ${errorData.error || res.statusText}`, 
+            en: `Error opening payment page: ${errorData.error || res.statusText}` 
+          }, lang)
+        );
+        setCheckoutLoading(false);
+        return;
+      }
+      
       const data = await res.json();
       if (data?.url) {
         window.location.href = data.url;
       } else {
         console.error("No checkout URL received", data);
-        showToast(t({ nl: "Fout bij openen betaalpagina", en: "Error opening payment page" }, lang));
+        showToast(
+          t({ 
+            nl: `Fout: ${data.error || "Geen checkout URL ontvangen"}`, 
+            en: `Error: ${data.error || "No checkout URL received"}` 
+          }, lang)
+        );
         setCheckoutLoading(false);
       }
     } catch (error) {
       console.error("Checkout error:", error);
-      showToast(t({ nl: "Fout bij openen betaalpagina", en: "Error opening payment page" }, lang));
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      showToast(
+        t({ 
+          nl: `Fout bij openen betaalpagina: ${errorMsg}`, 
+          en: `Error opening payment page: ${errorMsg}` 
+        }, lang)
+      );
       setCheckoutLoading(false);
     }
   }
