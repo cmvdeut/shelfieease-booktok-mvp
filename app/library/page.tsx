@@ -30,13 +30,8 @@ import { lookupByIsbn, isBadCoverUrl } from "@/lib/lookup";
 import { CoverImg } from "@/components/CoverImg";
 import { CoverPlaceholder } from "@/components/CoverPlaceholder";
 import { toBlob } from "html-to-image";
-import { detectUiLang, t } from "@/lib/i18n";
+import { detectUiLang, t, isNlUi, tPay } from "@/lib/i18n";
 import { canAddBook, demoRemaining, isProUser } from "@/lib/demo";
-
-// Helper functions
-function isNlUi(): boolean {
-  return detectUiLang() === "nl";
-}
 
 function googleSearchUrl(q: string): string {
   return `https://www.google.com/search?q=${encodeURIComponent(q)}`;
@@ -128,6 +123,7 @@ export default function LibraryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [duplicateWarning, setDuplicateWarning] = useState<{ isbn: string; existingShelf: Shelf | null } | null>(null);
   const [showDemoLimitModal, setShowDemoLimitModal] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [scope, setScope] = useState<"shelf" | "all">("all");
   const [statusFilter, setStatusFilter] = useState<Set<BookStatus>>(new Set());
   const [sortBy, setSortBy] = useState<"recent" | "title" | "author">("recent");
@@ -676,6 +672,25 @@ export default function LibraryPage() {
     
     // Show modal to choose 1 or 2 books
     setShowShareBookCountModal(true);
+  }
+
+  async function startCheckout() {
+    setCheckoutLoading(true);
+    try {
+      const res = await fetch("/api/checkout", { method: "POST" });
+      const data = await res.json();
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        console.error("No checkout URL received", data);
+        showToast(t({ nl: "Fout bij openen betaalpagina", en: "Error opening payment page" }, lang));
+        setCheckoutLoading(false);
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      showToast(t({ nl: "Fout bij openen betaalpagina", en: "Error opening payment page" }, lang));
+      setCheckoutLoading(false);
+    }
   }
 
   async function generateShareCard(bookCount: 1 | 2) {
@@ -1561,29 +1576,33 @@ What should I add next? 👀
       {showDemoLimitModal && (
         <div style={modalOverlay} onClick={() => setShowDemoLimitModal(false)}>
           <div style={modal} onClick={(e) => e.stopPropagation()}>
-            <h2 style={modalTitle}>{t({ nl: "Demo bereikt ✨", en: "Demo limit reached ✨" }, lang)}</h2>
+            <h2 style={modalTitle}>{tPay("demoReachedTitle")}</h2>
             <p style={{ color: "var(--muted)", lineHeight: 1.5 }}>
-              {t({ nl: "Je hebt 10 boeken opgeslagen.", en: "You have saved 10 books." }, lang)}
-              <br />
-              {t({ nl: "Ontgrendel onbeperkt boeken en shelves.", en: "Unlock unlimited books and shelves." }, lang)}
+              {tPay("demoReachedBody").split("\n").map((line, i) => (
+                <span key={i}>
+                  {line}
+                  {i < tPay("demoReachedBody").split("\n").length - 1 && <br />}
+                </span>
+              ))}
             </p>
 
             <div style={modalActions}>
               <button
                 style={btnPrimary}
-                onClick={() => {
-                  // later: betaalflow
-                  alert(t({ nl: "Betaalde versie komt hier", en: "Paid version coming here" }, lang));
-                }}
+                onClick={startCheckout}
+                disabled={checkoutLoading}
               >
-                {t({ nl: "Ontgrendel volledig", en: "Unlock fully" }, lang)}
+                {checkoutLoading
+                  ? t({ nl: "Laden...", en: "Loading..." }, lang)
+                  : tPay("unlockCta")}
               </button>
 
               <button
                 style={btnGhost}
                 onClick={() => setShowDemoLimitModal(false)}
+                disabled={checkoutLoading}
               >
-                {t({ nl: "Later", en: "Later" }, lang)}
+                {tPay("later")}
               </button>
             </div>
           </div>
@@ -2000,7 +2019,7 @@ What should I add next? 👀
       )}
 
       {!isProUser() && (
-        <div style={{ fontSize: 11, opacity: 0.6, marginTop: 8, textAlign: "center", padding: "16px", color: "var(--muted)" }}>
+        <div style={{ fontSize: 14, opacity: 0.7, marginTop: 8, textAlign: "center", padding: "16px", color: "var(--muted)", fontWeight: 500 }}>
           {t({ nl: "Demo-versie · max. 10 boeken", en: "Demo version · max. 10 books" }, lang)}
         </div>
       )}
