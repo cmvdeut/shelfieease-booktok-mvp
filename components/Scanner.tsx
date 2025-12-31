@@ -132,11 +132,7 @@ export function Scanner({ onDetected, onClose }: ScannerProps) {
               facingMode: "environment",
               width: { ideal: isAndroid ? 1280 : 1280 },
               height: { ideal: isAndroid ? 720 : 720 },
-              focusMode: "continuous", // Better autofocus for sharp scanning
-              advanced: [
-                { focusMode: "continuous" },
-                { whiteBalanceMode: "continuous" },
-              ],
+              
             } as any,
             // Additional options for better Android detection
             ...(isAndroid && {
