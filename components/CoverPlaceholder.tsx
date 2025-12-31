@@ -4,12 +4,15 @@ import React from "react";
 
 type CoverPlaceholderProps = {
   title: string;
+  authors?: string[];
+  isbn?: string;
+  mood?: "aesthetic" | "bold" | "calm";
   style?: React.CSSProperties;
 };
 
-export function CoverPlaceholder({ title, style }: CoverPlaceholderProps) {
-  // Detect mood for gradient background
-  const isCalm = typeof document !== "undefined" && document.documentElement.dataset.mood === "calm";
+export function CoverPlaceholder({ title, authors = [], isbn, mood, style }: CoverPlaceholderProps) {
+  // Use provided mood or detect from document
+  const isCalm = mood === "calm" || (typeof document !== "undefined" && document.documentElement.dataset.mood === "calm");
   
   const containerStyle: React.CSSProperties = {
     width: "100%",
@@ -33,17 +36,17 @@ export function CoverPlaceholder({ title, style }: CoverPlaceholderProps) {
   };
 
   const iconStyle: React.CSSProperties = {
-    fontSize: 48,
+    fontSize: 40,
     lineHeight: 1,
-    marginBottom: 12,
+    marginBottom: 16,
     opacity: 0.8,
   };
 
   const titleStyle: React.CSSProperties = {
-    fontSize: 14,
-    fontWeight: 950,
+    fontSize: 22,
+    fontWeight: 980,
     textAlign: "center",
-    color: isCalm ? "#4A3825" : "rgba(255,255,255,0.9)",
+    color: isCalm ? "#4A3825" : "rgba(255,255,255,0.95)",
     maxWidth: "100%",
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -51,14 +54,49 @@ export function CoverPlaceholder({ title, style }: CoverPlaceholderProps) {
     WebkitLineClamp: 3,
     WebkitBoxOrient: "vertical",
     lineHeight: 1.3,
+    marginBottom: authors.length > 0 ? 10 : 0,
+  };
+
+  const authorStyle: React.CSSProperties = {
+    fontSize: 18,
+    fontWeight: 700,
+    textAlign: "center",
+    color: isCalm ? "rgba(74, 56, 37, 0.9)" : "rgba(255,255,255,0.85)",
+    maxWidth: "100%",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical",
+    lineHeight: 1.2,
+    marginBottom: isbn ? 8 : 0,
+  };
+
+  const isbnStyle: React.CSSProperties = {
+    fontSize: 14,
+    fontWeight: 600,
+    textAlign: "center",
+    color: isCalm ? "rgba(74, 56, 37, 0.7)" : "rgba(255,255,255,0.65)",
+    fontFamily: "monospace",
+    letterSpacing: 1,
   };
 
   return (
     <div style={containerStyle}>
       <div style={iconStyle}>📘</div>
       <div style={titleStyle}>
-        {title ? title.slice(0, 40) : "Unknown"}
+        {title || "Unknown"}
       </div>
+      {authors.length > 0 && (
+        <div style={authorStyle}>
+          {authors.join(", ")}
+        </div>
+      )}
+      {isbn && (
+        <div style={isbnStyle}>
+          ISBN {isbn}
+        </div>
+      )}
     </div>
   );
 }
