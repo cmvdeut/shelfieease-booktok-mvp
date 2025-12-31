@@ -2,7 +2,8 @@ const DEMO_LIMIT = 10;
 
 export function isProUser(): boolean {
   try {
-    return localStorage.getItem("se:isPro") === "true";
+    // Check both old key (se:isPro) and new key (se:pro) for backward compatibility
+    return localStorage.getItem("se:pro") === "1" || localStorage.getItem("se:isPro") === "true";
   } catch {
     return false;
   }
@@ -31,6 +32,8 @@ export function demoRemaining(): number {
 }
 
 export function markAsPro() {
+  localStorage.setItem("se:pro", "1");
+  // Also set old key for backward compatibility
   localStorage.setItem("se:isPro", "true");
 }
 
