@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Scanner from "@/components/Scanner";
 import { detectUiLang, t } from "@/lib/i18n";
@@ -14,8 +14,25 @@ export default function ScanPage() {
   const lang = detectUiLang();
   const [manual, setManual] = useState("");
   const [lastScan, setLastScan] = useState<string | null>(null);
+  const [hasIsbnParam, setHasIsbnParam] = useState(false);
 
   const manualNormalized = useMemo(() => normalizeIsbn(manual), [manual]);
+
+  // Handle ISBN query parameter from native scanner
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    const params = new URLSearchParams(window.location.search);
+    const isbnParam = params.get("isbn");
+    if (isbnParam) {
+      const normalized = normalizeIsbn(isbnParam);
+      if (normalized) {
+        setHasIsbnParam(true);
+        // Use the same flow as normal detection - navigate to library with addIsbn
+        router.replace(`/library?addIsbn=${encodeURIComponent(normalized)}`);
+      }
+    }
+  }, [router]);
 
   const onDetected = useCallback(
     (isbn: string) => {
@@ -34,7 +51,14 @@ export default function ScanPage() {
   }, [manualNormalized, router]);
 
   return (
-    <div style={{ minHeight: "100dvh", padding: "16px 16px 40px", background: "var(--bg)", color: "var(--text)" }}>
+    <div style={{ 
+      minHeight: "100dvh",
+      minHeight: "-webkit-fill-available", // iOS Safari fix
+      padding: "16px 16px env(safe-area-inset-bottom, 40px)",
+      paddingTop: "env(safe-area-inset-top, 16px)",
+      background: "var(--bg)", 
+      color: "var(--text)" 
+    }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
         <button
@@ -72,18 +96,32 @@ export default function ScanPage() {
         </button>
       </div>
 
-      {/* Scanner */}
-      <div className="mb-6">
-        <Scanner
-          onDetected={onDetected}
-          onClose={() => router.push("/")}
-        />
-        {lastScan ? (
-          <div style={{ marginTop: 12, fontSize: 12, color: "var(--muted)" }}>
-            {t({ nl: "Laatste scan: ", en: "Last scan: " }, lang)}<span style={{ fontWeight: 600 }}>{lastScan}</span>
-          </div>
-        ) : null}
-      </div>
+      {/* Scanner - only show if no ISBN parameter (to avoid camera permissions) */}
+      {!hasIsbnParam && (
+        <div className="mb-6">
+          <Scanner
+            onDetected={onDetected}
+            onClose={() => router.push("/")}
+          />
+          {lastScan ? (
+            <div style={{ marginTop: 12, fontSize: 12, color: "var(--muted)" }}>
+              {t({ nl: "Laatste scan: ", en: "Last scan: " }, lang)}<span style={{ fontWeight: 600 }}>{lastScan}</span>
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      {/* Loading state when ISBN parameter is present */}
+      {hasIsbnParam && (
+        <div style={{ 
+          padding: "40px 20px", 
+          textAlign: "center",
+          color: "var(--text)",
+          fontSize: 14
+        }}>
+          {t({ nl: "ISBN wordt verwerkt...", en: "Processing ISBN..." }, lang)}
+        </div>
+      )}
 
       {/* Handmatige fallback */}
       <div style={{
