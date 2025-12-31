@@ -1,72 +1,51 @@
+// app/api/checkout/route.ts
+import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-export const runtime = "nodejs";
-// Note: API routes don't work with static export (Cloudflare Pages)
-// These routes are for Vercel/server-side deployments only
+export const runtime = "nodejs"; // belangrijk: Stripe SDK werkt het fijnst op node runtime
 
-// Initialize Stripe only if secret key is available (not during build)
-const getStripe = () => {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) {
-    throw new Error("STRIPE_SECRET_KEY is not set");
-  }
-  return new Stripe(secretKey, {
-    apiVersion: "2025-12-15.clover",
-  });
-};
+function requiredEnv(name: string) {
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing env: ${name}`);
+  return v;
+}
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-    const priceId = process.env.STRIPE_PRICE_ID;
-    const secretKey = process.env.STRIPE_SECRET_KEY;
+    const stripeSecret = requiredEnv("STRIPE_SECRET_KEY");
+    const priceId = requiredEnv("STRIPE_PRICE_ID");
 
-    // Check all required environment variables
-    const missingVars: string[] = [];
-    if (!siteUrl) missingVars.push("NEXT_PUBLIC_SITE_URL");
-    if (!priceId) missingVars.push("STRIPE_PRICE_ID");
-    if (!secretKey) missingVars.push("STRIPE_SECRET_KEY");
+    const stripe = new Stripe(stripeSecret, {
+      apiVersion: "2025-12-15.clover",
+    });
 
-    if (missingVars.length > 0) {
-      console.error("Missing environment variables:", missingVars);
-      return Response.json(
-        { 
-          error: `Missing environment variables: ${missingVars.join(", ")}. Please configure them in Vercel project settings.` 
-        },
-        { status: 500 }
-      );
-    }
+    const body = await req.json().catch(() => ({}));
+    const origin =
+      (body?.origin as string) ||
+      req.headers.get("origin") ||
+      "http://localhost:3000";
 
-    const stripe = getStripe();
-    
-    // One-time payment Checkout Session
+    // Optioneel: je kan metadata doorgeven (bv. userId, deviceId, etc)
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [{ price: priceId, quantity: 1 }],
-      // IMPORTANT: session id meegeven in success url
-      success_url: `${siteUrl}/pay/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${siteUrl}/pay/cancel`,
-      // Optioneel: customer email laten invullen in Checkout
-      billing_address_collection: "auto",
-      // metadata is handig voor later
-      metadata: { product: "shelfieease_pro" },
+      // "eenmalige betaling"
+      success_url: `${origin}/?paid=1`,
+      cancel_url: `${origin}/?canceled=1`,
+      // Je kan later webhooks gebruiken voor echte "unlock" verificatie,
+      // maar voor MVP kan je success redirect + local unlock doen.
+      allow_promotion_codes: true,
     });
 
-    if (!session.url) {
-      return Response.json(
-        { error: "Stripe did not return a checkout URL" },
-        { status: 500 }
-      );
-    }
-
-    return Response.json({ url: session.url });
-  } catch (error) {
-    console.error("Stripe checkout error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to create checkout session";
-    return Response.json(
-      { error: `Stripe error: ${errorMessage}` },
+    return NextResponse.json({ url: session.url });
+  } catch (e: any) {
+    console.error("[checkout] error", e);
+    return NextResponse.json(
+      {
+        error: "PAYMENT_SETUP_INCOMPLETE",
+        message: e?.message || "Payment setup incomplete. Please contact support.",
+      },
       { status: 500 }
     );
   }
 }
-

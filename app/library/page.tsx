@@ -674,85 +674,32 @@ export default function LibraryPage() {
     setShowShareBookCountModal(true);
   }
 
-  async function startCheckout() {
+  async function goToCheckout() {
     setCheckoutLoading(true);
     try {
-      // First check which env vars are missing (for debugging)
-      const envCheck = await fetch("/api/check-env").catch(() => null);
-      if (envCheck) {
-        const envStatus = await envCheck.json().catch(() => null);
-        if (envStatus && !envStatus.allSet) {
-          const missing = Object.entries(envStatus.required)
-            .filter(([_, isSet]) => !isSet)
-            .map(([name]) => name);
-          console.error("Missing environment variables:", missing);
-        }
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          origin: window.location.origin,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data?.url) {
+        throw new Error(data?.message || "Payment setup incomplete. Please contact support.");
       }
 
-      const res = await fetch("/api/checkout", { method: "POST" });
-      
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: "" }));
-        console.error("Checkout API error:", res.status, errorData);
-        
-        // Check if it's a missing environment variables error
-        const errorText = errorData?.error || "";
-        if (errorText.includes("Missing environment variables")) {
-          // Extract missing vars from error message
-          const missingMatch = errorText.match(/Missing environment variables: ([^.]+)/);
-          const missingVars = missingMatch ? missingMatch[1] : "some variables";
-          console.error("Missing vars:", missingVars);
-          
-          showToast(
-            t({ 
-              nl: `Payment setup incomplete. Missing: ${missingVars}`, 
-              en: `Payment setup incomplete. Missing: ${missingVars}` 
-            }, lang),
-            6000
-          );
-        } else if (errorText.includes("STRIPE")) {
-          showToast(
-            t({ 
-              nl: "Payment setup incomplete. Please contact support.", 
-              en: "Payment setup incomplete. Please contact support." 
-            }, lang),
-            5000
-          );
-        } else {
-          showToast(
-            t({ 
-              nl: "Could not open payment page. Please try again.", 
-              en: "Could not open payment page. Please try again." 
-            }, lang),
-            4000
-          );
-        }
-        setCheckoutLoading(false);
-        return;
-      }
-      
-      const data = await res.json();
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        console.error("No checkout URL received", data);
-        showToast(
-          t({ 
-            nl: "Payment page unavailable. Please try again.", 
-            en: "Payment page unavailable. Please try again." 
-          }, lang),
-          4000
-        );
-        setCheckoutLoading(false);
-      }
-    } catch (error) {
-      console.error("Checkout error:", error);
+      window.location.href = data.url;
+    } catch (err) {
+      console.error(err);
       showToast(
         t({ 
-          nl: "Connection error. Please check your internet.", 
-          en: "Connection error. Please check your internet." 
+          nl: "Payment setup incomplete. Please contact support.", 
+          en: "Payment setup incomplete. Please contact support." 
         }, lang),
-        4000
+        5000
       );
       setCheckoutLoading(false);
     }
@@ -1654,7 +1601,7 @@ What should I add next? 👀
             <div style={modalActions}>
               <button
                 style={btnPrimary}
-                onClick={startCheckout}
+                onClick={goToCheckout}
                 disabled={checkoutLoading}
               >
                 {checkoutLoading
