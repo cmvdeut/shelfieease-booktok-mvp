@@ -131,11 +131,37 @@ export default function HomePage() {
       <div style={{ position: "relative", maxWidth: 448, margin: "0 auto", padding: "28px 24px 36px" }}>
         {/* Header */}
         <header style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ display: "grid", height: 64, width: 64, placeItems: "center", borderRadius: 16, background: "rgba(255, 255, 255, 0.05)", border: "1px solid var(--border)", boxShadow: "0 4px 12px var(--shadow)", overflow: "hidden", padding: 8 }}>
+          <div style={{ 
+            display: "grid", 
+            height: 96, 
+            width: 96, 
+            placeItems: "center", 
+            borderRadius: 20, 
+            background: "rgba(255, 255, 255, 0.08)", 
+            border: "1px solid var(--border)", 
+            boxShadow: "0 4px 12px var(--shadow)", 
+            overflow: "hidden", 
+            padding: 12,
+            position: "relative",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)"
+          }}>
+            <div style={{
+              position: "absolute",
+              inset: 0,
+              background: "radial-gradient(circle at center, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%)",
+              pointerEvents: "none"
+            }} />
             <img 
               src="/ShelfieEase_Logo.png" 
               alt="ShelfieEase" 
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              style={{ 
+                width: "100%", 
+                height: "100%", 
+                objectFit: "contain",
+                position: "relative",
+                zIndex: 1
+              }}
             />
           </div>
 
