@@ -130,46 +130,25 @@ export default function HomePage() {
 
       <div style={{ position: "relative", maxWidth: 448, margin: "0 auto", padding: "28px 24px 36px" }}>
         {/* Header */}
-        <header style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ 
-            display: "grid", 
-            height: 96, 
-            width: 96, 
-            placeItems: "center", 
-            borderRadius: 20, 
-            background: "rgba(255, 255, 255, 0.08)", 
-            border: "1px solid var(--border)", 
-            boxShadow: "0 4px 12px var(--shadow)", 
-            overflow: "hidden", 
-            padding: 8,
-            position: "relative",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)"
-          }}>
-            <div style={{
-              position: "absolute",
-              inset: 0,
-              background: "radial-gradient(circle at center, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%)",
-              pointerEvents: "none"
-            }} />
-            <img 
-              src="/brand/v2/logo-mark.png" 
-              alt="ShelfieEase" 
-              style={{ 
-                height: "80px",
-                width: "auto",
-                objectFit: "contain",
-                position: "relative",
-                zIndex: 1
-              }}
-            />
-          </div>
+        <header style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+          <img 
+            src="/brand/v2/logo-mark.png" 
+            alt="ShelfieEase" 
+            style={{ 
+              height: "100px",
+              width: "fit-content",
+              objectFit: "contain",
+              position: "relative",
+              zIndex: 1,
+              flexShrink: 0
+            }}
+          />
 
           <div>
             <h1 style={{ fontSize: "clamp(1.875rem, 2.5rem, 2.25rem)", fontWeight: 800, letterSpacing: "-0.025em", lineHeight: 1 }}>
               ShelfieEase
             </h1>
-            <p style={{ marginTop: 4, fontSize: 14, color: "var(--muted)" }}>
+            <p style={{ marginTop: 4, fontSize: 14, color: "var(--muted)", lineHeight: 1.2 }}>
               {t({ nl: "Scan · Shelf · Deel", en: "Scan · Shelf · Share" }, lang)}
             </p>
           </div>
