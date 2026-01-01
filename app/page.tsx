@@ -153,7 +153,7 @@ export default function HomePage() {
               pointerEvents: "none"
             }} />
             <img 
-              src="/ShelfieEase_Logo.png" 
+              src="/ShelfieEase_Logo_NoTXT.png" 
               alt="ShelfieEase" 
               style={{ 
                 width: "100%", 
