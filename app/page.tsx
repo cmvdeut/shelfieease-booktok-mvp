@@ -153,11 +153,11 @@ export default function HomePage() {
               pointerEvents: "none"
             }} />
             <img 
-              src="/ShelfieEase_Logo_NoTXT.png" 
+              src="/brand/v2/logo-mark.png" 
               alt="ShelfieEase" 
               style={{ 
-                width: "100%", 
-                height: "100%", 
+                height: "44px",
+                width: "auto",
                 objectFit: "contain",
                 position: "relative",
                 zIndex: 1
