@@ -19,8 +19,7 @@
 
 ### Local Storage
 - [x] `se:pro` key set to "1" on successful payment
-- [x] `se:isPro` key set to "true" for backward compatibility
-- [x] `lib/demo.ts` checks both keys
+- [x] `lib/demo.ts` checks only `se:pro === "1"`
 
 ## 🔧 Required Environment Variables in Vercel
 
