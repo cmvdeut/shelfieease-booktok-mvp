@@ -141,7 +141,7 @@ export default function HomePage() {
             border: "1px solid var(--border)", 
             boxShadow: "0 4px 12px var(--shadow)", 
             overflow: "hidden", 
-            padding: 12,
+            padding: 8,
             position: "relative",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)"
@@ -156,7 +156,7 @@ export default function HomePage() {
               src="/brand/v2/logo-mark.png" 
               alt="ShelfieEase" 
               style={{ 
-                height: "44px",
+                height: "80px",
                 width: "auto",
                 objectFit: "contain",
                 position: "relative",
