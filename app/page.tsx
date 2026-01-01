@@ -131,8 +131,12 @@ export default function HomePage() {
       <div style={{ position: "relative", maxWidth: 448, margin: "0 auto", padding: "28px 24px 36px" }}>
         {/* Header */}
         <header style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ display: "grid", height: 44, width: 44, placeItems: "center", borderRadius: 16, background: "var(--panel)", border: "1px solid var(--border)", boxShadow: "0 4px 12px var(--shadow)" }}>
-            <span style={{ fontSize: 24 }}>📚</span>
+          <div style={{ display: "grid", height: 44, width: 44, placeItems: "center", borderRadius: 16, background: "var(--panel)", border: "1px solid var(--border)", boxShadow: "0 4px 12px var(--shadow)", overflow: "hidden" }}>
+            <img 
+              src="/favicon-96x96.png" 
+              alt="ShelfieEase" 
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
           </div>
 
           <div>
