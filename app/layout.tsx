@@ -23,8 +23,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="nl">
       <head>
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#6d5efc" />
+        <meta name="theme-color" content="#6B4EFF" />
         <style dangerouslySetInnerHTML={{
           __html: `
 :root {
