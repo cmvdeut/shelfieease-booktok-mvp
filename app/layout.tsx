@@ -9,6 +9,16 @@ import UiBoot from "@/components/UiBoot";
 export const metadata = {
   title: "ShelfieEase",
   description: "Scan books. Build your shelf. Share the vibe.",
+  manifest: "/site.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+    shortcut: ["/favicon.ico"],
+  },
 };
 
 export const viewport = {
@@ -23,9 +33,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="nl">
       <head>
-        <link rel="icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#6B4EFF" />
         <style dangerouslySetInnerHTML={{
           __html: `
