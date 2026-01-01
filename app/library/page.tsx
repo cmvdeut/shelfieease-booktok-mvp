@@ -192,6 +192,21 @@ export default function LibraryPage() {
   const handledIsbnRef = useRef<string | null>(null);
 
 
+  // Handle Stripe return: /library?paid=1
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const paid = url.searchParams.get("paid");
+
+    if (paid === "1") {
+      localStorage.setItem("se:pro", "1");
+
+      // URL opschonen zodat refresh niet blijft triggeren
+      url.searchParams.delete("paid");
+      window.history.replaceState({}, "", url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""));
+    }
+  }, []);
+
   // Handle showDemoLimit query parameter
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -675,6 +690,12 @@ export default function LibraryPage() {
   }
 
   async function goToCheckout() {
+    // Idempotent: als gebruiker al PRO is, sluit modal
+    if (isProUser()) {
+      setShowDemoLimitModal(false);
+      return;
+    }
+
     setCheckoutLoading(true);
     try {
       const res = await fetch("/api/checkout", {
