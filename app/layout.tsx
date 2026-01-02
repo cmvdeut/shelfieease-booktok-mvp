@@ -4,6 +4,7 @@ import Script from "next/script";
 import { ClientErrorTrap } from "@/components/ClientErrorTrap";
 import { MoodProvider } from "@/components/MoodProvider";
 import { MoodSwitcher } from "@/components/MoodSwitcher";
+import { AppMenu } from "@/components/AppMenu";
 import UiBoot from "@/components/UiBoot";
 
 export const metadata = {
@@ -215,6 +216,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <UiBoot />
         <MoodProvider>
           <ClientErrorTrap />
+          <AppMenu />
           {children}
         </MoodProvider>
         <MoodSwitcher />

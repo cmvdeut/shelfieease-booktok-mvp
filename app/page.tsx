@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getMood, type Mood } from "@/components/MoodProvider";
 import { detectUiLang, t } from "@/lib/i18n";
+import { isProUser } from "@/lib/demo";
 
 // Headlines per mood with NL/EN
 const headlines = {
@@ -55,6 +56,11 @@ export default function HomePage() {
   // Always start with "default" to match server render and avoid hydration mismatch
   const [currentMood, setCurrentMood] = useState<Mood>("default");
   const [isMounted, setIsMounted] = useState(false);
+  // Initialize isPro immediately on client to ensure demo notice is always visible
+  const [isPro, setIsPro] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return isProUser();
+  });
   
   // Detect UI language
   const lang = detectUiLang();
@@ -64,6 +70,8 @@ export default function HomePage() {
     setIsMounted(true);
     const initialMood = getMood();
     setCurrentMood(initialMood);
+    // Also check PRO status on mount to ensure it's up to date
+    setIsPro(isProUser());
   }, []);
 
   // Listen for mood changes to update headlines live
@@ -84,13 +92,18 @@ export default function HomePage() {
       if (newMood !== currentMood) {
         setCurrentMood(newMood);
       }
+      // Also check PRO status
+      const newProStatus = isProUser();
+      if (newProStatus !== isPro) {
+        setIsPro(newProStatus);
+      }
     }, 100);
     
     return () => {
       window.removeEventListener("moodchange", handleMoodChange);
       clearInterval(intervalId);
     };
-  }, [currentMood, isMounted]);
+  }, [currentMood, isMounted, isPro]);
   return (
     <main style={{ minHeight: "100dvh", background: "var(--bg)", color: "var(--text)" }} data-ui-lang={lang}>
       {/* Background glow - mood-aware via CSS vars */}
@@ -187,6 +200,39 @@ export default function HomePage() {
               {t({ nl: "Scan een boek", en: "Scan a book" }, lang)}
               <span style={{ opacity: 0.8 }}>→</span>
             </Link>
+
+            {/* Device compatibility info - only show for demo users */}
+            {!isPro && (
+              <div
+                style={{
+                  padding: "12px 16px",
+                  borderRadius: 12,
+                  background: "var(--panel2)",
+                  border: "1px solid var(--border)",
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  color: "var(--muted)",
+                }}
+              >
+                <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>ℹ️</span>
+                  <div>
+                    <div style={{ fontWeight: 600, marginBottom: 4, color: "var(--muted)" }}>
+                      {t({ nl: "Let op", en: "Please note" }, lang)}
+                    </div>
+                    <div style={{ color: "var(--muted2)" }}>
+                      {t(
+                        {
+                          nl: "ShelfieEase werkt op de meeste moderne telefoons, maar niet elke camera of barcode wordt even goed ondersteund. Daarom kun je de app eerst in demo gebruiken — zo weet je zeker of het voor jouw toestel prettig werkt.",
+                          en: "The demo helps you test whether scanning works well on your device, as camera quality and barcode formats can vary.",
+                        },
+                        lang
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <Link

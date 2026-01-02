@@ -3,6 +3,25 @@ export type BookFormat = "physical" | "ebook";
 
 export type Mood = "aesthetic" | "bold" | "calm";
 
+/**
+ * Normalize book status to one of the three valid statuses.
+ * Maps "Read" and variants to "Finished".
+ * Returns "TBR" as default for undefined/null/invalid values.
+ * 
+ * This ensures consistent counting across the app (stats, library, etc.)
+ */
+export function normalizeStatus(status: unknown): BookStatus {
+  if (status === "TBR" || status === "Reading" || status === "Finished") {
+    return status;
+  }
+  // Map "Read" and variants to "Finished"
+  if (status === "Read" || status === "read" || status === "FINISHED") {
+    return "Finished";
+  }
+  // Default to TBR for undefined/null/invalid
+  return "TBR";
+}
+
 export type Shelf = {
   id: string;
   name: string;
@@ -206,10 +225,12 @@ export function loadBooks(): Book[] {
     ensureDefaultShelves(); // Ensure default shelves exist
     const defaultShelfId = activeShelfId || ensureDefaultShelf().id;
 
+    // Use centralized normalizeStatus helper
     const mapStatus = (s: unknown): BookStatus | undefined => {
-      if (s === "TBR" || s === "Reading" || s === "Finished") return s;
-      if (s === "Read" || s === "read" || s === "FINISHED") return "Finished";
-      return undefined;
+      const normalized = normalizeStatus(s);
+      // Return undefined only if original was undefined/null, otherwise return normalized
+      if (s === undefined || s === null) return undefined;
+      return normalized;
     };
 
     const isRecord = (v: unknown): v is Record<string, unknown> =>
