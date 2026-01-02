@@ -90,6 +90,19 @@ export default function LibraryPage() {
     window.setTimeout(() => setToast(null), duration);
   }, []);
 
+  // Check for restore backup toast on mount
+  useEffect(() => {
+    try {
+      const toastFlag = localStorage.getItem("shelfie_toast");
+      if (toastFlag === "backup_restored") {
+        localStorage.removeItem("shelfie_toast");
+        showToast("Backup restored successfully", 3000);
+      }
+    } catch {
+      // Ignore storage errors
+    }
+  }, [showToast]);
+
 
   const handleBookAdded = useCallback(() => {
     console.log("onAdded callback called, reloading books");
@@ -498,15 +511,27 @@ export default function LibraryPage() {
     return sorted;
   }, [baseBooks, statusFilter, searchQuery, sortBy]);
 
-  const stats = useMemo(() => {
-    // Use baseBooks (respects scope: "all" or active shelf) for consistent counting with visible books
-    // Use normalizeStatus for consistent counting
-    const tbr = baseBooks.filter((b) => normalizeStatus(b.status) === "TBR").length;
-    const reading = baseBooks.filter((b) => normalizeStatus(b.status) === "Reading").length;
-    const read = baseBooks.filter((b) => normalizeStatus(b.status) === "Finished").length;
+  // Helper function to compute stats from a book array
+  function computeStats(books: Book[]) {
+    const tbr = books.filter((b) => normalizeStatus(b.status) === "TBR").length;
+    const reading = books.filter((b) => normalizeStatus(b.status) === "Reading").length;
+    const read = books.filter((b) => normalizeStatus(b.status) === "Finished").length;
+    return { total: books.length, tbr, reading, read };
+  }
 
-    return { total: baseBooks.length, tbr, reading, read };
-  }, [baseBooks]);
+  // Calculate stats from visibleBooks (same dataset as what's rendered)
+  // This ensures stats always match what the user sees
+  const stats = useMemo(() => {
+    return computeStats(visibleBooks);
+  }, [visibleBooks]);
+
+  // Derive header title based on scope
+  const headerTitle = useMemo(() => {
+    if (scope === "all") {
+      return copy.allShelves;
+    }
+    return activeShelf ? `${activeShelf.emoji || "📚"} ${activeShelf.name}` : copy.myShelf;
+  }, [scope, activeShelf, copy.allShelves, copy.myShelf]);
 
   // Show Share Shelfie only if total books >= 2 and add modal is not open
   const showShareButton = stats.total >= 2 && !addModalOpen;
@@ -777,7 +802,8 @@ export default function LibraryPage() {
   // Removed handleSearchCover - users should use "Find cover" button instead
 
   async function handleShareShelf() {
-    if (!activeShelf) return;
+    // Allow sharing for both "All shelves" and specific shelf
+    if (scope === "shelf" && !activeShelf) return;
     
     // Show modal to choose 1 or 2 books
     setShowShareBookCountModal(true);
@@ -821,7 +847,33 @@ export default function LibraryPage() {
   }
 
   async function generateShareCard(bookCount: 1 | 2) {
-    if (!shareCardRef.current || !activeShelf) return;
+    if (!shareCardRef.current) {
+      showToast(t({ nl: "Kan shelfie niet genereren", en: "Cannot generate shelfie" }, lang));
+      return;
+    }
+    
+    // For "This shelf" mode, we need an active shelf
+    if (scope === "shelf" && !activeShelf) {
+      showToast(t({ nl: "Geen shelf geselecteerd", en: "No shelf selected" }, lang));
+      return;
+    }
+
+    // Use visibleBooks (same as what's displayed) or fallback to activeBooks
+    const availableBooks = visibleBooks.length > 0 ? visibleBooks : activeBooks;
+    
+    // Guard: check if enough books are available
+    if (availableBooks.length < bookCount) {
+      showToast(
+        t(
+          {
+            nl: `Niet genoeg boeken. Beschikbaar: ${availableBooks.length}, nodig: ${bookCount}`,
+            en: `Not enough books. Available: ${availableBooks.length}, needed: ${bookCount}`,
+          },
+          lang
+        )
+      );
+      return;
+    }
 
     setSharing(true);
     setShowShareBookCountModal(false);
@@ -831,7 +883,10 @@ export default function LibraryPage() {
       const capturedMood: "aesthetic" | "bold" | "calm" = currentMood === "bold" ? "bold" : currentMood === "calm" ? "calm" : "aesthetic";
       setShareMood(capturedMood);
       
-      const title = `${activeShelf.emoji || "📚"} ${activeShelf.name}`;
+      // Use headerTitle to respect scope (all shelves vs this shelf)
+      const title = scope === "all" 
+        ? copy.allShelves 
+        : `${activeShelf.emoji || "📚"} ${activeShelf.name}`;
       const isMobile =
         typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -853,7 +908,8 @@ export default function LibraryPage() {
       const pickedIsbns: string[] = [];
       const seen = new Set<string>();
 
-      for (const b of activeBooks) {
+      // Use availableBooks (visibleBooks or activeBooks) and take first bookCount books
+      for (const b of availableBooks.slice(0, bookCount)) {
         if (picked.length >= bookCount) break;
 
         const bookTitle = b.title || "Unknown";
@@ -903,15 +959,25 @@ export default function LibraryPage() {
         pixelRatio: 2,
       });
 
-      if (!blob) return;
+      if (!blob) {
+        showToast(t({ nl: "Fout bij genereren van afbeelding", en: "Error generating image" }, lang));
+        return;
+      }
 
-      const filename = `${activeShelf.name.replace(/\s+/g, "-")}-shelf.png`;
+      const filename = scope === "all" 
+        ? "all-shelves.png"
+        : `${activeShelf.name.replace(/\s+/g, "-")}-shelf.png`;
+      
+      const shelfLabel = scope === "all" 
+        ? copy.allShelves.toLowerCase()
+        : `${activeShelf.emoji || "📚"} ${activeShelf.name}`;
+      
       const caption = nl
-        ? `✨ Mijn ${activeShelf.emoji || "📚"} ${activeShelf.name} shelf update!
+        ? `✨ Mijn ${shelfLabel} update!
 📚 Totaal: ${stats.total} | TBR: ${stats.tbr} | Bezig: ${stats.reading} | Gelezen: ${stats.read}
 Wat moet ik hierna toevoegen? 👀
 #BookTok #TBR #ReadingCommunity #Shelfie #Bookish`
-        : `✨ My ${activeShelf.emoji || "📚"} ${activeShelf.name} shelf update!
+        : `✨ My ${shelfLabel} update!
 📚 Total: ${stats.total} | TBR: ${stats.tbr} | Reading: ${stats.reading} | Read: ${stats.read}
 What should I add next? 👀
 #BookTok #TBR #ReadingCommunity #Shelfie #Bookish`;
@@ -1014,8 +1080,17 @@ What should I add next? 👀
         <div style={{ ...shelfHeaderContent, position: "relative", zIndex: 10000 }}>
           <div style={{ position: "relative", display: "inline-block" }} ref={dropdownRef}>
             <button style={shelfSelector} onClick={() => setShowShelfDropdown(!showShelfDropdown)}>
-              <span style={{ fontSize: 24 }}>{activeShelf?.emoji || "📚"}</span>
-              <span style={{ fontSize: 20, fontWeight: 950 }}>{activeShelf?.name || copy.myShelf}</span>
+              {scope === "all" ? (
+                <>
+                  <span style={{ fontSize: 24 }}>📚</span>
+                  <span style={{ fontSize: 20, fontWeight: 950 }}>{headerTitle}</span>
+                </>
+              ) : (
+                <>
+                  <span style={{ fontSize: 24 }}>{activeShelf?.emoji || "📚"}</span>
+                  <span style={{ fontSize: 20, fontWeight: 950 }}>{activeShelf?.name || copy.myShelf}</span>
+                </>
+              )}
               <span style={{ fontSize: 12, opacity: 0.7 }}>▼</span>
             </button>
 
@@ -1161,12 +1236,17 @@ What should I add next? 👀
         // Preserve the mood: bold -> bold, calm -> aesthetic (calm style), default/aesthetic -> aesthetic
         const shareVariant: "aesthetic" | "bold" = currentMood === "bold" ? "bold" : "aesthetic";
         const finalMood: "aesthetic" | "bold" | "calm" = currentMood === "calm" ? "calm" : currentMood === "bold" ? "bold" : "aesthetic";
+        // Create a virtual shelf for "All shelves" mode
+        const displayShelf: Shelf = scope === "all" 
+          ? { id: "all", name: copy.allShelves, emoji: "📚", createdAt: Date.now() }
+          : activeShelf!;
+        
         return (
           <div style={{ position: "fixed", left: "-10000px", top: 0, opacity: 0, pointerEvents: "none" }}>
             <ShareCard
               ref={shareCardRef}
               mode="shelfie"
-              shelf={activeShelf}
+              shelf={displayShelf}
               coverUrls={shareCoverUrls}
               bookTitles={shareBookTitles}
               bookAuthors={shareBookAuthors}
@@ -1786,14 +1866,14 @@ What should I add next? 👀
               <button
                 style={btnPrimary}
                 onClick={() => generateShareCard(1)}
-                disabled={sharing || activeBooks.length < 1}
+                disabled={sharing || visibleBooks.length < 1}
               >
                 {t({ nl: "1 boek", en: "1 book" }, lang)}
               </button>
               <button
                 style={btnPrimary}
                 onClick={() => generateShareCard(2)}
-                disabled={sharing || activeBooks.length < 2}
+                disabled={sharing || visibleBooks.length < 2}
               >
                 {t({ nl: "2 boeken", en: "2 books" }, lang)}
               </button>
@@ -1841,9 +1921,8 @@ What should I add next? 👀
         </div>
       )}
 
-      {/* Search and Filters */}
-      {activeBooks.length > 0 && (
-        <div style={{ padding: "0 16px 16px", display: "grid", gap: 12 }}>
+      {/* Search and Filters - Always visible */}
+      <div style={{ padding: "0 16px 16px", display: "grid", gap: 12 }}>
           {/* Search input */}
           <div style={{ position: "relative" }}>
             <input
@@ -1999,19 +2078,38 @@ What should I add next? 👀
             </select>
           </div>
         </div>
-      )}
 
-      {activeBooks.length === 0 ? (
+      {/* Books grid or empty state */}
+      {visibleBooks.length === 0 ? (
         <div style={emptyCard}>
-          <p style={{ color: "var(--muted)", marginTop: 0, fontWeight: 700 }}>{copy.noBooksYet}</p>
-          <Link href="/scan">
-            <button style={btnPrimary}>{copy.scanFirstBook}</button>
-          </Link>
-        </div>
-      ) : visibleBooks.length === 0 ? (
-        <div style={emptyCard}>
-          <p style={{ color: "var(--muted)", marginTop: 0, fontWeight: 700 }}>{copy.noBooksFound}</p>
-          <p style={{ color: "var(--muted2)", marginTop: 8, fontSize: 14 }}>{copy.checkFilters}</p>
+          {searchQuery.trim().length > 0 ? (
+            <>
+              <p style={{ color: "var(--muted)", marginTop: 0, fontWeight: 700, marginBottom: 8 }}>
+                {copy.noBooksFound}
+              </p>
+              <p style={{ color: "var(--muted2)", marginTop: 0, fontSize: 14 }}>
+                {copy.checkFilters}
+              </p>
+            </>
+          ) : scope === "all" ? (
+            <>
+              <p style={{ color: "var(--muted)", marginTop: 0, fontWeight: 700, marginBottom: 8 }}>
+                {t({ nl: "Nog geen boeken in je library", en: "No books in your library yet" }, lang)}
+              </p>
+              <p style={{ color: "var(--muted2)", marginTop: 0, fontSize: 14 }}>
+                {t({ nl: "Scan een ISBN om je eerste boek toe te voegen.", en: "Scan an ISBN to add your first book." }, lang)}
+              </p>
+            </>
+          ) : (
+            <>
+              <p style={{ color: "var(--muted)", marginTop: 0, fontWeight: 700, marginBottom: 8 }}>
+                {t({ nl: "Nog geen boeken in deze shelf", en: "No books in this shelf yet" }, lang)}
+              </p>
+              <p style={{ color: "var(--muted2)", marginTop: 0, fontSize: 14 }}>
+                {t({ nl: "Scan een ISBN om een boek toe te voegen.", en: "Scan an ISBN to add a book." }, lang)}
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <div style={grid}>

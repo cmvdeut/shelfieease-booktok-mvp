@@ -64,7 +64,7 @@ export function AppMenu() {
       const filename = getBackupFilename();
       downloadJson(filename, backup);
       setIsOpen(false);
-      showToast(t({ nl: "Backup gedownload", en: "Backup downloaded" }, lang));
+      showToast("Backup file downloaded");
     } catch (error) {
       console.error("Error creating backup:", error);
       showToast(t({ nl: "Fout bij maken van backup", en: "Error creating backup" }, lang));
@@ -116,24 +116,30 @@ export function AppMenu() {
         }
 
         try {
-          await restoreBackupFromFile(file);
+          const result = await restoreBackupFromFile(file);
           document.body.removeChild(input);
-          showToast(t({ nl: "Backup teruggezet", en: "Backup restored" }, lang));
+          
+          // Set flag in localStorage to show toast after reload
+          try {
+            localStorage.setItem("shelfie_toast", "backup_restored");
+          } catch {
+            // Ignore storage errors
+          }
           
           // Reload to apply changes
           setTimeout(() => {
             window.location.reload();
-          }, 500);
+          }, 100);
         } catch (error) {
           document.body.removeChild(input);
           const errorMessage = error instanceof Error ? error.message : String(error);
           
-          if (errorMessage.includes("Invalid backup") || errorMessage.includes("Invalid JSON")) {
-            showToast(t({ nl: "Ongeldig backup bestand", en: "Invalid backup file" }, lang));
+          if (errorMessage.includes("Invalid backup") || errorMessage.includes("Invalid JSON") || errorMessage.includes("Invalid backup file format")) {
+            showToast("Invalid backup file");
           } else if (errorMessage.includes("storage space") || errorMessage.includes("QuotaExceeded")) {
-            showToast(t({ nl: "Niet genoeg opslagruimte", en: "Not enough storage space" }, lang));
+            showToast("Not enough storage space");
           } else {
-            showToast(t({ nl: "Fout bij terugzetten", en: "Error restoring backup" }, lang));
+            showToast("Error restoring backup");
           }
           console.error("Error restoring backup:", error);
         }
@@ -185,7 +191,7 @@ export function AppMenu() {
       });
 
       setIsOpen(false);
-      showToast(t({ nl: "PDF gedownload", en: "PDF downloaded" }, lang));
+      showToast("Shelf PDF downloaded");
     } catch (error) {
       console.error("Error sharing PDF:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
