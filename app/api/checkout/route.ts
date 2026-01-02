@@ -30,8 +30,8 @@ export async function POST(req: Request) {
       mode: "payment",
       line_items: [{ price: priceId, quantity: 1 }],
       // "eenmalige betaling"
-      success_url: `${origin}/library?paid=1`,
-      cancel_url: `${origin}/library?canceled=1`,
+      success_url: `${origin}/pay/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/pay/cancel`,
       // Je kan later webhooks gebruiken voor echte "unlock" verificatie,
       // maar voor MVP kan je success redirect + local unlock doen.
       allow_promotion_codes: true,

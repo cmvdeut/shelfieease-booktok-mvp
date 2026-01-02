@@ -17,7 +17,7 @@ Klik op **Add New** en voeg deze variabelen toe (voor **Production**, **Preview*
 |--------------|-------|-------------|
 | `STRIPE_SECRET_KEY` | `sk_test_...` (of `sk_live_...` voor productie) | All |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `pk_test_...` (of `pk_live_...` voor productie) | All |
-| `NEXT_PUBLIC_SITE_URL` | `https://shelfieease.seniorease.nl` | All |
+| `NEXT_PUBLIC_SITE_URL` | `https://www.shelfieease.app` | All |
 | `STRIPE_PRICE_ID` | `price_...` | All |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` (later, na webhook setup) | All |
 

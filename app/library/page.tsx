@@ -83,6 +83,9 @@ export default function LibraryPage() {
   const [newShelfName, setNewShelfName] = useState("");
   const [newShelfEmoji, setNewShelfEmoji] = useState("📚");
   const [showNewShelfInAddModal, setShowNewShelfInAddModal] = useState(false);
+  const [manualTitle, setManualTitle] = useState("");
+  const [manualAuthors, setManualAuthors] = useState("");
+  const [manualIsbnInput, setManualIsbnInput] = useState("");
 
   const showToast = useCallback((message: string, duration: number = 2000) => {
     setToast(message);
@@ -244,11 +247,17 @@ export default function LibraryPage() {
     (async () => {
       try {
         const data = await lookupByIsbn(normalizedIsbn);
+        const isUnknown = !data.title || data.title === "Onbekend" || data.title.trim() === "";
         setPendingData({
           title: data.title || "Onbekend",
           authors: data.authors || [],
           coverUrl: "", // Don't fetch cover automatically - user can use "Cover zoeken" button
         });
+        // Initialize manual input fields if book not found
+        if (isUnknown) {
+          setManualTitle("");
+          setManualAuthors("");
+        }
       } catch (e) {
         console.error("Failed to lookup ISBN:", e);
         setPendingData({
@@ -256,6 +265,8 @@ export default function LibraryPage() {
           authors: [],
           coverUrl: "",
         });
+        setManualTitle("");
+        setManualAuthors("");
       } finally {
         setAddLoading(false);
       }
@@ -606,11 +617,18 @@ export default function LibraryPage() {
     }
 
     const now = Date.now();
+    // Check if book was not found and use manual input if available
+    const isUnknown = !pendingData?.title || pendingData.title === "Onbekend" || pendingData.title.trim() === "";
+    const finalTitle = isUnknown && manualTitle.trim() ? manualTitle.trim() : (pendingData?.title || "Onbekend");
+    const finalAuthors = isUnknown && manualAuthors.trim() 
+      ? manualAuthors.split(",").map(a => a.trim()).filter(a => a.length > 0)
+      : (pendingData?.authors || []);
+    
     const book: Book = {
       id: pendingIsbn,
       isbn13: pendingIsbn,
-      title: pendingData?.title || "Onbekend",
-      authors: pendingData?.authors || [],
+      title: finalTitle,
+      authors: finalAuthors,
       coverUrl: pendingData?.coverUrl || "",
       shelfId: targetShelfId,
       status: "TBR" as BookStatus,
@@ -635,6 +653,8 @@ export default function LibraryPage() {
     setPendingData(null);
     setTargetShelfId(null);
     setDuplicateWarning(null);
+    setManualTitle("");
+    setManualAuthors("");
     handledIsbnRef.current = null;
     router.replace("/library");
   }
@@ -647,8 +667,26 @@ export default function LibraryPage() {
     setShowNewShelfInAddModal(false);
     setNewShelfName("");
     setNewShelfEmoji("📚");
+    setManualTitle("");
+    setManualAuthors("");
     handledIsbnRef.current = null;
     router.replace("/library");
+  }
+
+  function handleManualIsbnSubmit() {
+    const normalizedIsbn = manualIsbnInput.replace(/[^0-9X]/gi, "").trim();
+    if (!normalizedIsbn) return;
+
+    // Check demo limit before adding book
+    if (!canAddBook()) {
+      setShowDemoLimitModal(true);
+      setManualIsbnInput("");
+      return;
+    }
+
+    // Navigate to library with addIsbn parameter (same flow as scan page)
+    router.push(`/library?addIsbn=${encodeURIComponent(normalizedIsbn)}`);
+    setManualIsbnInput("");
   }
 
   function handleMoveBook(bookId: string, targetShelfId: string) {
@@ -1006,6 +1044,54 @@ What should I add next? 👀
             </button>
           )}
 
+          {/* Manual ISBN input */}
+          <div style={{ display: "flex", gap: 8, flex: 1, maxWidth: 200 }}>
+            <input
+              id="manual-isbn-library-input"
+              name="manual-isbn-library-input"
+              value={manualIsbnInput}
+              onChange={(e) => setManualIsbnInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleManualIsbnSubmit();
+                }
+              }}
+              inputMode="numeric"
+              placeholder={t({ nl: "ISBN", en: "ISBN" }, lang)}
+              aria-label={t({ nl: "ISBN invoeren", en: "Enter ISBN" }, lang)}
+              style={{
+                flex: 1,
+                borderRadius: 12,
+                border: "1px solid var(--border)",
+                background: "var(--panel2)",
+                padding: "8px 12px",
+                fontSize: 14,
+                color: "var(--text)",
+                minWidth: 0,
+              }}
+            />
+            {manualIsbnInput.trim() && (
+              <button
+                onClick={handleManualIsbnSubmit}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 12,
+                  background: "var(--btnPrimaryBg)",
+                  color: "var(--btnPrimaryText)",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  border: "1px solid var(--border)",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+                type="button"
+              >
+                {t({ nl: "Zoek", en: "Search" }, lang)}
+              </button>
+            )}
+          </div>
+
         <Link href="/scan">
           <button style={btnPrimary}>{copy.scan}</button>
         </Link>
@@ -1335,43 +1421,96 @@ What should I add next? 👀
                 </div>
             ) : (
               <>
-                {pendingData && (
-                  <div
-                    style={{
-                      marginBottom: 24,
-                      padding: "12px 16px",
-                      borderRadius: 12,
-                      background: "var(--panel2)",
-                      border: "1px solid var(--border)",
-                    }}
-                  >
-                    {/* Title */}
-                    <div
-                      style={{
-                        fontSize: 16,
-                        fontWeight: 700,
-                        color: "var(--text)",
-                        marginBottom: 4,
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {pendingData.title || "Onbekend"}
-              </div>
-
-                    {/* Authors */}
-                    {pendingData.authors && pendingData.authors.length > 0 && (
+                {pendingData && (() => {
+                  const isUnknown = !pendingData.title || pendingData.title === "Onbekend" || pendingData.title.trim() === "";
+                  
+                  if (isUnknown) {
+                    // Show input fields for manual entry when book not found
+                    return (
+                      <div style={{ marginBottom: 24 }}>
+                        <div style={{ ...formGroup, marginBottom: 16 }}>
+                          <label htmlFor="manual-title" style={{ ...formLabel, color: "var(--text)" }}>
+                            {t({ nl: "Titel", en: "Title" }, lang)} *
+                          </label>
+                          <input
+                            id="manual-title"
+                            type="text"
+                            value={manualTitle}
+                            onChange={(e) => setManualTitle(e.target.value)}
+                            placeholder={t({ nl: "Voer boek titel in", en: "Enter book title" }, lang)}
+                            style={{
+                              ...formInput,
+                              border: "1px solid var(--border)",
+                              background: "var(--panel2)",
+                              color: "var(--text)",
+                            }}
+                            autoFocus
+                          />
+                        </div>
+                        <div style={formGroup}>
+                          <label htmlFor="manual-authors" style={{ ...formLabel, color: "var(--text)" }}>
+                            {t({ nl: "Auteur(s)", en: "Author(s)" }, lang)}
+                          </label>
+                          <input
+                            id="manual-authors"
+                            type="text"
+                            value={manualAuthors}
+                            onChange={(e) => setManualAuthors(e.target.value)}
+                            placeholder={t({ nl: "Voer auteur(s) in (gescheiden door komma)", en: "Enter author(s) (separated by comma)" }, lang)}
+                            style={{
+                              ...formInput,
+                              border: "1px solid var(--border)",
+                              background: "var(--panel2)",
+                              color: "var(--text)",
+                            }}
+                          />
+                          <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+                            {t({ nl: "Scheid meerdere auteurs met een komma", en: "Separate multiple authors with a comma" }, lang)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    // Show book info when found
+                    return (
                       <div
                         style={{
-                          fontSize: 13,
-                          color: "var(--muted)",
-                          lineHeight: 1.4,
+                          marginBottom: 24,
+                          padding: "12px 16px",
+                          borderRadius: 12,
+                          background: "var(--panel2)",
+                          border: "1px solid var(--border)",
                         }}
                       >
-                        {pendingData.authors.join(", ")}
-            </div>
-                    )}
-                  </div>
-                )}
+                        {/* Title */}
+                        <div
+                          style={{
+                            fontSize: 16,
+                            fontWeight: 700,
+                            color: "var(--text)",
+                            marginBottom: 4,
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          {pendingData.title || "Onbekend"}
+                        </div>
+
+                        {/* Authors */}
+                        {pendingData.authors && pendingData.authors.length > 0 && (
+                          <div
+                            style={{
+                              fontSize: 13,
+                              color: "var(--muted)",
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            {pendingData.authors.join(", ")}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                })()}
 
                 {!showNewShelfInAddModal ? (
                   <>
@@ -1436,7 +1575,7 @@ What should I add next? 👀
                           justifyContent: "center",
                         }}
                         onClick={handleAddBookToShelf}
-                        disabled={!targetShelfId}
+                        disabled={!targetShelfId || (pendingData && (!pendingData.title || pendingData.title === "Onbekend" || pendingData.title.trim() === "") && !manualTitle.trim())}
                       >
                         {copy.addToShelf}
                       </button>
