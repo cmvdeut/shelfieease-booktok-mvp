@@ -167,10 +167,10 @@ export function restoreBackupFromFile(file: File): Promise<void> {
           }
           
           // Restore settings with defaults if missing
-          const settings = backup.data.settings || {};
+          const settings = backup.data.settings || { mood: null, paid: false };
           
           // Restore mood (default to "aesthetic" if missing)
-          const mood = settings.mood || "aesthetic";
+          const mood = (settings.mood && typeof settings.mood === "string") ? settings.mood : "aesthetic";
           try {
             localStorage.setItem("se:mood", mood);
           } catch {
