@@ -525,6 +525,12 @@ export default function LibraryPage() {
     return computeStats(visibleBooks);
   }, [visibleBooks]);
 
+  // Derive active shelf for header
+  const activeShelf = useMemo(() => {
+    if (!activeShelfId) return null;
+    return shelves.find((s) => s.id === activeShelfId) || null;
+  }, [activeShelfId, shelves]);
+
   // Derive header title based on scope
   const headerTitle = useMemo(() => {
     if (scope === "all") {
@@ -1025,7 +1031,7 @@ What should I add next? 👀
     URL.revokeObjectURL(url);
   }
 
-  const activeShelf = shelves.find((s) => s.id === activeShelfId);
+  // activeShelf is now defined earlier as useMemo (see line 529)
 
   // Get first few covers for blurred background
   const shelfCovers = useMemo(() => {
