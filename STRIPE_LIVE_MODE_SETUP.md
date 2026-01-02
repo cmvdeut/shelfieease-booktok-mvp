@@ -66,7 +66,7 @@
 
 ## Stap 6: Test met Echte Betaling (Kleine Test)
 
-1. Open je live website: `https://shelfieease.seniorease.nl`
+1. Open je live website: `https://www.shelfieease.app`
 2. Test de checkout flow:
    - Voeg 10 boeken toe
    - Klik "Ontgrendel volledig"

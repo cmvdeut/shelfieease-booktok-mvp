@@ -30,7 +30,7 @@
    - Environment: Production, Preview, Development
 
 2. **`NEXT_PUBLIC_SITE_URL`**
-   - Value: `https://shelfieease.seniorease.nl`
+   - Value: `https://www.shelfieease.app`
    - Used for: success_url and cancel_url in Checkout Sessions
    - Environment: Production, Preview, Development
 
@@ -64,7 +64,7 @@
 9. [ ] Verify redirect to `/pay/cancel`
 
 ### Debug Endpoints
-- Check environment variables: `https://shelfieease.seniorease.nl/api/check-env`
+- Check environment variables: `https://www.shelfieease.app/api/check-env`
   - Should return: `{"required": {"STRIPE_SECRET_KEY": true, "NEXT_PUBLIC_SITE_URL": true, "STRIPE_PRICE_ID": true}, "allSet": true}`
 
 ## 🐛 Common Issues
