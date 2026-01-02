@@ -112,8 +112,9 @@ export function validateBackup(backup: unknown): backup is BackupData {
 
 /**
  * Restore backup from file
+ * Returns the exportedAt date from the backup if available
  */
-export function restoreBackupFromFile(file: File): Promise<void> {
+export function restoreBackupFromFile(file: File): Promise<{ exportedAt?: string }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -185,7 +186,8 @@ export function restoreBackupFromFile(file: File): Promise<void> {
             // Ignore storage errors
           }
           
-          resolve();
+          // Return exportedAt date if available
+          resolve({ exportedAt: backup.exportedAt });
         } catch (storageError) {
           console.error("Error restoring backup:", storageError);
           if (storageError instanceof Error && storageError.name === "QuotaExceededError") {

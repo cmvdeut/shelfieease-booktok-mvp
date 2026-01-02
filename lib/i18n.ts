@@ -11,27 +11,12 @@ export function detectUiLang(): UiLang {
 }
 
 /**
- * Translation function with fallback.
- * Returns the translation for the given language, or falls back to available language.
+ * Translation function - always returns English.
+ * App UI is English-only for consistency.
  */
 export function t(dict: { nl: string; en: string }, lang?: UiLang): string {
-  const targetLang = lang ?? detectUiLang();
-  
-  // Try the requested language first
-  if (dict[targetLang]) {
-    return dict[targetLang];
-  }
-  
-  // Fallback to the other language if available
-  if (targetLang === "nl" && dict.en) {
-    return dict.en;
-  }
-  if (targetLang === "en" && dict.nl) {
-    return dict.nl;
-  }
-  
-  // Last resort: return the first available value
-  return dict.nl || dict.en || "";
+  // Always return English, regardless of lang parameter
+  return dict.en || dict.nl || "";
 }
 
 /**
@@ -80,11 +65,11 @@ const PAY_EN = {
 
 /**
  * Translation function for pay flow texts.
- * Uses existing isNlUi() logic for language detection.
+ * Always returns English for consistency.
  */
 export function tPay(key: keyof typeof PAY_NL, nlOverride?: boolean): string {
-  const nl = typeof nlOverride === "boolean" ? nlOverride : isNlUi();
-  return (nl ? PAY_NL : PAY_EN)[key];
+  // Always return English, regardless of nlOverride
+  return PAY_EN[key];
 }
 
 
