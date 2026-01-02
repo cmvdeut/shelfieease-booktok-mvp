@@ -17,6 +17,7 @@ import {
   deleteBook,
   upsertBook,
   findShelfByName,
+  normalizeStatus,
   type Book,
   type Shelf,
   type BookStatus,
@@ -37,10 +38,6 @@ function googleSearchUrl(q: string): string {
   return `https://www.google.com/search?q=${encodeURIComponent(q)}`;
 }
 
-function googleIsbnUrl(isbn: string): string {
-  return googleSearchUrl("ISBN " + isbn);
-}
-
 function googleSummaryUrl(title: string, authors: string, isbn: string, nl: boolean): string {
   const keyword = nl ? "samenvatting" : "summary";
   const extra = nl ? "samenvatting summary" : "summary samenvatting";
@@ -59,8 +56,9 @@ function googleCoverUrl(title: string, authors: string, isbn: string, nl: boolea
 export default function LibraryPage() {
   const router = useRouter();
   const [lang, setLang] = useState<ReturnType<typeof detectUiLang>>(() => {
-    // Default to "nl" for SSR to avoid hydration mismatch
-    if (typeof window === "undefined") return "nl";
+    // Default to "en" for SSR to match detectUiLang() which always returns "en"
+    // This prevents hydration mismatch
+    if (typeof window === "undefined") return "en";
     return detectUiLang();
   });
   const nl = lang === "nl";
@@ -181,8 +179,7 @@ export default function LibraryPage() {
     sortAuthor: t({ nl: "Sort: Author A–Z", en: "Sort: Author A–Z" }, lang),
     summary: t({ nl: "Samenvatting", en: "Summary" }, lang),
     findCover: t({ nl: "Cover zoeken", en: "Find cover" }, lang),
-    openInBrowser: t({ nl: "Open in browser", en: "Open in browser" }, lang),
-    searchPlaceholder: t({ nl: "Zoek op titel, auteur of ISBN", en: "Search by title, author or ISBN" }, lang),
+    searchPlaceholder: t({ nl: "Zoek in library op titel, auteur of ISBN", en: "Search library by title, author or ISBN" }, lang),
     sortBooks: t({ nl: "Sorteer boeken", en: "Sort books" }, lang),
     duplicateWarning: t({ nl: "Dit boek bestaat al", en: "This book already exists" }, lang),
     duplicateWarningText: t({ nl: "Dit boek staat al in shelf:", en: "This book is already in shelf:" }, lang),
@@ -247,7 +244,8 @@ export default function LibraryPage() {
     (async () => {
       try {
         const data = await lookupByIsbn(normalizedIsbn);
-        const isUnknown = !data.title || data.title === "Onbekend" || data.title.trim() === "";
+        // Check if book was found: title should not be empty and should have content
+        const isUnknown = !data.title || data.title.trim() === "" || (data.authors && data.authors.length === 0 && !data.coverUrl);
         setPendingData({
           title: data.title || "Onbekend",
           authors: data.authors || [],
@@ -255,6 +253,10 @@ export default function LibraryPage() {
         });
         // Initialize manual input fields if book not found
         if (isUnknown) {
+          setManualTitle("");
+          setManualAuthors("");
+        } else {
+          // Clear manual fields if book was found
           setManualTitle("");
           setManualAuthors("");
         }
@@ -363,6 +365,10 @@ export default function LibraryPage() {
       return b;
     };
     
+    // Check for books in "Wanna Haves" with non-TBR status and correct them
+    const wannaHavesShelf = allShelves.find((s) => s.name.trim().toLowerCase() === "wanna haves");
+    let hasInvalidWannaHavesStatus = false;
+    
     let didStrip = false;
     const cleanedBooks = allBooks.map((b) => {
       let next = stripStaleOpenLibraryCover(b);
@@ -370,6 +376,16 @@ export default function LibraryPage() {
       next = fixOpenLibraryUrl(next);
       // Check if coverUrl changed (detect any cleanup changes)
       if (next.coverUrl !== b.coverUrl) didStrip = true;
+      
+      // Validate "Wanna Haves" shelf status
+      if (wannaHavesShelf && next.shelfId === wannaHavesShelf.id) {
+        const normalizedStatus = normalizeStatus(next.status);
+        if (normalizedStatus !== "TBR") {
+          hasInvalidWannaHavesStatus = true;
+          next = { ...next, status: "TBR" as BookStatus };
+        }
+      }
+      
       return next;
     });
 
@@ -383,9 +399,25 @@ export default function LibraryPage() {
       saveBooks(migrated);
       setBooks(migrated);
     } else {
-      // Persist cleanup if we changed anything
-      if (didStrip) saveBooks(cleanedBooks);
+      // Persist cleanup if we changed anything (including Wanna Haves status correction)
+      if (didStrip || hasInvalidWannaHavesStatus) saveBooks(cleanedBooks);
       setBooks(cleanedBooks);
+      
+      // Show warning if Wanna Haves books were corrected
+      if (hasInvalidWannaHavesStatus) {
+        setTimeout(() => {
+          showToast(
+            t(
+              {
+                nl: "Boeken in 'Wanna Haves' zijn automatisch op TBR gezet.",
+                en: "Books in 'Wanna Haves' have been automatically set to TBR.",
+              },
+              lang
+            ),
+            4000
+          );
+        }, 500);
+      }
     }
   }, []);
 
@@ -425,10 +457,10 @@ export default function LibraryPage() {
   const visibleBooks = useMemo(() => {
     let filtered = baseBooks;
 
-    // Status filter
+    // Status filter - use normalizeStatus for consistent filtering
     if (statusFilter.size > 0 && statusFilter.size < 3) {
       filtered = filtered.filter((b) => {
-        const status = b.status ?? "TBR";
+        const status = normalizeStatus(b.status);
         return statusFilter.has(status);
       });
     }
@@ -467,12 +499,14 @@ export default function LibraryPage() {
   }, [baseBooks, statusFilter, searchQuery, sortBy]);
 
   const stats = useMemo(() => {
-    const tbr = activeBooks.filter((b) => (b.status ?? "TBR") === "TBR").length;
-    const reading = activeBooks.filter((b) => (b.status ?? "TBR") === "Reading").length;
-    const read = activeBooks.filter((b) => (b.status ?? "TBR") === "Finished").length;
+    // Use baseBooks (respects scope: "all" or active shelf) for consistent counting with visible books
+    // Use normalizeStatus for consistent counting
+    const tbr = baseBooks.filter((b) => normalizeStatus(b.status) === "TBR").length;
+    const reading = baseBooks.filter((b) => normalizeStatus(b.status) === "Reading").length;
+    const read = baseBooks.filter((b) => normalizeStatus(b.status) === "Finished").length;
 
-    return { total: activeBooks.length, tbr, reading, read };
-  }, [activeBooks]);
+    return { total: baseBooks.length, tbr, reading, read };
+  }, [baseBooks]);
 
   // Show Share Shelfie only if total books >= 2 and add modal is not open
   const showShareButton = stats.total >= 2 && !addModalOpen;
@@ -697,6 +731,28 @@ export default function LibraryPage() {
   }
 
   function handleChangeStatus(bookId: string, status: BookStatus) {
+    const book = books.find((b) => b.id === bookId);
+    if (!book) return;
+    
+    // Check if book is in "Wanna Haves" shelf (case-insensitive)
+    const bookShelf = shelves.find((s) => s.id === book.shelfId);
+    const isWannaHaves = bookShelf && bookShelf.name.trim().toLowerCase() === "wanna haves";
+    
+    // If book is in "Wanna Haves" and trying to set status other than TBR, show warning
+    if (isWannaHaves && status !== "TBR") {
+      showToast(
+        t(
+          {
+            nl: "Boeken in 'Wanna Haves' kunnen alleen TBR status hebben.",
+            en: "Books in 'Wanna Haves' can only have TBR status.",
+          },
+          lang
+        ),
+        3000
+      );
+      return;
+    }
+    
     const updated = updateBook(bookId, { status });
     setBooks(updated);
     showToast(t({ nl: `Status bijgewerkt naar ${status === "Finished" ? "Gelezen" : status === "Reading" ? "Bezig" : "TBR"}`, en: `Status updated to ${status === "Finished" ? "Read" : status}` }, lang));
@@ -1422,7 +1478,11 @@ What should I add next? 👀
             ) : (
               <>
                 {pendingData && (() => {
-                  const isUnknown = !pendingData.title || pendingData.title === "Onbekend" || pendingData.title.trim() === "";
+                  // Check if book is unknown: title is empty, "Onbekend", or has no authors/cover
+                  const isUnknown = !pendingData.title || 
+                                   pendingData.title === "Onbekend" || 
+                                   pendingData.title.trim() === "" ||
+                                   (pendingData.title === "Onbekend" && (!pendingData.authors || pendingData.authors.length === 0));
                   
                   if (isUnknown) {
                     // Show input fields for manual entry when book not found
@@ -2011,19 +2071,29 @@ What should I add next? 👀
 
                       <div style={actionMenuSection}>
                         <div style={actionMenuLabel}>{copy.changeStatus}</div>
-                        {(["TBR", "Reading", "Finished"] as BookStatus[]).map((status) => (
-                          <button
-                            key={status}
-                            style={{
-                              ...actionMenuItem,
-                              ...(b.status === status ? actionMenuItemActive : {}),
-                            }}
-                            onClick={() => handleChangeStatus(b.id, status)}
-                          >
-                            <span>{status === "Finished" ? copy.read : status === "Reading" ? copy.reading : copy.tbr}</span>
-                            {b.status === status && <span style={{ fontSize: 10 }}>✓</span>}
-                          </button>
-                        ))}
+                        {(["TBR", "Reading", "Finished"] as BookStatus[]).map((status) => {
+                          // Check if book is in "Wanna Haves" shelf
+                          const bookShelf = shelves.find((s) => s.id === b.shelfId);
+                          const isWannaHaves = bookShelf && bookShelf.name.trim().toLowerCase() === "wanna haves";
+                          const isDisabled = isWannaHaves && status !== "TBR";
+                          
+                          return (
+                            <button
+                              key={status}
+                              style={{
+                                ...actionMenuItem,
+                                ...(b.status === status ? actionMenuItemActive : {}),
+                                ...(isDisabled ? { opacity: 0.5, cursor: "not-allowed" } : {}),
+                              }}
+                              onClick={() => !isDisabled && handleChangeStatus(b.id, status)}
+                              disabled={isDisabled}
+                            >
+                              <span>{status === "Finished" ? copy.read : status === "Reading" ? copy.reading : copy.tbr}</span>
+                              {b.status === status && <span style={{ fontSize: 10 }}>✓</span>}
+                              {isDisabled && <span style={{ fontSize: 10, marginLeft: 4 }}>🔒</span>}
+                            </button>
+                          );
+                        })}
                       </div>
 
                       <div style={actionMenuDivider} />
@@ -2099,7 +2169,15 @@ What should I add next? 👀
                             <span>{bookShelf.name}</span>
                 </div>
                         )}
-                        <span style={{ ...isbn, fontSize: 10 }}>ISBN {b.isbn13}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <span style={{ ...isbn, fontSize: 10 }}>ISBN {b.isbn13}</span>
+                          {(() => {
+                            // Use normalizeStatus to ensure consistent display
+                            const s = normalizeStatus(b.status);
+                            const label = s === "Finished" ? copy.read : s === "Reading" ? copy.reading : copy.tbr;
+                            return <span style={badgeFor(s)}>{label}</span>;
+                          })()}
+                        </div>
               </div>
 
                       {/* cardActions: Samenvatting / Cover zoeken */}
@@ -2122,23 +2200,10 @@ What should I add next? 👀
                         >
                           {copy.findCover}
                         </button>
-
-                        <button
-                          type="button"
-                          style={miniLinkBtn}
-                          onClick={() => window.open(googleIsbnUrl(b.isbn13), "_blank", "noopener,noreferrer")}
-                        >
-                          {copy.openInBrowser}
-                        </button>
             </div>
 
-                      {/* cardBottom: badge */}
+                      {/* cardBottom: ebook badge */}
                       <div style={cardBottom}>
-                        {(() => {
-                          const s = b.status || "TBR";
-                          const label = s === "Finished" ? copy.read : s === "Reading" ? copy.reading : copy.tbr;
-                          return <span style={badgeFor(s)}>{label}</span>;
-                        })()}
                         {(b.format || "physical") === "ebook" && (
                           <span style={{
                             fontSize: 11,
@@ -2885,7 +2950,9 @@ const emojiChip: React.CSSProperties = {
   width: 44,
   height: 44,
   borderRadius: 12,
-  border: "1px solid var(--border)",
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderColor: "var(--border)",
   background: "var(--panel)",
   color: "var(--text)",
   fontSize: 20,
@@ -3144,15 +3211,31 @@ const isbn: React.CSSProperties = {
 };
 
 function badgeFor(status: string): React.CSSProperties {
-  // Use same style as filter buttons - neutral beige background with dark text
+  // Subtle pill-style label - not clickable
+  // Mood-aware colors (same as stats page)
+  const isCalm = typeof document !== "undefined" && document.documentElement.dataset.mood === "calm";
+  
+  let background = "";
+  if (status === "TBR") {
+    background = isCalm ? "rgba(140,120,255,0.15)" : "rgba(140,120,255,0.18)";
+  } else if (status === "Reading") {
+    background = isCalm ? "rgba(80,180,200,0.15)" : "rgba(80,180,200,0.18)";
+  } else {
+    background = isCalm ? "rgba(120,160,120,0.15)" : "rgba(120,160,120,0.18)";
+  }
+  
   return {
-    fontSize: 13,
-    fontWeight: 700,
-    padding: "6px 12px",
-    borderRadius: 12,
-    border: "1px solid var(--border)",
-    background: "var(--btnGhostBg)",
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "2px 8px",
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: 600,
+    marginLeft: 6,
+    cursor: "default",
+    background,
     color: "var(--text)",
+    userSelect: "none",
   };
 }
 
