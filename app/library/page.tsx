@@ -92,15 +92,20 @@ export default function LibraryPage() {
 
   // Check for restore backup toast on mount
   useEffect(() => {
-    try {
-      const toastFlag = localStorage.getItem("shelfie_toast");
-      if (toastFlag === "backup_restored") {
-        localStorage.removeItem("shelfie_toast");
-        showToast("Backup restored successfully", 3000);
+    // Small delay to ensure component is fully mounted and visible
+    const timeoutId = setTimeout(() => {
+      try {
+        const toastFlag = localStorage.getItem("shelfie_toast");
+        if (toastFlag === "backup_restored") {
+          localStorage.removeItem("shelfie_toast");
+          showToast("Backup restored successfully", 3000);
+        }
+      } catch {
+        // Ignore storage errors
       }
-    } catch {
-      // Ignore storage errors
-    }
+    }, 100);
+    
+    return () => clearTimeout(timeoutId);
   }, [showToast]);
 
 
