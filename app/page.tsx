@@ -200,6 +200,9 @@ export default function HomePage() {
               {t({ nl: "Scan een boek", en: "Scan a book" }, lang)}
               <span style={{ opacity: 0.8 }}>→</span>
             </Link>
+            <div style={{ fontSize: 11, color: "var(--muted2)", opacity: 0.7, textAlign: "center", marginTop: 4 }}>
+              {t({ nl: "Handmatig invoeren blijft altijd mogelijk.", en: "Manual entry is always possible." }, lang)}
+            </div>
 
             {/* Device compatibility info - only show for demo users */}
             {!isPro && (
@@ -278,96 +281,67 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Compact feature chips */}
-          <div style={{ marginTop: 20, display: "grid", gap: 8 }}>
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              borderRadius: 16,
-              background: "var(--panel2)",
-              border: "1px solid var(--border)",
-              padding: "10px 16px",
+          {/* Features section */}
+          <div style={{ marginTop: 32 }}>
+            <h3 style={{ 
+              fontSize: 14, 
+              fontWeight: 700, 
+              color: "var(--text)", 
+              marginBottom: 12,
+              letterSpacing: "0.01em"
             }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{t({ nl: "Geen stress stats", en: "No stress stats" }, lang)}</div>
-                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
-                  {t({ nl: "TBR • Bezig • Gelezen", en: "TBR • Reading • Finished" }, lang)}
+              {t({ nl: "Features", en: "Features" }, lang)}
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 12,
+              }}>
+                <div style={{ fontSize: 20, flexShrink: 0, lineHeight: 1 }}>✨</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", lineHeight: 1.3 }}>
+                    {t({ nl: "No-stress reading stats", en: "No-stress reading stats" }, lang)}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--muted2)", marginTop: 4, lineHeight: 1.4 }}>
+                    {t({ nl: "TBR · Reading · Finished", en: "TBR · Reading · Finished" }, lang)}
+                  </div>
                 </div>
               </div>
-              <div style={{
-                display: "grid",
-                height: 36,
-                width: 36,
-                placeItems: "center",
-                borderRadius: 16,
-                background: "var(--panel)",
-                border: "1px solid var(--border)",
-              }}>
-                ✨
-              </div>
-            </div>
 
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              borderRadius: 16,
-              background: "var(--panel2)",
-              border: "1px solid var(--border)",
-              padding: "10px 16px",
-            }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{t({ nl: "Shelves met emoji", en: "Shelves with emoji" }, lang)}</div>
-                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
-                  {t({ nl: "Mini-collecties (📖🌙🔥💜)", en: "Mini-collections (📖🌙🔥💜)" }, lang)}
+              <div style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 12,
+              }}>
+                <div style={{ fontSize: 20, flexShrink: 0, lineHeight: 1 }}>🧺</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", lineHeight: 1.3 }}>
+                    {t({ nl: "Emoji shelves", en: "Emoji shelves" }, lang)}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--muted2)", marginTop: 4, lineHeight: 1.4 }}>
+                    {t({ nl: "Create mini collections", en: "Create mini collections" }, lang)}
+                  </div>
                 </div>
               </div>
-              <div style={{
-                display: "grid",
-                height: 36,
-                width: 36,
-                placeItems: "center",
-                borderRadius: 16,
-                background: "var(--panel)",
-                border: "1px solid var(--border)",
-              }}>
-                🧺
-              </div>
-            </div>
 
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              borderRadius: 16,
-              background: "var(--panel2)",
-              border: "1px solid var(--border)",
-              padding: "10px 16px",
-            }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{t({ nl: "Deel je Shelfie", en: "Share your Shelfie" }, lang)}</div>
-                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
-                  {t({ nl: "9:16 share-card", en: "9:16 share-card" }, lang)}
-                </div>
-              </div>
               <div style={{
-                display: "grid",
-                height: 36,
-                width: 36,
-                placeItems: "center",
-                borderRadius: 16,
-                background: "var(--panel)",
-                border: "1px solid var(--border)",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 12,
               }}>
-                🪄
+                <div style={{ fontSize: 20, flexShrink: 0, lineHeight: 1 }}>🪄</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", lineHeight: 1.3 }}>
+                    {t({ nl: "Share your Shelfie", en: "Share your Shelfie" }, lang)}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--muted2)", marginTop: 4, lineHeight: 1.4 }}>
+                    {t({ nl: "9:16 share card", en: "9:16 share card" }, lang)}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-
-          <footer style={{ marginTop: 16, fontSize: 11, color: "var(--muted)", opacity: 0.7 }}>
-            {t({ nl: "Tip: Handmatig invoeren blijft altijd mogelijk.", en: "Tip: Manual entry is always possible." }, lang)}
-          </footer>
         </section>
       </div>
     </main>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import React from "react";
 import { detectUiLang, t } from "@/lib/i18n";
 
 export default function HelpPage() {
@@ -21,6 +22,131 @@ export default function HelpPage() {
           en: "You can add a book by scanning (via the Scan page) or by manually entering an ISBN on the Library page. If the book is not found online, you can manually enter the title and author.",
         },
         lang
+      ),
+    },
+    {
+      q: t(
+        {
+          nl: "Waarom werkt scannen niet voor elk boek?",
+          en: "Why doesn't scanning work for every book?",
+        },
+        lang
+      ),
+      a: (
+        <div>
+          <p style={{ marginBottom: 12 }}>
+            {t(
+              {
+                nl: "De meeste boeken kunnen snel worden gescand met hun ISBN-barcode. Sommige gedrukte barcodes zijn echter moeilijk of onmogelijk te scannen.",
+                en: "Most books can be scanned quickly using their ISBN barcode. However, some printed barcodes are difficult or impossible to scan.",
+              },
+              lang
+            )}
+          </p>
+          <p style={{ marginBottom: 8 }}>
+            {t(
+              {
+                nl: "Dit gebeurt meestal wanneer een barcode:",
+                en: "This usually happens when a barcode:",
+              },
+              lang
+            )}
+          </p>
+          <ul style={{ marginLeft: 20, marginBottom: 12, paddingLeft: 0 }}>
+            <li style={{ marginBottom: 4 }}>
+              {t(
+                {
+                  nl: "gedrukt is met zeer dunne lijnen",
+                  en: "is printed with very thin lines",
+                },
+                lang
+              )}
+            </li>
+            <li style={{ marginBottom: 4 }}>
+              {t(
+                {
+                  nl: "lage contrast heeft (bijvoorbeeld grijs of bruin papier)",
+                  en: "has low contrast (for example grey or brown paper)",
+                },
+                lang
+              )}
+            </li>
+            <li style={{ marginBottom: 4 }}>
+              {t(
+                {
+                  nl: "te klein is of zeer dicht bij de rand staat",
+                  en: "is too small or placed very close to the edge",
+                },
+                lang
+              )}
+            </li>
+            <li style={{ marginBottom: 4 }}>
+              {t(
+                {
+                  nl: "licht beschadigd of versleten is",
+                  en: "is slightly damaged or worn",
+                },
+                lang
+              )}
+            </li>
+          </ul>
+          <p style={{ marginBottom: 12 }}>
+            {t(
+              {
+                nl: "In deze gevallen kunnen zelfs moderne telefooncamera's de barcode mogelijk niet betrouwbaar lezen.",
+                en: "In these cases, even modern phone cameras may not be able to read the barcode reliably.",
+              },
+              lang
+            )}
+          </p>
+          <p style={{ marginBottom: 8, fontWeight: 600 }}>
+            {t(
+              {
+                nl: "Wat kan ik doen als scannen mislukt?",
+                en: "What can I do if scanning fails?",
+              },
+              lang
+            )}
+          </p>
+          <ul style={{ marginLeft: 20, marginBottom: 12, paddingLeft: 0 }}>
+            <li style={{ marginBottom: 4 }}>
+              {t(
+                {
+                  nl: "Probeer te scannen in beter licht",
+                  en: "Try scanning in better light",
+                },
+                lang
+              )}
+            </li>
+            <li style={{ marginBottom: 4 }}>
+              {t(
+                {
+                  nl: "Houd je telefoon iets verder weg",
+                  en: "Hold your phone a little further away",
+                },
+                lang
+              )}
+            </li>
+            <li style={{ marginBottom: 4 }}>
+              {t(
+                {
+                  nl: "Of voer het ISBN gewoon handmatig in — dit werkt altijd",
+                  en: "Or simply enter the ISBN manually — this always works",
+                },
+                lang
+              )}
+            </li>
+          </ul>
+          <p style={{ marginTop: 12, fontStyle: "italic" }}>
+            {t(
+              {
+                nl: "ShelfieEase zal je nooit blokkeren om een boek toe te voegen.",
+                en: "ShelfieEase will never block you from adding a book.",
+              },
+              lang
+            )}
+          </p>
+        </div>
       ),
     },
     {
@@ -165,15 +291,27 @@ export default function HelpPage() {
             >
               {faq.q}
             </h2>
-            <p
-              style={{
-                fontSize: 14,
-                lineHeight: 1.6,
-                color: "var(--muted)",
-              }}
-            >
-              {faq.a}
-            </p>
+            {typeof faq.a === "string" ? (
+              <p
+                style={{
+                  fontSize: 14,
+                  lineHeight: 1.6,
+                  color: "var(--muted)",
+                }}
+              >
+                {faq.a}
+              </p>
+            ) : (
+              <div
+                style={{
+                  fontSize: 14,
+                  lineHeight: 1.6,
+                  color: "var(--muted)",
+                }}
+              >
+                {faq.a}
+              </div>
+            )}
           </div>
         ))}
       </div>

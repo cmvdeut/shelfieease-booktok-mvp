@@ -125,6 +125,11 @@ export default function LibraryPage() {
   const [newShelfMood, setNewShelfMood] = useState<Mood>("aesthetic");
   const [actionMenuBookId, setActionMenuBookId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [editingBookId, setEditingBookId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editAuthors, setEditAuthors] = useState("");
+  const [editIsbn, setEditIsbn] = useState("");
+  const [editCoverUrl, setEditCoverUrl] = useState("");
   const [sharing, setSharing] = useState(false);
   const [shareCoverUrls, setShareCoverUrls] = useState<string[]>([]);
   const [shareBookTitles, setShareBookTitles] = useState<string[]>([]);
@@ -550,6 +555,7 @@ export default function LibraryPage() {
   function handleShelfSelect(shelfId: string) {
     setActiveShelfId(shelfId);
     setActiveShelfIdState(shelfId);
+    setScope("shelf"); // Switch to "This shelf" mode when selecting a specific shelf
     setShowShelfDropdown(false);
   }
 
@@ -808,6 +814,47 @@ export default function LibraryPage() {
     setBooks(updated);
     setActionMenuBookId(null);
     setShowDeleteConfirm(null);
+  }
+
+  function handleEditBook(bookId: string) {
+    const book = books.find((b) => b.id === bookId);
+    if (!book) return;
+    
+    setEditTitle(book.title || "");
+    setEditAuthors(book.authors?.join(", ") || "");
+    setEditIsbn(book.isbn13 || "");
+    setEditCoverUrl(book.coverUrl || "");
+    setEditingBookId(bookId);
+    setActionMenuBookId(null);
+  }
+
+  function handleSaveBookEdit() {
+    if (!editingBookId) return;
+    
+    const book = books.find((b) => b.id === editingBookId);
+    if (!book) return;
+    
+    const authorsArray = editAuthors.trim()
+      ? editAuthors.split(",").map(a => a.trim()).filter(a => a.length > 0)
+      : [];
+    
+    const normalizedIsbn = editIsbn.replace(/[^0-9X]/gi, "").trim().toUpperCase();
+    
+    updateBook(editingBookId, {
+      title: editTitle.trim() || book.title,
+      authors: authorsArray.length > 0 ? authorsArray : book.authors,
+      isbn13: normalizedIsbn || book.isbn13,
+      coverUrl: editCoverUrl.trim() || book.coverUrl || "",
+    });
+    
+    const updated = loadBooks();
+    setBooks(updated);
+    setEditingBookId(null);
+    setEditTitle("");
+    setEditAuthors("");
+    setEditIsbn("");
+    setEditCoverUrl("");
+    showToast(t({ nl: "Boek bijgewerkt", en: "Book updated" }, lang));
   }
 
   // Removed handleSearchCover - users should use "Find cover" button instead
@@ -1834,6 +1881,105 @@ What should I add next? 👀
         </div>
       )}
 
+      {editingBookId && (
+        <div style={modalOverlay} onClick={() => setEditingBookId(null)}>
+          <div style={modal} onClick={(e) => e.stopPropagation()}>
+            <h2 style={modalTitle}>{t({ nl: "Bewerk boek", en: "Edit book" }, lang)}</h2>
+            <div style={modalForm}>
+              <div style={formGroup}>
+                <label htmlFor="edit-title" style={{ ...formLabel, color: "var(--text)" }}>
+                  {t({ nl: "Titel", en: "Title" }, lang)} *
+                </label>
+                <input
+                  id="edit-title"
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder={t({ nl: "Voer boek titel in", en: "Enter book title" }, lang)}
+                  style={{
+                    ...formInput,
+                    border: "1px solid var(--border)",
+                    background: "var(--panel2)",
+                    color: "var(--text)",
+                  }}
+                  autoFocus
+                />
+              </div>
+              <div style={formGroup}>
+                <label htmlFor="edit-authors" style={{ ...formLabel, color: "var(--text)" }}>
+                  {t({ nl: "Auteur(s)", en: "Author(s)" }, lang)}
+                </label>
+                <input
+                  id="edit-authors"
+                  type="text"
+                  value={editAuthors}
+                  onChange={(e) => setEditAuthors(e.target.value)}
+                  placeholder={t({ nl: "Voer auteur(s) in (gescheiden door komma)", en: "Enter author(s) (separated by comma)" }, lang)}
+                  style={{
+                    ...formInput,
+                    border: "1px solid var(--border)",
+                    background: "var(--panel2)",
+                    color: "var(--text)",
+                  }}
+                />
+                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+                  {t({ nl: "Scheid meerdere auteurs met een komma", en: "Separate multiple authors with a comma" }, lang)}
+                </div>
+              </div>
+              <div style={formGroup}>
+                <label htmlFor="edit-isbn" style={{ ...formLabel, color: "var(--text)" }}>
+                  ISBN
+                </label>
+                <input
+                  id="edit-isbn"
+                  type="text"
+                  value={editIsbn}
+                  onChange={(e) => setEditIsbn(e.target.value)}
+                  placeholder={t({ nl: "Bijv. 9789022591260", en: "E.g. 9789022591260" }, lang)}
+                  inputMode="numeric"
+                  style={{
+                    ...formInput,
+                    border: "1px solid var(--border)",
+                    background: "var(--panel2)",
+                    color: "var(--text)",
+                  }}
+                />
+              </div>
+              <div style={formGroup}>
+                <label htmlFor="edit-cover-url" style={{ ...formLabel, color: "var(--text)" }}>
+                  {t({ nl: "Cover URL (optioneel)", en: "Cover URL (optional)" }, lang)}
+                </label>
+                <input
+                  id="edit-cover-url"
+                  type="url"
+                  value={editCoverUrl}
+                  onChange={(e) => setEditCoverUrl(e.target.value)}
+                  placeholder={t({ nl: "https://...", en: "https://..." }, lang)}
+                  style={{
+                    ...formInput,
+                    border: "1px solid var(--border)",
+                    background: "var(--panel2)",
+                    color: "var(--text)",
+                  }}
+                />
+              </div>
+            </div>
+            <div style={modalActions}>
+              <button style={btnGhost} onClick={() => setEditingBookId(null)}>
+                {copy.cancel}
+              </button>
+              <button
+                style={btnPrimary}
+                onClick={handleSaveBookEdit}
+                disabled={!editTitle.trim()}
+              >
+                {t({ nl: "Opslaan", en: "Save" }, lang)}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {duplicateWarning && (
         <div style={modalOverlay} onClick={() => setDuplicateWarning(null)}>
           <div style={modal} onClick={(e) => e.stopPropagation()}>
@@ -2223,6 +2369,15 @@ What should I add next? 👀
                           </button>
                         ))}
                       </div>
+
+                      <div style={actionMenuDivider} />
+
+                      <button 
+                        style={actionMenuItem} 
+                        onClick={() => handleEditBook(b.id)}
+                      >
+                        <span>✏️ {t({ nl: "Bewerk boek", en: "Edit book" }, lang)}</span>
+                      </button>
 
                       <div style={actionMenuDivider} />
 
