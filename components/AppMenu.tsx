@@ -275,7 +275,7 @@ export function AppMenu() {
           position: "fixed",
           top: `calc(12px + env(safe-area-inset-top, 0px))`,
           right: 12,
-          zIndex: 9999,
+          zIndex: 10000,
         }}
       >
         <button
@@ -317,6 +317,7 @@ export function AppMenu() {
               display: "flex",
               flexDirection: "column",
               gap: 4,
+              zIndex: 10000,
             }}
           >
             {menuItems.map((item, index) => {

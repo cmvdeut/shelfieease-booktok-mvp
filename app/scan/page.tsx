@@ -123,6 +123,23 @@ export default function ScanPage() {
               {t({ nl: "Laatste scan: ", en: "Last scan: " }, lang)}<span style={{ fontWeight: 600 }}>{lastScan}</span>
             </div>
           ) : null}
+          {/* Micro-hint about scanning reliability */}
+          <div style={{ 
+            marginTop: 12, 
+            fontSize: 11, 
+            color: "var(--muted2)", 
+            opacity: 0.65,
+            lineHeight: 1.4,
+            textAlign: "center"
+          }}>
+            {t(
+              {
+                nl: "Sommige gedrukte barcodes kunnen niet betrouwbaar worden gescand. Handmatig ISBN invoeren werkt altijd.",
+                en: "Some printed barcodes can't be scanned reliably. Manual ISBN entry always works.",
+              },
+              lang
+            )}
+          </div>
         </div>
       )}
 
