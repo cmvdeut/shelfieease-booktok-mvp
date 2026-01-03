@@ -231,6 +231,15 @@ export default function HomePage() {
                         },
                         lang
                       )}
+                      <div style={{ marginTop: 8, fontWeight: 500 }}>
+                        {t(
+                          {
+                            nl: "Demo-versie · max. 10 boeken",
+                            en: "Demo version · max. 10 books",
+                          },
+                          lang
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
