@@ -56,3 +56,4 @@ Na vervanging:
 ## Cache-Busting
 Ik heb al `?v=2` toegevoegd aan alle favicon links in `app/layout.tsx`. Dit forceert de browser om de nieuwe versie te laden na cache clear.
 
+

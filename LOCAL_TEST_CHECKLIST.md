@@ -84,3 +84,4 @@ Get-ChildItem "public\icons" -Filter "icon-*.png" | Select-Object Name, @{Name="
 ## Volgende Stap
 Als alles werkt: **Commit en Deploy** 🚀
 
+

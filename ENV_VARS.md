@@ -45,3 +45,4 @@ Deze variabelen moeten **exact** zo heten in Vercel:
 
 4. **Redeploy** na het toevoegen van variabelen
 
+

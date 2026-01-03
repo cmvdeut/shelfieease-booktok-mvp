@@ -31,3 +31,4 @@ Het logo op de homepage krijgt:
 
 **Plaats het logo bestand en zeg "logo is geplaatst" of geef het pad naar het logo bestand.**
 
+

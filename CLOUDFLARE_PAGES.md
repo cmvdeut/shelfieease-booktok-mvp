@@ -90,3 +90,4 @@ Na deployment kun je een custom domain toevoegen:
 - Dit is normaal - API routes werken alleen met server-side rendering
 - Gebruik Vercel voor productie als je Stripe betalingen nodig hebt
 
+

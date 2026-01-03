@@ -64,3 +64,4 @@ Als PWA Asset Generator niet werkt:
 - **Transparantie**: Alle iconen moeten transparante achtergrond hebben
 - **Kwaliteit**: Gebruik icon-master.png als source (hoogste kwaliteit)
 
+
