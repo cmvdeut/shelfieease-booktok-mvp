@@ -65,3 +65,4 @@ Als de iconen niet correct zijn:
 2. Genereer nieuwe iconen met PWA Asset Generator
 3. Vervang de bestaande iconen
 
+

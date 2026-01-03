@@ -45,3 +45,4 @@
 2. ✅ Gebruik altijd `/api/checkout` voor checkout flow (niet direct in client)
 3. ✅ Controleer regelmatig op nieuwe client components die Stripe gebruiken
 
+

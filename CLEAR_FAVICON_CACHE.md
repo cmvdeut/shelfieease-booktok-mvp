@@ -47,3 +47,4 @@ Na cache clearen, check:
 - ✅ Apple Touch Icon (DevTools > Application > Manifest)
 - ✅ Theme color in address bar
 
+

@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Scanner from "@/components/Scanner";
 import { detectUiLang, t } from "@/lib/i18n";
-import { canAddBook } from "@/lib/demo";
+import { canAddBook, isProUser } from "@/lib/demo";
 
 function normalizeIsbn(raw: string) {
   return raw.toUpperCase().replace(/[^0-9X]/g, "");
@@ -205,6 +205,21 @@ export default function ScanPage() {
           {t({ nl: "Tip: kopieer ook gerust een ISBN uit de productpagina van een boek.", en: "Tip: feel free to copy an ISBN from a book's product page." }, lang)}
         </div>
       </div>
+
+      {/* Demo limit notice */}
+      {!isProUser() && (
+        <div style={{ 
+          fontSize: 14, 
+          opacity: 0.7, 
+          marginTop: 24, 
+          textAlign: "center", 
+          padding: "16px", 
+          color: "var(--muted)", 
+          fontWeight: 500 
+        }}>
+          {t({ nl: "Demo-versie · max. 10 boeken", en: "Demo version · max. 10 books" }, lang)}
+        </div>
+      )}
     </div>
   );
 }

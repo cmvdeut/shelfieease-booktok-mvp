@@ -100,3 +100,4 @@ Alle URLs moeten het nieuwe logo tonen (geen 404 errors).
 ## Volgende Stap
 Als alles werkt: **Commit en Deploy** 🚀
 
+

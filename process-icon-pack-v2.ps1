@@ -74,3 +74,4 @@ Write-Host "  1. Update app/layout.tsx metadata"
 Write-Host "  2. Update public/site.webmanifest"
 Write-Host "  3. Update homepage logo"
 
+

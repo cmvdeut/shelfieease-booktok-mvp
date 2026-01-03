@@ -169,11 +169,23 @@ export function Scanner({ onDetected, onClose }: ScannerProps) {
         const errorMsg = e?.message || String(e);
         // Only log errors that aren't about element not found (we handle that above)
         if (!errorMsg.includes("not found") && !errorMsg.includes("Element with id")) {
-          console.error("Scanner error:", errorMsg);
+          // Check for permission errors - these are expected user actions, so log at info level
+          const isPermissionError = 
+            errorMsg.includes("NotAllowedError") || 
+            errorMsg.includes("Permission denied") ||
+            errorMsg.includes("PermissionDeniedError");
           
-          // Als het een camera/media error is, log dit specifiek
-          if (errorMsg.includes("userMedia") || errorMsg.includes("NotReadableError") || errorMsg.includes("video source")) {
-            console.error("Camera access error - device may be in use or permissions denied");
+          if (isPermissionError) {
+            // Permission denied is a user choice, not a bug - log at info level
+            console.info("Camera permission denied by user");
+          } else {
+            // Other errors are unexpected - log as error
+            console.error("Scanner error:", errorMsg);
+            
+            // Als het een camera/media error is, log dit specifiek
+            if (errorMsg.includes("userMedia") || errorMsg.includes("NotReadableError") || errorMsg.includes("video source")) {
+              console.error("Camera access error - device may be in use or permissions denied");
+            }
           }
         }
         
@@ -212,7 +224,7 @@ export function Scanner({ onDetected, onClose }: ScannerProps) {
             onClose?.();
           }}
         >
-          Terug
+          Back
         </button>
       </div>
 

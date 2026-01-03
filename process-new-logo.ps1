@@ -19,3 +19,4 @@ Write-Host "  3. Alle icon sizes genereren (192x192, 512x512, etc.)"
 Write-Host "  4. Homepage logo updaten"
 Write-Host "`nRun dit script met: .\process-new-logo.ps1"
 
+

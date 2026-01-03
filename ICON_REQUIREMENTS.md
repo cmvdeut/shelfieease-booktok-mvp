@@ -88,3 +88,4 @@ Na generatie, plaats hier:
 2. **Android**: Test PWA install (icon moet correct zijn)
 3. **iPhone**: Test "Add to Home Screen" (icon moet correct zijn)
 
+
