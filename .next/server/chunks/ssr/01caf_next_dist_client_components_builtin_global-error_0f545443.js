@@ -1,3 +1,0 @@
-module.exports=[60933,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(5851);a.n(d("[project]/shelfie-ease/node_modules/next/dist/client/components/builtin/global-error.js <module evaluation>"))},35102,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(5851);a.n(d("[project]/shelfie-ease/node_modules/next/dist/client/components/builtin/global-error.js"))},47237,a=>{"use strict";a.i(60933);var b=a.i(35102);a.n(b)}];
-
-//# sourceMappingURL=01caf_next_dist_client_components_builtin_global-error_0f545443.js.map
