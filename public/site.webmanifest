@@ -1,0 +1,35 @@
+{
+  "name": "ShelfieEase",
+  "short_name": "ShelfieEase",
+  "version": "2",
+  "start_url": "/?source=pwa",
+  "icons": [
+    {
+      "src": "/icons/v2/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/v2/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/v2/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/v2/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "theme_color": "#6B4EFF",
+  "background_color": "#0B0B10",
+  "display": "standalone"
+}

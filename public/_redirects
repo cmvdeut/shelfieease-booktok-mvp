@@ -1,0 +1,9 @@
+# Cloudflare Pages redirects
+# Note: These redirects are handled by Cloudflare Pages, not Next.js middleware
+# For static export, we use _redirects file instead of middleware.ts
+# Format: /from /to [status code]
+
+# SPA fallback - all routes should serve index.html for client-side routing
+# This must be last to catch all routes
+/* /index.html 200
+
