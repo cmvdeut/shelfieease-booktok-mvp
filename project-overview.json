@@ -1,0 +1,254 @@
+{
+  "project": {
+    "name": "ShelfieEase",
+    "version": "1.0.0",
+    "description": "A modern book tracking PWA built with Next.js, React, and TypeScript. Scan ISBN barcodes, organize your reading collection, and track your reading journey.",
+    "framework": "Next.js 16.0.7 (App Router)",
+    "language": "TypeScript",
+    "ui": "React 19.2.1",
+    "styling": "Tailwind CSS",
+    "deployment": "Vercel"
+  },
+  "structure": {
+    "app": {
+      "type": "Next.js App Router",
+      "routes": [
+        {
+          "path": "/",
+          "file": "app/page.tsx",
+          "description": "Home/Landing page with hero section and features"
+        },
+        {
+          "path": "/library",
+          "file": "app/library/page.tsx",
+          "description": "Main library page showing all books with filters (all, reading, tbr, finished)"
+        },
+        {
+          "path": "/scan",
+          "file": "app/scan/page.tsx",
+          "description": "ISBN barcode scanner page with camera integration and manual ISBN input"
+        },
+        {
+          "path": "/stats",
+          "file": "app/stats/page.tsx",
+          "description": "Reading statistics page with progress bars and book counts"
+        },
+        {
+          "path": "/profile",
+          "file": "app/profile/page.tsx",
+          "description": "User profile page with settings and about information"
+        },
+        {
+          "path": "/login",
+          "file": "app/login/page.tsx",
+          "description": "Login page (placeholder)"
+        },
+        {
+          "path": "/signup",
+          "file": "app/signup/page.tsx",
+          "description": "Signup page (placeholder)"
+        }
+      ],
+      "layout": "app/layout.tsx",
+      "styles": "app/globals.css"
+    },
+    "components": [
+      {
+        "name": "PWAInstall.tsx",
+        "description": "PWA installation prompt component"
+      },
+      {
+        "name": "ServiceWorkerRegister.tsx",
+        "description": "Service worker registration component"
+      }
+    ],
+    "public": {
+      "manifest": "public/manifest.json",
+      "serviceWorker": "public/sw.js",
+      "icons": [
+        "icon-72x72.png",
+        "icon-96x96.png",
+        "icon-128x128.png",
+        "icon-144x144.png",
+        "icon-152x152.png",
+        "icon-192x192.png",
+        "icon-384x384.png",
+        "icon-512x512.png"
+      ]
+    },
+    "scripts": [
+      {
+        "name": "generate-icons.js",
+        "description": "Script to generate PWA icons"
+      }
+    ]
+  },
+  "dependencies": {
+    "runtime": {
+      "@zxing/browser": "^0.1.5",
+      "@zxing/library": "^0.21.3",
+      "next": "^16.0.7",
+      "react": "19.2.1",
+      "react-dom": "19.2.1"
+    },
+    "development": {
+      "@eslint/eslintrc": "^3.1.0",
+      "@types/node": "^20",
+      "@types/react": "^18",
+      "@types/react-dom": "^18",
+      "autoprefixer": "^10.4.20",
+      "eslint": "^9.0.0",
+      "eslint-config-next": "^16.0.7",
+      "postcss": "^8.4.47",
+      "sharp": "^0.34.5",
+      "tailwindcss": "^3.4.1",
+      "typescript": "^5"
+    }
+  },
+  "features": {
+    "isbnScanning": {
+      "library": "@zxing/browser",
+      "method": "decodeFromConstraints",
+      "camera": "environment facing (back camera)",
+      "validation": "10 or 13 digit ISBN codes",
+      "feedback": "Vibration on successful scan (mobile)"
+    },
+    "bookLookup": {
+      "apis": [
+        {
+          "name": "OpenLibrary ISBN API",
+          "endpoint": "https://openlibrary.org/isbn/{isbn}.json",
+          "priority": 1,
+          "features": ["Title", "Authors", "Cover", "Publish date", "Pages"]
+        },
+        {
+          "name": "OpenLibrary Works API",
+          "endpoint": "https://openlibrary.org{workKey}.json",
+          "priority": 2,
+          "features": ["Description", "Subjects", "Enhanced metadata"]
+        },
+        {
+          "name": "Google Books API",
+          "endpoint": "https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}",
+          "priority": 3,
+          "features": ["Title", "Authors", "Cover", "Description", "Categories"]
+        }
+      ],
+      "fallback": true
+    },
+    "dataStorage": {
+      "method": "localStorage",
+      "key": "shelfie-books",
+      "format": "JSON array"
+    },
+    "pwa": {
+      "enabled": true,
+      "manifest": "public/manifest.json",
+      "serviceWorker": "public/sw.js",
+      "offline": true,
+      "installable": true
+    }
+  },
+  "configuration": {
+    "next": {
+      "images": {
+        "remotePatterns": [
+          {
+            "protocol": "https",
+            "hostname": "covers.openlibrary.org",
+            "pathname": "/b/**"
+          }
+        ]
+      }
+    },
+    "typescript": {
+      "target": "ES2017",
+      "strict": true,
+      "jsx": "react-jsx",
+      "module": "esnext"
+    },
+    "tailwind": {
+      "framework": "Tailwind CSS 3.4.1",
+      "config": "tailwind.config.ts"
+    }
+  },
+  "scripts": {
+    "dev": "next dev -H 0.0.0.0 -p 3000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "deployment": {
+    "platform": "Vercel",
+    "productionUrl": "https://shelfieease.seniorease.nl",
+    "buildCommand": "npm run build",
+    "outputDirectory": ".next"
+  },
+  "bookStatuses": [
+    "reading",
+    "tbr",
+    "finished"
+  ],
+  "ui": {
+    "design": "Glassmorphism",
+    "colors": {
+      "primary": "Purple gradient",
+      "secondary": "Accent colors",
+      "background": "Dark surface"
+    },
+    "components": {
+      "glassCard": "Glassmorphism card component",
+      "gradientButtons": "Gradient button styles",
+      "animations": "Fade-in and slide-up animations"
+    }
+  },
+  "navigation": {
+    "bottomNav": [
+      {
+        "path": "/library",
+        "icon": "Books",
+        "label": "Library"
+      },
+      {
+        "path": "/scan",
+        "icon": "Scan",
+        "label": "Scan"
+      },
+      {
+        "path": "/stats",
+        "icon": "Stats",
+        "label": "Stats"
+      },
+      {
+        "path": "/profile",
+        "icon": "Profile",
+        "label": "Profile"
+      }
+    ]
+  },
+  "bookData": {
+    "fields": [
+      "title",
+      "author",
+      "cover",
+      "isbn",
+      "publishYear",
+      "pages",
+      "description",
+      "subjects",
+      "status",
+      "id"
+    ]
+  },
+  "lastUpdated": "2025-01-27",
+  "notes": [
+    "PWA enabled with service worker",
+    "Camera scanning optimized for mobile devices",
+    "Multiple API fallbacks for book lookup",
+    "LocalStorage for data persistence",
+    "Responsive design with Tailwind CSS"
+  ]
+}
+
+
+

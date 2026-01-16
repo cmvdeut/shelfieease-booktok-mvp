@@ -1,0 +1,253 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0F0F1A;
+  --foreground: #FAFAFA;
+}
+
+/* Light mode override (optioneel) */
+@media (prefers-color-scheme: light) {
+  :root {
+    --background: #0F0F1A;
+    --foreground: #FAFAFA;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: 'Poppins', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1A1A2E;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #A855F7 0%, #EC4899 100%);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #C084FC 0%, #F472B6 100%);
+}
+
+@layer base {
+  body {
+    @apply bg-surface-dark text-neutral-50;
+  }
+  
+  /* Modern defaults voor BookTok audience */
+  button, a {
+    @apply text-base;
+    min-height: 44px;
+  }
+  
+  h1 {
+    @apply text-4xl md:text-5xl font-bold font-display;
+  }
+  
+  h2 {
+    @apply text-2xl md:text-3xl font-bold font-display;
+  }
+  
+  h3 {
+    @apply text-xl font-semibold;
+  }
+  
+  p {
+    @apply text-base leading-relaxed text-neutral-300;
+  }
+}
+
+@layer components {
+  /* Glassmorphism card */
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+  
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300;
+  }
+  
+  .glass-card-hover:hover {
+    @apply bg-white/10 border-white/20;
+    box-shadow: 0 8px 32px rgba(168, 85, 247, 0.2);
+    transform: translateY(-4px);
+  }
+  
+  /* Gradient button */
+  .btn-gradient {
+    @apply relative px-6 py-3 rounded-xl font-semibold text-white overflow-hidden;
+    background: linear-gradient(135deg, #A855F7 0%, #EC4899 100%);
+    transition: all 0.3s ease;
+  }
+  
+  .btn-gradient::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #C084FC 0%, #F472B6 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .btn-gradient:hover::before {
+    opacity: 1;
+  }
+  
+  .btn-gradient span {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .btn-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 40px rgba(168, 85, 247, 0.4);
+  }
+  
+  .btn-gradient:active {
+    transform: translateY(0);
+  }
+  
+  /* Ghost button */
+  .btn-ghost {
+    @apply px-6 py-3 rounded-xl font-semibold text-white border border-white/20;
+    @apply hover:bg-white/10 hover:border-white/40 transition-all duration-300;
+  }
+  
+  /* Glow effect */
+  .glow {
+    box-shadow: 0 0 40px rgba(168, 85, 247, 0.3);
+  }
+  
+  .glow-pink {
+    box-shadow: 0 0 40px rgba(236, 72, 153, 0.3);
+  }
+  
+  /* Gradient text */
+  .text-gradient {
+    background: linear-gradient(135deg, #A855F7 0%, #EC4899 50%, #06B6D4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* Animated background gradient */
+  .bg-animated-gradient {
+    background: linear-gradient(-45deg, #0F0F1A, #1A1A2E, #2D1B4E, #1A1A2E);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+  }
+  
+  /* Book card specific */
+  .book-card {
+    @apply glass-card-hover p-4 flex gap-4;
+  }
+  
+  .book-cover {
+    @apply w-20 h-28 rounded-lg object-cover;
+    box-shadow: 4px 4px 20px rgba(0, 0, 0, 0.4);
+  }
+  
+  /* Status badges */
+  .badge {
+    @apply px-3 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .badge-reading {
+    @apply badge bg-primary/20 text-primary-light border border-primary/30;
+  }
+  
+  .badge-tbr {
+    @apply badge bg-secondary/20 text-secondary-light border border-secondary/30;
+  }
+  
+  .badge-finished {
+    @apply badge bg-accent/20 text-accent-light border border-accent/30;
+  }
+  
+  /* Star rating */
+  .star-rating {
+    @apply flex gap-1;
+  }
+  
+  .star {
+    @apply w-5 h-5 text-neutral-600;
+  }
+  
+  .star.filled {
+    @apply text-yellow-400;
+  }
+  
+  /* Scanner overlay */
+  .scanner-overlay {
+    @apply fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center;
+  }
+  
+  .scanner-frame {
+    @apply relative w-72 h-72 rounded-2xl overflow-hidden;
+  }
+  
+  .scanner-frame::before {
+    content: '';
+    @apply absolute inset-0 rounded-2xl;
+    border: 3px solid transparent;
+    background: linear-gradient(135deg, #A855F7, #EC4899, #06B6D4) border-box;
+    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+  
+  /* Input styling */
+  .input-modern {
+    @apply w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10;
+    @apply text-white placeholder-neutral-500;
+    @apply focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20;
+    @apply transition-all duration-300;
+  }
+  
+  /* Navigation */
+  .nav-item {
+    @apply flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-300;
+    @apply text-neutral-400 hover:text-white hover:bg-white/5;
+  }
+  
+  .nav-item.active {
+    @apply text-primary bg-primary/10;
+  }
+}
+
+@layer utilities {
+  .animate-delay-100 {
+    animation-delay: 100ms;
+  }
+  
+  .animate-delay-200 {
+    animation-delay: 200ms;
+  }
+  
+  .animate-delay-300 {
+    animation-delay: 300ms;
+  }
+  
+  .animate-delay-400 {
+    animation-delay: 400ms;
+  }
+  
+  .animate-delay-500 {
+    animation-delay: 500ms;
+  }
+}

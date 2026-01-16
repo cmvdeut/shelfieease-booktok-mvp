@@ -1,0 +1,11 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/library/page": "/library",
+  "/login/page": "/login",
+  "/page": "/",
+  "/profile/page": "/profile",
+  "/scan/page": "/scan",
+  "/signup/page": "/signup",
+  "/stats/page": "/stats"
+}

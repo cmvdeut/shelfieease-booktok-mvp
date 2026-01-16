@@ -1,0 +1,10 @@
+var R=require("../../chunks/ssr/[turbopack]_runtime.js")("server/app/_global-error/page.js")
+R.c("server/chunks/ssr/01caf_7ac3634a._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__5565787b._.js")
+R.c("server/chunks/ssr/01caf_next_dist_c50a0c97._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__116f9b53._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__95858747._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__60fa057b._.js")
+R.c("server/chunks/ssr/shelfie-ease__next-internal_server_app__global-error_page_actions_fbd1ac7a.js")
+R.m(99057)
+module.exports=R.m(99057).exports

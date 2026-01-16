@@ -1,0 +1,13 @@
+var R=require("../../chunks/ssr/[turbopack]_runtime.js")("server/app/_not-found/page.js")
+R.c("server/chunks/ssr/shelfie-ease_d6468439._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__5565787b._.js")
+R.c("server/chunks/ssr/01caf_next_dist_esm_build_templates_app-page_61407236.js")
+R.c("server/chunks/ssr/[root-of-the-server]__116f9b53._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__95858747._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__60fa057b._.js")
+R.c("server/chunks/ssr/shelfie-ease_47663cc9._.js")
+R.c("server/chunks/ssr/01caf_next_dist_client_components_ed4dfe74._.js")
+R.c("server/chunks/ssr/01caf_next_dist_client_components_builtin_forbidden_0c50bb19.js")
+R.c("server/chunks/ssr/shelfie-ease__next-internal_server_app__not-found_page_actions_ddec131c.js")
+R.m(80878)
+module.exports=R.m(80878).exports
