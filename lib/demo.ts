@@ -19,7 +19,10 @@ export function getBookCount(): number {
 }
 
 export function canAddBook(): boolean {
+  // Pro users can always add books (no limit)
   if (isProUser()) return true;
+  // Demo users can add up to 10 books
+  // IMPORTANT: Existing books are never removed, even if they exceed the limit
   return getBookCount() < 10;
 }
 

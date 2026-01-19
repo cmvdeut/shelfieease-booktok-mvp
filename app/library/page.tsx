@@ -225,13 +225,25 @@ export default function LibraryPage() {
     const paid = url.searchParams.get("paid");
 
     if (paid === "1") {
+      // Mark as pro user
       localStorage.setItem("se:pro", "1");
+      
+      // IMPORTANT: All existing books from demo version are preserved
+      // No books are removed when upgrading to pro
+      // The canAddBook() function already handles pro users correctly
+      
+      // Show success message
+      const currentLang = detectUiLang();
+      showToast(t({ nl: "✨ Pro versie geactiveerd! Alle boeken blijven behouden.", en: "✨ Pro version activated! All books are preserved." }, currentLang), 4000);
 
       // URL opschonen zodat refresh niet blijft triggeren
       url.searchParams.delete("paid");
       window.history.replaceState({}, "", url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""));
+      
+      // Force re-render to update UI (hide demo limit notices, etc.)
+      window.dispatchEvent(new Event("storage"));
     }
-  }, []);
+  }, [showToast]);
 
   // Handle showDemoLimit query parameter
   useEffect(() => {

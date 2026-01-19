@@ -20,6 +20,8 @@ export default function PaySuccessPage() {
   const [status, setStatus] = useState<"checking" | "ok" | "fail">("checking");
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [lang, setLang] = useState<"nl" | "en">("en");
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
 
   // Detect browser language on client side
   useEffect(() => {
@@ -31,6 +33,30 @@ export default function PaySuccessPage() {
         setLang("en");
       }
     }
+  }, []);
+
+  // Listen for beforeinstallprompt event (PWA install prompt)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Save the event so it can be triggered later
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    // Check if app is already installed
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      setIsInstallable(false);
+    }
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
   }, []);
 
   useEffect(() => {
@@ -273,28 +299,76 @@ export default function PaySuccessPage() {
             <span style={{ opacity: 0.8 }}>→</span>
           </Link>
 
-          {/* Secondary Action */}
-          <button
-            onClick={() => setShowInstallModal(true)}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              borderRadius: 16,
-              padding: "12px 20px",
-              fontSize: "clamp(0.875rem, 1rem, 1rem)",
-              fontWeight: 500,
-              background: "var(--btnGhostBg)",
-              border: "1px solid var(--btnGhostBorder)",
-              color: "var(--text)",
-              textDecoration: "none",
-              width: "100%",
-              cursor: "pointer",
-            }}
-          >
-            {t({ nl: "Installeren op homescreen", en: "Install on homescreen" }, lang)}
-          </button>
+          {/* Secondary Action - Install PWA */}
+          {isInstallable && deferredPrompt ? (
+            <button
+              onClick={async () => {
+                try {
+                  // Show the install prompt
+                  (deferredPrompt as any).prompt();
+                  
+                  // Wait for the user to respond to the prompt
+                  const { outcome } = await (deferredPrompt as any).userChoice;
+                  
+                  if (outcome === "accepted") {
+                    // User accepted the install prompt
+                    setDeferredPrompt(null);
+                    setIsInstallable(false);
+                  } else {
+                    // User dismissed the install prompt - show manual instructions
+                    setShowInstallModal(true);
+                  }
+                  
+                  // Clear the deferred prompt
+                  setDeferredPrompt(null);
+                } catch (error) {
+                  console.error("Error showing install prompt:", error);
+                  // Fallback to manual instructions
+                  setShowInstallModal(true);
+                }
+              }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                borderRadius: 16,
+                padding: "12px 20px",
+                fontSize: "clamp(0.875rem, 1rem, 1rem)",
+                fontWeight: 500,
+                background: "var(--btnGhostBg)",
+                border: "1px solid var(--btnGhostBorder)",
+                color: "var(--text)",
+                textDecoration: "none",
+                width: "100%",
+                cursor: "pointer",
+              }}
+            >
+              {t({ nl: "Installeren op homescreen", en: "Install on homescreen" }, lang)}
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowInstallModal(true)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                borderRadius: 16,
+                padding: "12px 20px",
+                fontSize: "clamp(0.875rem, 1rem, 1rem)",
+                fontWeight: 500,
+                background: "var(--btnGhostBg)",
+                border: "1px solid var(--btnGhostBorder)",
+                color: "var(--text)",
+                textDecoration: "none",
+                width: "100%",
+                cursor: "pointer",
+              }}
+            >
+              {t({ nl: "Installeren op homescreen", en: "Install on homescreen" }, lang)}
+            </button>
+          )}
         </div>
       )}
 
