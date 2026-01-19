@@ -27,7 +27,7 @@ import {
 
 import { getMood, type Mood as DocumentMood } from "@/components/MoodProvider";
 
-import { lookupByIsbn, isBadCoverUrl } from "@/lib/lookup";
+import { lookupByIsbn, isBadCoverUrl, searchBooksByTitleOrAuthor } from "@/lib/lookup";
 import { CoverImg } from "@/components/CoverImg";
 import { CoverPlaceholder } from "@/components/CoverPlaceholder";
 import { toBlob } from "html-to-image";
@@ -83,6 +83,9 @@ export default function LibraryPage() {
   const [showNewShelfInAddModal, setShowNewShelfInAddModal] = useState(false);
   const [manualTitle, setManualTitle] = useState("");
   const [manualAuthors, setManualAuthors] = useState("");
+  const [bookSearchQuery, setBookSearchQuery] = useState("");
+  const [bookSearchResults, setBookSearchResults] = useState<Array<{ title: string; authors: string[]; coverUrl: string }>>([]);
+  const [bookSearching, setBookSearching] = useState(false);
   const [manualIsbnInput, setManualIsbnInput] = useState("");
 
   const showToast = useCallback((message: string, duration: number = 2000) => {
@@ -731,8 +734,27 @@ export default function LibraryPage() {
     setDuplicateWarning(null);
     setManualTitle("");
     setManualAuthors("");
+    setBookSearchQuery("");
+    setBookSearchResults([]);
     handledIsbnRef.current = null;
     router.replace("/library");
+  }
+
+  async function handleBookSearch() {
+    if (!bookSearchQuery.trim() || bookSearching) return;
+    
+    setBookSearching(true);
+    setBookSearchResults([]);
+    
+    try {
+      const results = await searchBooksByTitleOrAuthor(bookSearchQuery.trim(), 10);
+      setBookSearchResults(results);
+    } catch (error) {
+      console.error("Error searching books:", error);
+      showToast(t({ nl: "Zoeken mislukt", en: "Search failed" }, lang));
+    } finally {
+      setBookSearching(false);
+    }
   }
 
   function handleCancelAddBook() {
@@ -745,6 +767,8 @@ export default function LibraryPage() {
     setNewShelfEmoji("📚");
     setManualTitle("");
     setManualAuthors("");
+    setBookSearchQuery("");
+    setBookSearchResults([]);
     handledIsbnRef.current = null;
     router.replace("/library");
   }
@@ -1573,7 +1597,7 @@ What should I add next? 👀
         >
           <div
             style={{
-              background: "var(--bg)",
+              background: "var(--panelSolid)",
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
               width: "100%",
@@ -1626,6 +1650,127 @@ What should I add next? 👀
                     // Show input fields for manual entry when book not found
                     return (
                       <div style={{ marginBottom: 24 }}>
+                        {/* Retry scan option */}
+                        {pendingIsbn && (
+                          <div style={{ marginBottom: 16, padding: "12px 16px", borderRadius: 12, background: "var(--panel2)", border: "1px solid var(--border)" }}>
+                            <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
+                              {t({ nl: "Boek niet gevonden voor ISBN:", en: "Book not found for ISBN:" }, lang)} <span style={{ fontWeight: 600, color: "var(--text)" }}>{pendingIsbn}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleCancelAddBook();
+                                router.push("/scan");
+                              }}
+                              style={{
+                                ...btnGhost,
+                                width: "100%",
+                                padding: "10px 16px",
+                                fontSize: 14,
+                              }}
+                            >
+                              📷 {t({ nl: "Opnieuw scannen", en: "Scan again" }, lang)}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Search section */}
+                        <div style={{ ...formGroup, marginBottom: 20 }}>
+                          <label htmlFor="book-search-query" style={{ ...formLabel, color: "var(--text)" }}>
+                            {t({ nl: "Zoek op titel of auteur", en: "Search by title or author" }, lang)}
+                          </label>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <input
+                              id="book-search-query"
+                              type="text"
+                              value={bookSearchQuery}
+                              onChange={(e) => setBookSearchQuery(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && bookSearchQuery.trim() && !bookSearching) {
+                                  handleBookSearch();
+                                }
+                              }}
+                              placeholder={t({ nl: "Bijv. 'Harry Potter' of 'J.K. Rowling'", en: "E.g. 'Harry Potter' or 'J.K. Rowling'" }, lang)}
+                              style={{
+                                ...formInput,
+                                border: "1px solid var(--border)",
+                                background: "var(--panel2)",
+                                color: "var(--text)",
+                                flex: 1,
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={handleBookSearch}
+                              disabled={!bookSearchQuery.trim() || bookSearching}
+                              style={{
+                                ...btnPrimary,
+                                padding: "12px 20px",
+                                whiteSpace: "nowrap",
+                                opacity: (!bookSearchQuery.trim() || bookSearching) ? 0.5 : 1,
+                                cursor: (!bookSearchQuery.trim() || bookSearching) ? "not-allowed" : "pointer",
+                              }}
+                            >
+                              {bookSearching ? t({ nl: "Zoeken...", en: "Searching..." }, lang) : t({ nl: "Zoek", en: "Search" }, lang)}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Search results */}
+                        {bookSearchResults.length > 0 && (
+                          <div style={{ marginBottom: 20 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", marginBottom: 8 }}>
+                              {t({ nl: "Zoekresultaten", en: "Search results" }, lang)} ({bookSearchResults.length})
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: "200px", overflowY: "auto" }}>
+                              {bookSearchResults.map((result, index) => (
+                                <button
+                                  key={index}
+                                  type="button"
+                                  onClick={() => {
+                                    setPendingData({
+                                      title: result.title,
+                                      authors: result.authors,
+                                      coverUrl: result.coverUrl,
+                                    });
+                                    setManualTitle(result.title);
+                                    setManualAuthors(result.authors.join(", "));
+                                    setBookSearchResults([]);
+                                    setBookSearchQuery("");
+                                  }}
+                                  style={{
+                                    padding: "12px",
+                                    borderRadius: 12,
+                                    border: "1px solid var(--border)",
+                                    background: "var(--panel2)",
+                                    textAlign: "left",
+                                    cursor: "pointer",
+                                    transition: "all 0.2s",
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = "var(--panel)";
+                                    e.currentTarget.style.borderColor = "var(--accent1)";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = "var(--panel2)";
+                                    e.currentTarget.style.borderColor = "var(--border)";
+                                  }}
+                                >
+                                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>
+                                    {result.title}
+                                  </div>
+                                  {result.authors.length > 0 && (
+                                    <div style={{ fontSize: 12, color: "var(--muted)" }}>
+                                      {result.authors.join(", ")}
+                                    </div>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Manual entry fields */}
                         <div style={{ ...formGroup, marginBottom: 16 }}>
                           <label htmlFor="manual-title" style={{ ...formLabel, color: "var(--text)" }}>
                             {t({ nl: "Titel", en: "Title" }, lang)} *
@@ -1642,7 +1787,7 @@ What should I add next? 👀
                               background: "var(--panel2)",
                               color: "var(--text)",
                             }}
-                            autoFocus
+                            autoFocus={!bookSearchQuery}
                           />
                         </div>
                         <div style={formGroup}>
@@ -3291,7 +3436,7 @@ const actionMenu: React.CSSProperties = {
   right: 0,
   maxHeight: "70vh",
   overflowY: "auto",
-  background: "var(--panel)",
+  background: "var(--panelSolid)",
   borderTop: "1px solid var(--border)",
   borderTopLeftRadius: 20,
   borderTopRightRadius: 20,

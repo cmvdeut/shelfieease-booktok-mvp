@@ -139,6 +139,46 @@ async function searchGoogleBooks(isbn: string): Promise<GoogleBooksVolume[]> {
   }
 }
 
+/**
+ * Search Google Books API by title and/or author
+ * Returns array of book results
+ */
+export async function searchBooksByTitleOrAuthor(query: string, maxResults: number = 10): Promise<LookupResult[]> {
+  if (!query || query.trim().length < 2) return [];
+  
+  try {
+    const searchQuery = query.trim();
+    const res = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
+        searchQuery
+      )}&maxResults=${maxResults}&fields=items(id,volumeInfo(title,authors,imageLinks,industryIdentifiers))`
+    );
+    const json = (await res.json()) as GoogleBooksResponse;
+    const items = json.items || [];
+    
+    // Convert to LookupResult format
+    return items.map((item) => {
+      const vi = item.volumeInfo;
+      const title = vi?.title || "";
+      const authors = vi?.authors || [];
+      
+      // Get cover URL
+      const thumb = vi?.imageLinks?.thumbnail || vi?.imageLinks?.smallThumbnail || "";
+      const volumeId = item.id;
+      const canonicalById = volumeId
+        ? `https://books.google.com/books/content?id=${encodeURIComponent(volumeId)}&printsec=frontcover&img=1&zoom=1&source=gbs_api`
+        : "";
+      
+      let coverUrl = thumb ? normalizeGoogleCoverUrl(thumb) : canonicalById;
+      if (isBadCoverUrl(coverUrl)) coverUrl = "";
+      
+      return { title, authors, coverUrl };
+    }).filter((result) => result.title.trim() !== ""); // Filter out empty results
+  } catch {
+    return [];
+  }
+}
+
 type OpenLibrarySearchDoc = {
   cover_i?: number;
   edition_key?: string[];
