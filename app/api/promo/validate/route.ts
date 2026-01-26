@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getPromoCode, markPromoCodeAsUsed, isCodeInEnv } from "@/lib/promo-storage";
+import { getPromoCode as getFromRedis, markPromoCodeAsUsed as markUsedInRedis, isRedisAvailable } from "@/lib/promo-db";
+import { getPromoCode as getFromMemory, markPromoCodeAsUsed as markUsedInMemory, isCodeInEnv } from "@/lib/promo-storage";
 
 export const runtime = "nodejs"; // Server-side only
 
@@ -17,21 +18,19 @@ export async function GET(req: Request) {
 
     const upperCode = code.toUpperCase().trim();
 
-    // Check if code exists in shared storage
-    const codeData = getPromoCode(upperCode);
+    // Try Redis first, fallback to memory
+    let codeData;
+    if (isRedisAvailable()) {
+      codeData = await getFromRedis(upperCode);
+    } else {
+      codeData = getFromMemory(upperCode);
+    }
 
+    // If not found in Redis/memory, check environment variable (legacy fallback)
     if (!codeData) {
-      // Code doesn't exist in memory
-      // This can happen in serverless environments where memory is not shared
-      // Check if code exists in environment variable (PROMO_CODES)
       if (isCodeInEnv(upperCode)) {
-        // Code exists in environment variable but not in memory
-        // This is a fallback for serverless environments
-        console.warn(`Code ${upperCode} found in environment variable but not in memory - serverless issue?`);
-        
-        // Code is valid (from env var), but we can't track usage without database
-        // For now, we'll allow it but log it
-        // TODO: Use database to track usage properly
+        // Code exists in environment variable but not in storage
+        console.warn(`Code ${upperCode} found in environment variable but not in storage`);
         return NextResponse.json({
           valid: true,
           message: "Code is valid (from environment variable)",
@@ -39,7 +38,7 @@ export async function GET(req: Request) {
         });
       }
       
-      // Code doesn't exist in memory or environment variable
+      // Code doesn't exist anywhere
       return NextResponse.json(
         { valid: false, error: "Invalid code" },
         { status: 404 }
@@ -54,8 +53,12 @@ export async function GET(req: Request) {
       );
     }
 
-    // Mark as used in shared storage
-    markPromoCodeAsUsed(upperCode);
+    // Mark as used
+    if (isRedisAvailable()) {
+      await markUsedInRedis(upperCode);
+    } else {
+      markUsedInMemory(upperCode);
+    }
 
     return NextResponse.json({
       valid: true,
