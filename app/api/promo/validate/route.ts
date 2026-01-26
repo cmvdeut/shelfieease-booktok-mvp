@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPromoCode, markPromoCodeAsUsed } from "@/lib/promo-storage";
+import { getPromoCode, markPromoCodeAsUsed, isCodeInEnv } from "@/lib/promo-storage";
 
 export const runtime = "nodejs"; // Server-side only
 
@@ -23,25 +23,23 @@ export async function GET(req: Request) {
     if (!codeData) {
       // Code doesn't exist in memory
       // This can happen in serverless environments where memory is not shared
-      // Check if code matches the pattern (8 chars, alphanumeric)
-      const isValidPattern = /^[A-Z0-9]{8}$/.test(upperCode);
-      
-      if (isValidPattern) {
-        // Code matches pattern but not in memory
+      // Check if code exists in environment variable (PROMO_CODES)
+      if (isCodeInEnv(upperCode)) {
+        // Code exists in environment variable but not in memory
         // This is a fallback for serverless environments
-        // In production, you should use a database instead
-        console.warn(`Code ${upperCode} matches pattern but not found in memory - serverless issue?`);
+        console.warn(`Code ${upperCode} found in environment variable but not in memory - serverless issue?`);
         
+        // Code is valid (from env var), but we can't track usage without database
         // For now, we'll allow it but log it
-        // TODO: Replace with database lookup
+        // TODO: Use database to track usage properly
         return NextResponse.json({
           valid: true,
-          message: "Code is valid (pattern match)",
-          warning: "Code validated by pattern - not found in server memory",
+          message: "Code is valid (from environment variable)",
+          warning: "Code validated from env var - usage not tracked",
         });
       }
       
-      // Code doesn't exist and doesn't match pattern
+      // Code doesn't exist in memory or environment variable
       return NextResponse.json(
         { valid: false, error: "Invalid code" },
         { status: 404 }

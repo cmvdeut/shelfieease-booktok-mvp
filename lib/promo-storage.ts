@@ -59,3 +59,12 @@ export function getAllPromoCodes(): Array<{ code: string; data: PromoCodeData }>
     data,
   }));
 }
+
+// Check if code exists in environment variable (for serverless fallback)
+export function isCodeInEnv(code: string): boolean {
+  const envCodes = process.env.PROMO_CODES;
+  if (!envCodes) return false;
+  
+  const codes = envCodes.split(",").map(c => c.trim().toUpperCase());
+  return codes.includes(code.toUpperCase());
+}

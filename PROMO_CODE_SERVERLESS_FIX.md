@@ -7,12 +7,12 @@ Op Vercel (serverless) delen serverless functions **geen memory**. Dit betekent:
 - Validatie gebeurt op server instance B
 - Ze delen geen memory → code bestaat niet → validatie faalt
 
-## ✅ Tijdelijke Oplossing (Geïmplementeerd)
+## ✅ Oplossing (Geïmplementeerd)
 
-Ik heb een **fallback** toegevoegd:
-- Als code niet in memory staat, maar wel het juiste patroon heeft (8 karakters, alphanumeric)
-- Dan wordt de code **toch geaccepteerd**
-- Dit werkt voor nu, maar is minder veilig
+Ik heb een **veilige fallback** toegevoegd:
+- Als code niet in memory staat, wordt gecheckt of het in `PROMO_CODES` environment variable staat
+- Alleen codes die jij hebt gegenereerd worden geaccepteerd
+- Willekeurige codes worden **niet** geaccepteerd
 
 ## 🔧 Betere Oplossing: Environment Variables
 
