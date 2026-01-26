@@ -28,17 +28,31 @@ export async function POST(req: Request) {
     };
 
     // Try Redis first, fallback to memory
-    if (isRedisAvailable()) {
-      await addToRedis(code, codeData);
-    } else {
-      addToMemory(code, codeData);
-    }
+    try {
+      if (isRedisAvailable()) {
+        await addToRedis(code, codeData);
+        console.log(`Code ${code} generated and saved to Redis`);
+      } else {
+        console.warn("Redis not available, using memory storage");
+        addToMemory(code, codeData);
+      }
 
-    return NextResponse.json({
-      code,
-      createdAt: now,
-      message: "Code generated successfully",
-    });
+      return NextResponse.json({
+        code,
+        createdAt: now,
+        message: "Code generated successfully",
+      });
+    } catch (error) {
+      console.error("Error saving code:", error);
+      // Fallback to memory if Redis fails
+      addToMemory(code, codeData);
+      return NextResponse.json({
+        code,
+        createdAt: now,
+        message: "Code generated successfully (saved to memory - Redis unavailable)",
+        warning: "Redis connection failed, using memory storage",
+      });
+    }
   } catch (error) {
     console.error("Failed to generate promo code:", error);
     return NextResponse.json(

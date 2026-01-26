@@ -30,14 +30,16 @@ export function isRedisAvailable(): boolean {
 export async function addPromoCode(code: string, data: PromoCodeData): Promise<void> {
   if (!redis) {
     console.warn("Redis not available, falling back to memory storage");
-    return;
+    throw new Error("Redis not configured. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN");
   }
 
   try {
     const key = `${CODE_PREFIX}${code.toUpperCase()}`;
     await redis.set(key, JSON.stringify(data));
+    console.log(`Promo code ${code.toUpperCase()} saved to Redis`);
   } catch (error) {
     console.error("Failed to add promo code to Redis:", error);
+    throw error;
   }
 }
 
