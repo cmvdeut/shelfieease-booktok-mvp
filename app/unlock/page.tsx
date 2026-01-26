@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import { markAsPro } from "@/lib/demo";
 import Link from "next/link";
 
-export default function UnlockPage() {
+function UnlockContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [status, setStatus] = useState<"checking" | "success" | "invalid" | "used">("checking");
   const [code, setCode] = useState<string>("");
 
   useEffect(() => {
-    const codeParam = searchParams.get("code");
+    if (typeof window === "undefined") return;
+    
+    const params = new URLSearchParams(window.location.search);
+    const codeParam = params.get("code");
     
     if (!codeParam) {
       setStatus("invalid");
@@ -21,7 +23,7 @@ export default function UnlockPage() {
 
     setCode(codeParam);
     validateCode(codeParam);
-  }, [searchParams]);
+  }, []);
 
   const validateCode = async (codeToValidate: string) => {
     try {
@@ -138,5 +140,20 @@ export default function UnlockPage() {
         Back to Library
       </Link>
     </main>
+  );
+}
+
+export default function UnlockPage() {
+  return (
+    <Suspense
+      fallback={
+        <main style={{ padding: 24, maxWidth: 600, margin: "0 auto", textAlign: "center" }}>
+          <h1 style={{ marginBottom: 16 }}>Loading...</h1>
+          <p style={{ color: "var(--muted)" }}>Please wait</p>
+        </main>
+      }
+    >
+      <UnlockContent />
+    </Suspense>
   );
 }
