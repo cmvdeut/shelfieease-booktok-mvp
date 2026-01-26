@@ -32,7 +32,13 @@ function UnlockContent() {
       if (!res.ok) {
         // If API returns error, check response
         const errorData = await res.json().catch(() => ({ error: "Unknown error" }));
-        console.error("Validation failed:", errorData);
+        console.error("Validation failed:", errorData, "Status:", res.status);
+        
+        // If code not found (404), it might be a serverless issue
+        // For now, we'll still mark it as invalid, but log it
+        if (res.status === 404) {
+          console.warn("Code not found in server memory - might be serverless issue");
+        }
         
         if (errorData.error?.includes("already been used")) {
           setStatus("used");
