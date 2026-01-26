@@ -35,7 +35,8 @@ export async function addPromoCode(code: string, data: PromoCodeData): Promise<v
 
   try {
     const key = `${CODE_PREFIX}${code.toUpperCase()}`;
-    await redis.set(key, JSON.stringify(data));
+    // Upstash Redis automatically serializes objects
+    await redis.set(key, data);
     console.log(`Promo code ${code.toUpperCase()} saved to Redis`);
   } catch (error) {
     console.error("Failed to add promo code to Redis:", error);
@@ -55,16 +56,16 @@ export async function getPromoCode(code: string): Promise<PromoCodeData | null> 
     const key = `${CODE_PREFIX}${upperCode}`;
     console.log(`Looking up Redis key: ${key}`);
     
-    const data = await redis.get<string>(key);
+    // Upstash Redis returns the parsed object directly, not a string
+    const data = await redis.get<PromoCodeData>(key);
     
     if (!data) {
       console.log(`Code ${upperCode} not found in Redis`);
       return null;
     }
 
-    const parsed = JSON.parse(data) as PromoCodeData;
-    console.log(`Code ${upperCode} found in Redis:`, parsed);
-    return parsed;
+    console.log(`Code ${upperCode} found in Redis:`, data);
+    return data;
   } catch (error) {
     console.error("Failed to get promo code from Redis:", error);
     if (error instanceof Error) {
@@ -85,14 +86,13 @@ export async function markPromoCodeAsUsed(code: string): Promise<void> {
     const usedKey = `${USED_PREFIX}${code.toUpperCase()}`;
     
     // Get current data
-    const data = await redis.get<string>(codeKey);
+    const data = await redis.get<PromoCodeData>(codeKey);
     if (data) {
-      const codeData: PromoCodeData = JSON.parse(data);
-      codeData.used = true;
-      codeData.usedAt = new Date().toISOString();
+      data.used = true;
+      data.usedAt = new Date().toISOString();
       
-      // Update code data
-      await redis.set(codeKey, JSON.stringify(codeData));
+      // Update code data (Upstash automatically serializes)
+      await redis.set(codeKey, data);
     }
     
     // Also mark as used in separate key for quick lookup
@@ -136,11 +136,12 @@ export async function getAllPromoCodes(): Promise<Array<{ code: string; data: Pr
     const codes = await Promise.all(
       keys.map(async (key) => {
         const code = key.replace(CODE_PREFIX, "");
-        const data = await redis.get<string>(key);
+        // Upstash Redis returns parsed object directly
+        const data = await redis.get<PromoCodeData>(key);
         if (data) {
           return {
             code,
-            data: JSON.parse(data) as PromoCodeData,
+            data,
           };
         }
         return null;
