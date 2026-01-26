@@ -21,13 +21,21 @@ export async function GET(req: Request) {
     // Try Redis first, fallback to memory
     let codeData;
     if (isRedisAvailable()) {
-      codeData = await getFromRedis(upperCode);
+      try {
+        codeData = await getFromRedis(upperCode);
+        console.log(`Redis lookup for code ${upperCode}:`, codeData ? "found" : "not found");
+      } catch (error) {
+        console.error(`Redis error for code ${upperCode}:`, error);
+        // Fallback to memory if Redis fails
+        codeData = getFromMemory(upperCode);
+      }
     } else {
       codeData = getFromMemory(upperCode);
     }
 
     // If not found in Redis/memory, check environment variable (legacy fallback)
     if (!codeData) {
+      console.warn(`Code ${upperCode} not found in Redis or memory`);
       if (isCodeInEnv(upperCode)) {
         // Code exists in environment variable but not in storage
         console.warn(`Code ${upperCode} found in environment variable but not in storage`);
@@ -39,8 +47,9 @@ export async function GET(req: Request) {
       }
       
       // Code doesn't exist anywhere
+      console.error(`Code ${upperCode} not found anywhere`);
       return NextResponse.json(
-        { valid: false, error: "Invalid code" },
+        { valid: false, error: "Invalid code", debug: { code: upperCode, redisAvailable: isRedisAvailable() } },
         { status: 404 }
       );
     }

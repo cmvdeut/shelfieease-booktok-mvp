@@ -46,20 +46,30 @@ export async function addPromoCode(code: string, data: PromoCodeData): Promise<v
 // Get a promo code
 export async function getPromoCode(code: string): Promise<PromoCodeData | null> {
   if (!redis) {
+    console.warn("Redis not available in getPromoCode");
     return null;
   }
 
   try {
-    const key = `${CODE_PREFIX}${code.toUpperCase()}`;
+    const upperCode = code.toUpperCase().trim();
+    const key = `${CODE_PREFIX}${upperCode}`;
+    console.log(`Looking up Redis key: ${key}`);
+    
     const data = await redis.get<string>(key);
     
     if (!data) {
+      console.log(`Code ${upperCode} not found in Redis`);
       return null;
     }
 
-    return JSON.parse(data) as PromoCodeData;
+    const parsed = JSON.parse(data) as PromoCodeData;
+    console.log(`Code ${upperCode} found in Redis:`, parsed);
+    return parsed;
   } catch (error) {
     console.error("Failed to get promo code from Redis:", error);
+    if (error instanceof Error) {
+      console.error("Error details:", error.message, error.stack);
+    }
     return null;
   }
 }
