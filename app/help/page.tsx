@@ -200,17 +200,59 @@ export default function HelpPage() {
     {
       q: t(
         {
-          nl: "Hoe deel ik mijn shelfie?",
-          en: "How do I share my shelfie?",
+          nl: "Hoe deel ik een boek?",
+          en: "How do I share a book?",
         },
         lang
       ),
-      a: t(
-        {
-          nl: "Op de Library pagina kun je op de 'Deel Shelfie' knop klikken om een afbeelding te genereren die je kunt delen.",
-          en: "On the Library page you can click the 'Share Shelfie' button to generate an image you can share.",
-        },
-        lang
+      a: (
+        <div>
+          <p style={{ marginBottom: 12 }}>
+            {t(
+              {
+                nl: "Je deelt steeds één boek als afbeelding, met de tekst \"Dit ben ik op dit moment aan het lezen\" of \"Aanrader!\". Er zijn twee manieren:",
+                en: "You share one book at a time as an image, with the text \"This is what I'm currently reading\" or \"Recommendation!\". There are two ways to do it:",
+              },
+              lang
+            )}
+          </p>
+          <p style={{ marginBottom: 8, fontWeight: 600 }}>
+            {t(
+              {
+                nl: "1. Een specifiek boek delen",
+                en: "1. Share a specific book",
+              },
+              lang
+            )}
+          </p>
+          <p style={{ marginBottom: 12 }}>
+            {t(
+              {
+                nl: "Open het ⋮ menu op de kaart van het boek en kies \"Deel dit boek\". Alleen dat boek komt op de afbeelding.",
+                en: "Open the ⋮ menu on the book card and choose \"Share this book\". Only that book will appear on the image.",
+              },
+              lang
+            )}
+          </p>
+          <p style={{ marginBottom: 8, fontWeight: 600 }}>
+            {t(
+              {
+                nl: "2. Het eerste boek in de lijst delen",
+                en: "2. Share the first book in the list",
+              },
+              lang
+            )}
+          </p>
+          <p style={{ marginBottom: 0 }}>
+            {t(
+              {
+                nl: "Klik bovenaan op de knop \"Deel shelfie\". Dan wordt het eerste boek (na filters en sortering) gedeeld. Handig als je snel wilt delen zonder het menu te openen.",
+                en: "Click the \"Share shelfie\" button at the top. The first book in the list (after filters and sorting) will be shared. Handy when you want to share quickly without opening the menu.",
+              },
+              lang
+            )}
+          </p>
+        </div>
       ),
     },
     {

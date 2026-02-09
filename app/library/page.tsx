@@ -139,9 +139,8 @@ export default function LibraryPage() {
   const [shareBookTitles, setShareBookTitles] = useState<string[]>([]);
   const [shareBookAuthors, setShareBookAuthors] = useState<string[][]>([]);
   const [shareBookIsbns, setShareBookIsbns] = useState<string[]>([]);
-  const [shareBookCount, setShareBookCount] = useState<1 | 2>(2);
+  const [shareBookCount, setShareBookCount] = useState<1 | 2>(1);
   const [shareMood, setShareMood] = useState<"aesthetic" | "bold" | "calm">("aesthetic");
-  const [showShareBookCountModal, setShowShareBookCountModal] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareBlob, setShareBlob] = useState<Blob | null>(null);
   const [shareFilename, setShareFilename] = useState("");
@@ -164,6 +163,7 @@ export default function LibraryPage() {
     reading: t({ nl: "Bezig", en: "Reading" }, lang),
     read: t({ nl: "Gelezen", en: "Read" }, lang),
     shareShelfie: t({ nl: "Deel shelfie", en: "Share shelfie" }, lang),
+    shareThisBook: t({ nl: "Deel dit boek", en: "Share this book" }, lang),
     generating: t({ nl: "Bezig…", en: "Generating…" }, lang),
     scan: t({ nl: "+ Scannen", en: "+ Scan" }, lang),
     noBooksYet: t({ nl: "Nog geen boeken. Tijd om te scannen 📚✨", en: "No books yet. Time to scan 📚✨" }, lang),
@@ -899,9 +899,8 @@ export default function LibraryPage() {
   async function handleShareShelf() {
     // Allow sharing for both "All shelves" and specific shelf
     if (scope === "shelf" && !activeShelf) return;
-    
-    // Show modal to choose 1 or 2 books
-    setShowShareBookCountModal(true);
+    // Share always 1 book: "This is what I'm currently reading" / "Aanrader"
+    generateShareCard(1);
   }
 
   async function goToCheckout() {
@@ -941,28 +940,28 @@ export default function LibraryPage() {
     }
   }
 
-  async function generateShareCard(bookCount: 1 | 2) {
+  async function generateShareCard(bookCount: 1 | 2, selectedBook?: Book) {
     if (!shareCardRef.current) {
       showToast(t({ nl: "Kan shelfie niet genereren", en: "Cannot generate shelfie" }, lang));
       return;
     }
     
-    // For "This shelf" mode, we need an active shelf
-    if (scope === "shelf" && !activeShelf) {
+    // When sharing a specific book, we don't need a shelf
+    if (!selectedBook && scope === "shelf" && !activeShelf) {
       showToast(t({ nl: "Geen shelf geselecteerd", en: "No shelf selected" }, lang));
       return;
     }
 
-    // Use visibleBooks (same as what's displayed) or fallback to activeBooks
-    const availableBooks = visibleBooks.length > 0 ? visibleBooks : activeBooks;
+    // Use selected book(s) or visibleBooks / activeBooks
+    const availableBooks = selectedBook ? [selectedBook] : (visibleBooks.length > 0 ? visibleBooks : activeBooks);
+    const count = selectedBook ? 1 : bookCount;
     
-    // Guard: check if enough books are available
-    if (availableBooks.length < bookCount) {
+    if (availableBooks.length < count) {
       showToast(
         t(
           {
-            nl: `Niet genoeg boeken. Beschikbaar: ${availableBooks.length}, nodig: ${bookCount}`,
-            en: `Not enough books. Available: ${availableBooks.length}, needed: ${bookCount}`,
+            nl: `Niet genoeg boeken. Beschikbaar: ${availableBooks.length}, nodig: ${count}`,
+            en: `Not enough books. Available: ${availableBooks.length}, needed: ${count}`,
           },
           lang
         )
@@ -971,17 +970,17 @@ export default function LibraryPage() {
     }
 
     setSharing(true);
-    setShowShareBookCountModal(false);
+    if (selectedBook) setActionMenuBookId(null);
     try {
       // Capture current mood at generation time
       const currentMood = typeof document !== "undefined" ? (document.documentElement.dataset.mood || "default") : "default";
       const capturedMood: "aesthetic" | "bold" | "calm" = currentMood === "bold" ? "bold" : currentMood === "calm" ? "calm" : "aesthetic";
       setShareMood(capturedMood);
       
-      // Use headerTitle to respect scope (all shelves vs this shelf)
+      const shelfForTitle = activeShelf ?? { emoji: "📚", name: copy.allShelves };
       const title = scope === "all" 
         ? copy.allShelves 
-        : `${activeShelf.emoji || "📚"} ${activeShelf.name}`;
+        : `${shelfForTitle.emoji || "📚"} ${shelfForTitle.name}`;
       const isMobile =
         typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -996,8 +995,8 @@ export default function LibraryPage() {
       const pickedIsbns: string[] = [];
       const seen = new Set<string>();
 
-      for (const b of availableBooks.slice(0, bookCount)) {
-        if (picked.length >= bookCount) break;
+      for (const b of availableBooks.slice(0, count)) {
+        if (picked.length >= count) break;
 
         const bookTitle = b.title || "Unknown";
         const bookAuthors = b.authors || [];
@@ -1023,7 +1022,7 @@ export default function LibraryPage() {
       setShareBookTitles(pickedTitles);
       setShareBookAuthors(pickedAuthors);
       setShareBookIsbns(pickedIsbns);
-      setShareBookCount(bookCount);
+      setShareBookCount(count as 1 | 2);
       await new Promise<void>((r) => requestAnimationFrame(() => r()));
       // Give proxy cover images time to load before capturing
       await new Promise<void>((r) => setTimeout(r, 700));
@@ -1038,23 +1037,24 @@ export default function LibraryPage() {
         return;
       }
 
-      const filename = scope === "all" 
-        ? "all-shelves.png"
-        : `${activeShelf.name.replace(/\s+/g, "-")}-shelf.png`;
+      const filename = count === 1
+        ? "currently-reading.png"
+        : scope === "all"
+          ? "all-shelves.png"
+          : `${activeShelf.name.replace(/\s+/g, "-")}-shelf.png`;
       
-      const shelfLabel = scope === "all" 
+      const shelfLabel = scope === "all"
         ? copy.allShelves.toLowerCase()
         : `${activeShelf.emoji || "📚"} ${activeShelf.name}`;
       
-      const caption = nl
-        ? `✨ Mijn ${shelfLabel} update!
-📚 Totaal: ${stats.total} | TBR: ${stats.tbr} | Bezig: ${stats.reading} | Gelezen: ${stats.read}
-Wat moet ik hierna toevoegen? 👀
-#BookTok #TBR #ReadingCommunity #Shelfie #Bookish`
-        : `✨ My ${shelfLabel} update!
-📚 Total: ${stats.total} | TBR: ${stats.tbr} | Reading: ${stats.reading} | Read: ${stats.read}
-What should I add next? 👀
-#BookTok #TBR #ReadingCommunity #Shelfie #Bookish`;
+      // Single book: "currently reading" / "aanrader"; 2 books: shelf update (legacy)
+      const caption = count === 1
+        ? (nl
+            ? `✨ Dit ben ik op dit moment aan het lezen 📖\nAanrader!\n#BookTok #CurrentlyReading #Bookish`
+            : `✨ This is what I'm currently reading 📖\nRecommendation!\n#BookTok #CurrentlyReading #Bookish`)
+        : (nl
+            ? `✨ Mijn ${shelfLabel} update!\n📚 Totaal: ${stats.total} | TBR: ${stats.tbr} | Bezig: ${stats.reading} | Gelezen: ${stats.read}\nWat moet ik hierna toevoegen? 👀\n#BookTok #TBR #ReadingCommunity #Shelfie #Bookish`
+            : `✨ My ${shelfLabel} update!\n📚 Total: ${stats.total} | TBR: ${stats.tbr} | Reading: ${stats.reading} | Read: ${stats.read}\nWhat should I add next? 👀\n#BookTok #TBR #ReadingCommunity #Shelfie #Bookish`);
 
       // Mobile: try native share sheet with file
       setShareBlob(blob);
@@ -2163,36 +2163,6 @@ What should I add next? 👀
         </div>
       )}
 
-      {showShareBookCountModal && (
-        <div style={modalOverlay} onClick={() => setShowShareBookCountModal(false)}>
-          <div style={modal} onClick={(e) => e.stopPropagation()}>
-            <h2 style={modalTitle}>{t({ nl: "Kies aantal boeken", en: "Choose number of books" }, lang)}</h2>
-            <p style={{ color: "var(--muted)", lineHeight: 1.5, marginBottom: 24 }}>
-              {t({ nl: "Hoeveel boeken wil je delen?", en: "How many books do you want to share?" }, lang)}
-            </p>
-            <div style={modalActions}>
-              <button
-                style={btnPrimary}
-                onClick={() => generateShareCard(1)}
-                disabled={sharing || visibleBooks.length < 1}
-              >
-                {t({ nl: "1 boek", en: "1 book" }, lang)}
-              </button>
-              <button
-                style={btnPrimary}
-                onClick={() => generateShareCard(2)}
-                disabled={sharing || visibleBooks.length < 2}
-              >
-                {t({ nl: "2 boeken", en: "2 books" }, lang)}
-              </button>
-              <button style={btnGhost} onClick={() => setShowShareBookCountModal(false)}>
-                {copy.cancel}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {showDemoLimitModal && (
         <div style={modalOverlay} onClick={() => setShowDemoLimitModal(false)}>
           <div style={modal} onClick={(e) => e.stopPropagation()}>
@@ -2520,6 +2490,14 @@ What should I add next? 👀
                           </button>
                         ))}
                       </div>
+
+                      <button
+                        style={actionMenuItem}
+                        onClick={() => generateShareCard(1, b)}
+                        disabled={sharing}
+                      >
+                        <span>📤 {copy.shareThisBook}</span>
+                      </button>
 
                       <div style={actionMenuDivider} />
 
