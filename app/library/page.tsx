@@ -1302,17 +1302,17 @@ What should I add next? 👀
         </div>
       </div>
 
-      {/* Hidden Share Card for rendering */}
-      {activeShelf && (() => {
+      {/* Hidden Share Card for rendering - show when a shelf is selected OR scope is "all" so Share shelfie always has a ref */}
+      {(activeShelf || scope === "all") && (() => {
         // Use captured mood from state, fallback to current mood if not set
         const currentMood = shareMood || (typeof document !== "undefined" ? (document.documentElement.dataset.mood || "default") : "default");
         // Preserve the mood: bold -> bold, calm -> aesthetic (calm style), default/aesthetic -> aesthetic
         const shareVariant: "aesthetic" | "bold" = currentMood === "bold" ? "bold" : "aesthetic";
         const finalMood: "aesthetic" | "bold" | "calm" = currentMood === "calm" ? "calm" : currentMood === "bold" ? "bold" : "aesthetic";
-        // Create a virtual shelf for "All shelves" mode
-        const displayShelf: Shelf = scope === "all" 
+        // Create a virtual shelf for "All shelves" mode; otherwise use selected shelf
+        const displayShelf: Shelf = scope === "all"
           ? { id: "all", name: copy.allShelves, emoji: "📚", createdAt: Date.now() }
-          : activeShelf!;
+          : activeShelf ?? { id: "all", name: copy.allShelves, emoji: "📚", createdAt: Date.now() };
         
         return (
           <div style={{ position: "fixed", left: "-10000px", top: 0, opacity: 0, pointerEvents: "none" }}>

@@ -216,6 +216,22 @@ export default function HelpPage() {
     {
       q: t(
         {
+          nl: "Kan ik de app installeren na betaling?",
+          en: "Install app after payment",
+        },
+        lang
+      ),
+      a: t(
+        {
+          nl: "Ja. Na het ontgrendelen van de full version (betaling of promocode) kun je de app op je telefoon of desktop installeren voor snelle toegang vanaf je startscherm. Je kunt de full version ook gewoon online in de browser blijven gebruiken — installeren is optioneel.",
+          en: "Yes. After unlocking the full version (payment or promo code), you can install the app on your phone or desktop for quick access from your home screen. You can also keep using the full version online in your browser — installing is optional.",
+        },
+        lang
+      ),
+    },
+    {
+      q: t(
+        {
           nl: "Kan ik mijn gegevens op meerdere apparaten gebruiken?",
           en: "Can I use my data on multiple devices?",
         },
@@ -316,8 +332,14 @@ export default function HelpPage() {
         ))}
       </div>
 
-      {/* Contact section */}
-      <div style={{ marginTop: 48, paddingTop: 32, borderTop: "1px solid var(--border)" }}>
+      {/* Footer / Contact section */}
+      <div style={{ marginTop: 48, paddingTop: 32, borderTop: "1px solid var(--border)", textAlign: "center" }}>
+        <p style={{ fontSize: 13, color: "var(--muted2)", marginBottom: 4 }}>
+          Built with love for book lovers 📚
+        </p>
+        <p style={{ fontSize: 13, color: "var(--muted2)", marginBottom: 24 }}>
+          Have ideas or feedback? We&apos;d love to hear from you.
+        </p>
         <p
           style={{
             fontSize: 15,

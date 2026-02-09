@@ -88,6 +88,7 @@ function normalizeGoogleCoverUrl(url: string): string {
  * Uses thumbnail or smallThumbnail and normalizes it.
  * Returns empty string if no imageLinks available (shows UI placeholder instead).
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- kept for potential future use
 function extractCoverFromVolume(item: GoogleBooksVolume): string {
   const links = item.volumeInfo?.imageLinks;
   if (!links) return "";
@@ -271,6 +272,7 @@ async function openLibraryCoverByOlid(olid: string): Promise<string> {
  * 1. cover_i -> b/id/{cover_i}-L.jpg?default=false
  * 2. edition_key[0] -> api/books -> cover.large/medium
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- kept for potential future use
 async function openLibraryCoverBySearch(isbn13: string): Promise<string> {
   if (!isbn13) return "";
   

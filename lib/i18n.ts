@@ -16,6 +16,7 @@ export function detectUiLang(): UiLang {
  */
 export function t(dict: { nl: string; en: string }, lang?: UiLang): string {
   // Always return English, regardless of lang parameter
+  void lang; // Reserved for future i18n
   return dict.en || dict.nl || "";
 }
 
@@ -29,23 +30,6 @@ export function isNlUi(): boolean {
 /**
  * Pay flow translations
  */
-const PAY_NL = {
-  unlockCta: "Ontgrendel volledig",
-  later: "Later",
-  demoReachedTitle: "Demo bereikt ✨",
-  demoReachedBody: "Je hebt 10 boeken opgeslagen.\nOntgrendel onbeperkt boeken en shelves.",
-  checking: "Even checken…",
-  unlockedTitle: "Ontgrendeld ✅",
-  unlockedBody: "Je hebt nu onbeperkt boeken en shelves.",
-  goLibrary: "Ga naar je library",
-  notConfirmedTitle: "Betaling niet bevestigd",
-  notConfirmedBody: "Als je wél hebt betaald, open dan opnieuw vanuit je Stripe bevestiging.",
-  back: "Terug",
-  canceledTitle: "Betaling geannuleerd",
-  canceledBody: "Geen stress — je kunt altijd later ontgrendelen.",
-  backToLibrary: "Terug naar library",
-} as const;
-
 const PAY_EN = {
   unlockCta: "Unlock full version",
   later: "Later",
@@ -63,12 +47,30 @@ const PAY_EN = {
   backToLibrary: "Back to library",
 } as const;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- kept for i18n completeness
+const PAY_NL: Record<keyof typeof PAY_EN, string> = {
+  unlockCta: "Ontgrendel volledig",
+  later: "Later",
+  demoReachedTitle: "Demo bereikt ✨",
+  demoReachedBody: "Je hebt 10 boeken opgeslagen.\nOntgrendel onbeperkt boeken en shelves.",
+  checking: "Even checken…",
+  unlockedTitle: "Ontgrendeld ✅",
+  unlockedBody: "Je hebt nu onbeperkt boeken en shelves.",
+  goLibrary: "Ga naar je library",
+  notConfirmedTitle: "Betaling niet bevestigd",
+  notConfirmedBody: "Als je wél hebt betaald, open dan opnieuw vanuit je Stripe bevestiging.",
+  back: "Terug",
+  canceledTitle: "Betaling geannuleerd",
+  canceledBody: "Geen stress — je kunt altijd later ontgrendelen.",
+  backToLibrary: "Terug naar library",
+};
+
 /**
  * Translation function for pay flow texts.
  * Always returns English for consistency.
  */
-export function tPay(key: keyof typeof PAY_NL, nlOverride?: boolean): string {
-  // Always return English, regardless of nlOverride
+export function tPay(key: keyof typeof PAY_EN, nlOverride?: boolean): string {
+  void nlOverride; // Reserved for future nl override
   return PAY_EN[key];
 }
 

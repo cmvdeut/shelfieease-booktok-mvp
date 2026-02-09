@@ -132,14 +132,14 @@ export function Scanner({ onDetected, onClose }: ScannerProps) {
             facingMode: "environment",
             width: { ideal: isAndroid ? 1280 : 1280 },
             height: { ideal: isAndroid ? 720 : 720 },
-          } as any,
+          } as MediaTrackConstraints,
           // Additional options for better Android detection
           ...(isAndroid && {
             experimentalFeatures: {
               useBarCodeDetectorIfSupported: true,
             },
           }),
-        } as any;
+        } as Parameters<import("html5-qrcode").Html5Qrcode["start"]>[1];
 
         await qr.start(
           { facingMode: "environment" },
@@ -165,8 +165,8 @@ export function Scanner({ onDetected, onClose }: ScannerProps) {
             // onScanFailure: bewust leeg
           }
         );
-      } catch (e: any) {
-        const errorMsg = e?.message || String(e);
+      } catch (e: unknown) {
+        const errorMsg = e instanceof Error ? e.message : String(e);
         // Only log errors that aren't about element not found (we handle that above)
         if (!errorMsg.includes("not found") && !errorMsg.includes("Element with id")) {
           // Check for permission errors - these are expected user actions, so log at info level

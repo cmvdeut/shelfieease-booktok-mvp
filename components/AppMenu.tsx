@@ -256,6 +256,11 @@ export function AppMenu() {
       disabled: false,
     },
     {
+      label: t({ nl: "Over", en: "About" }, lang),
+      href: "/about",
+      disabled: false,
+    },
+    {
       label: t({ nl: "Help", en: "Help" }, lang),
       href: "/help",
       disabled: false,

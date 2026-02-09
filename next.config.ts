@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   // Fix for multiple lockfiles warning - ensures Vercel uses correct root
-  outputFileTracingRoot: require("path").join(__dirname),
+  outputFileTracingRoot: path.join(__dirname),
   // Force webpack for production so we never serve Turbopack chunks (avoids chunk load errors on production)
   webpack: (config) => config,
   images: {

@@ -68,12 +68,12 @@ export function loadShelves(): Shelf[] {
       if (!s || typeof s !== "object") continue;
       if (typeof s.id !== "string" || typeof s.name !== "string" || typeof s.createdAt !== "number") continue;
 
-      const nextEmoji = normalizeShelfEmoji((s as any).emoji);
+      const nextEmoji = normalizeShelfEmoji(s.emoji);
       if (s.emoji !== nextEmoji) changed = true;
 
       // Backward compatibility: if shelf has no mood, add "aesthetic" and mark as changed
       const currentMood = s.mood;
-      let nextMood: Mood = currentMood === "aesthetic" || currentMood === "bold" || currentMood === "calm" ? currentMood : "aesthetic";
+      const nextMood: Mood = currentMood === "aesthetic" || currentMood === "bold" || currentMood === "calm" ? currentMood : "aesthetic";
       if (currentMood !== nextMood) changed = true;
 
       shelves.push({
@@ -247,7 +247,7 @@ export function loadBooks(): Book[] {
 
       const rawId = item.id;
       const rawIsbn13 = item.isbn13;
-      const rawIsbn = (item as any).isbn;
+      const rawIsbn = (item as { isbn?: string }).isbn;
 
       const isbn13 =
         typeof rawIsbn13 === "string" && rawIsbn13.trim()

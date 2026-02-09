@@ -19,8 +19,10 @@ export function MoodSwitcher() {
 
   // Load mood after mount to avoid hydration mismatch
   useEffect(() => {
-    setMounted(true);
-    setCurrentMood(getMood());
+    queueMicrotask(() => {
+      setMounted(true);
+      setCurrentMood(getMood());
+    });
   }, []);
 
   useEffect(() => {
