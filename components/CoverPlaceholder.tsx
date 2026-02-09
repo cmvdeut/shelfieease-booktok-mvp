@@ -36,14 +36,14 @@ export function CoverPlaceholder({ title, authors = [], isbn, mood, style }: Cov
   };
 
   const iconStyle: React.CSSProperties = {
-    fontSize: 40,
+    fontSize: 48,
     lineHeight: 1,
-    marginBottom: 16,
+    marginBottom: 12,
     opacity: 0.8,
   };
 
   const titleStyle: React.CSSProperties = {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: 980,
     textAlign: "center",
     color: isCalm ? "#4A3825" : "rgba(255,255,255,0.95)",
@@ -51,14 +51,14 @@ export function CoverPlaceholder({ title, authors = [], isbn, mood, style }: Cov
     overflow: "hidden",
     textOverflow: "ellipsis",
     display: "-webkit-box",
-    WebkitLineClamp: 3,
+    WebkitLineClamp: 4,
     WebkitBoxOrient: "vertical",
-    lineHeight: 1.3,
+    lineHeight: 1.25,
     marginBottom: authors.length > 0 ? 10 : 0,
   };
 
   const authorStyle: React.CSSProperties = {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 700,
     textAlign: "center",
     color: isCalm ? "rgba(74, 56, 37, 0.9)" : "rgba(255,255,255,0.85)",

@@ -984,17 +984,10 @@ export default function LibraryPage() {
       const isMobile =
         typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-      // html-to-image inlines external images via fetch; only include covers that are CORS-fetchable.
-      async function canUseCover(url: string) {
-        try {
-          const res = await fetch(url, { mode: "cors", cache: "no-store" });
-          if (!res.ok) return false;
-          const ct = res.headers.get("content-type") || "";
-          return ct.startsWith("image/");
-        } catch {
-          return false;
-        }
-      }
+      // Use same-origin proxy for covers so the share card image can load (avoids CORS with html-to-image).
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const proxyUrl = (raw: string) =>
+        origin ? `${origin}/api/cover?url=${encodeURIComponent(raw)}` : "";
 
       const picked: string[] = [];
       const pickedTitles: string[] = [];
@@ -1002,37 +995,21 @@ export default function LibraryPage() {
       const pickedIsbns: string[] = [];
       const seen = new Set<string>();
 
-      // Use availableBooks (visibleBooks or activeBooks) and take first bookCount books
       for (const b of availableBooks.slice(0, bookCount)) {
         if (picked.length >= bookCount) break;
 
         const bookTitle = b.title || "Unknown";
         const bookAuthors = b.authors || [];
         const bookIsbn = b.isbn13 || "";
-        const candidates = [
-          // IMPORTANT: do not synthesize Open Library URLs here; it produces 404 spam
-          // (and the ShareCard already has placeholders for missing covers).
-          b.coverUrl ? toHttps(b.coverUrl) : "",
-        ].filter(Boolean);
+        const coverUrl = b.coverUrl ? toHttps(b.coverUrl) : "";
 
-        let foundCover = false;
-        for (const url of candidates) {
-          if (picked.length >= bookCount) break;
-          if (seen.has(url)) continue;
-          seen.add(url);
-          if (await canUseCover(url)) {
-            picked.push(url);
-            pickedTitles.push(bookTitle);
-            pickedAuthors.push(bookAuthors);
-            pickedIsbns.push(bookIsbn);
-            seen.add(url);
-            foundCover = true;
-            break; // use first working candidate per book
-          }
-        }
-
-        // If no valid cover found, still add the book with empty cover URL but with title, authors, and ISBN
-        if (!foundCover && picked.length < bookCount) {
+        if (coverUrl && !seen.has(coverUrl) && origin) {
+          seen.add(coverUrl);
+          picked.push(proxyUrl(coverUrl));
+          pickedTitles.push(bookTitle);
+          pickedAuthors.push(bookAuthors);
+          pickedIsbns.push(bookIsbn);
+        } else {
           picked.push("");
           pickedTitles.push(bookTitle);
           pickedAuthors.push(bookAuthors);
@@ -1047,6 +1024,8 @@ export default function LibraryPage() {
       setShareBookIsbns(pickedIsbns);
       setShareBookCount(bookCount);
       await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      // Give proxy cover images time to load before capturing
+      await new Promise<void>((r) => setTimeout(r, 700));
 
       const blob = await toBlob(shareCardRef.current, {
         cacheBust: true,
@@ -2915,23 +2894,23 @@ const ShareCard = React.forwardRef<
                   bottom: 0,
                   left: 0,
                   right: 0,
-                  padding: "16px 12px 12px",
-                  background: "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.85) 100%)",
+                  padding: "20px 16px 16px",
+                  background: "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.88) 100%)",
                   pointerEvents: "none",
                 }}
               >
                 <div
                   style={{
-                    fontSize: 16,
+                    fontSize: 26,
                     fontWeight: 950,
                     color: "#fff",
                     lineHeight: 1.2,
                     textAlign: "center",
                     display: "-webkit-box",
-                    WebkitLineClamp: 2,
+                    WebkitLineClamp: 3,
                     WebkitBoxOrient: "vertical" as any,
                     overflow: "hidden",
-                    textShadow: "0 2px 8px rgba(0,0,0,0.8)",
+                    textShadow: "0 2px 10px rgba(0,0,0,0.9)",
                   }}
                 >
                   {title}

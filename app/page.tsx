@@ -349,6 +349,22 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
+
+              <div style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 12,
+              }}>
+                <div style={{ fontSize: 20, flexShrink: 0, lineHeight: 1 }}>📲</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", lineHeight: 1.3 }}>
+                    {t({ nl: "App installeren na betaling", en: "Install app after payment" }, lang)}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--muted2)", marginTop: 4, lineHeight: 1.4 }}>
+                    {t({ nl: "Voeg ShelfieEase toe aan je homescreen voor snelle toegang.", en: "Add ShelfieEase to your homescreen for quick access." }, lang)}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>

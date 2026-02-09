@@ -299,6 +299,11 @@ export default function PaySuccessPage() {
             <span style={{ opacity: 0.8 }}>→</span>
           </Link>
 
+          {/* Note: app can be installed after payment */}
+          <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 16, textAlign: "center" }}>
+            {t({ nl: "Na betaling kun je de app op je telefoon of desktop installeren voor snelle toegang.", en: "After payment you can install the app on your phone or desktop for quick access." }, lang)}
+          </p>
+
           {/* Secondary Action - Install PWA */}
           {isInstallable && deferredPrompt ? (
             <button
