@@ -28,6 +28,7 @@ import {
 import { getMood, type Mood as DocumentMood } from "@/components/MoodProvider";
 
 import { lookupByIsbn, isBadCoverUrl, searchBooksByTitleOrAuthor } from "@/lib/lookup";
+import { getCoverUrlForShare } from "@/lib/covers";
 import { CoverImg } from "@/components/CoverImg";
 import { CoverPlaceholder } from "@/components/CoverPlaceholder";
 import { toBlob } from "html-to-image";
@@ -1001,7 +1002,7 @@ export default function LibraryPage() {
         const bookTitle = b.title || "Unknown";
         const bookAuthors = b.authors || [];
         const bookIsbn = b.isbn13 || "";
-        const coverUrl = b.coverUrl ? toHttps(b.coverUrl) : "";
+        const coverUrl = getCoverUrlForShare(b);
 
         if (coverUrl && !seen.has(coverUrl) && origin) {
           seen.add(coverUrl);
@@ -1081,7 +1082,21 @@ What should I add next? 👀
       // Desktop (or fallback): show options modal
       setShareModalOpen(true);
     } catch (error) {
-      console.error("Failed to generate share card:", error);
+      const msg =
+        error instanceof Error
+          ? error.message
+          : error && typeof error === "object" && "type" in error
+            ? `Image load failed (${(error as Event).type})`
+            : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      console.error("Failed to generate share card:", msg, stack ?? error);
+      showToast(
+        t(
+          { nl: "Shelfie kon niet worden gemaakt. Probeer het later opnieuw.", en: "Could not create shelfie. Please try again later." },
+          lang
+        ),
+        4000
+      );
     } finally {
       setSharing(false);
     }
@@ -2836,6 +2851,12 @@ const ShareCard = React.forwardRef<
   const isCalm = mood === "calm";
   const tokens = getShareCardTokens(variant);
 
+  // Track cover URLs that failed to load so we render placeholder instead of broken img (avoids html-to-image rejecting with Event)
+  const [failedCoverUrls, setFailedCoverUrls] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    setFailedCoverUrls(new Set());
+  }, [coverUrls]);
+
   const titleText = `${shelf.emoji || "📚"} ${shelf.name}`;
 
   // Use bookCount to determine layout: 1 or 2 books
@@ -2849,6 +2870,8 @@ const ShareCard = React.forwardRef<
     const tileBackground = isCalm
       ? "linear-gradient(135deg, rgba(156, 107, 47, 0.12), rgba(156, 107, 47, 0.06)), #0f0f14"
       : "radial-gradient(700px 500px at 15% 15%, rgba(255,73,240,0.22), rgba(255,73,240,0) 55%), radial-gradient(700px 500px at 85% 20%, rgba(109,94,252,0.26), rgba(109,94,252,0) 60%), linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0)), #0f0f14";
+
+    const showPlaceholder = src && failedCoverUrls.has(src);
     
     return (
       <div
@@ -2864,7 +2887,7 @@ const ShareCard = React.forwardRef<
           transform: isBold ? "none" : index % 2 === 0 ? `rotate(-${tilt}deg)` : `rotate(${tilt}deg)`,
         }}
       >
-        {src ? (
+        {src && !showPlaceholder ? (
           <>
             <CoverImg
               src={src}
@@ -2877,7 +2900,50 @@ const ShareCard = React.forwardRef<
   objectFit: "cover",
                 filter: tokens.tileFilter,
               }}
+              onError={() => setFailedCoverUrls((prev) => new Set(prev).add(src))}
             />
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0) 35%, rgba(0,0,0,0.20) 100%)",
+                pointerEvents: "none",
+              }}
+            />
+            {title && (
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  padding: "20px 16px 16px",
+                  background: "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.88) 100%)",
+                  pointerEvents: "none",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 26,
+                    fontWeight: 950,
+                    color: "#fff",
+                    lineHeight: 1.2,
+                    textAlign: "center",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: "vertical" as any,
+                    overflow: "hidden",
+                    textShadow: "0 2px 10px rgba(0,0,0,0.9)",
+                  }}
+                >
+                  {title}
+                </div>
+              </div>
+            )}
+          </>
+        ) : showPlaceholder ? (
+          <>
             <div
               style={{
                 position: "absolute",

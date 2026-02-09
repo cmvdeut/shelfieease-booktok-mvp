@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 const ALLOWED_HOSTS = [
   "covers.openlibrary.org",
   "books.google.com",
+  "encrypted-tbn0.gstatic.com",
+  "books.googleusercontent.com",
+  "lh3.googleusercontent.com",
   "m.media-amazon.com",
   "images-na.ssl-images-amazon.com",
 ];
