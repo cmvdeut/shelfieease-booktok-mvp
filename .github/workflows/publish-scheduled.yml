@@ -1,0 +1,119 @@
+name: Publish Scheduled Social Media Posts
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # Every 15 minutes
+  workflow_dispatch:         # Allow manual trigger from GitHub UI
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Publish due posts
+        env:
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+        run: |
+          QUEUE_FILE="scheduled-posts.json"
+          LOG_FILE="social-posts-log.md"
+          NOW=$(date -u +%s)
+          PUBLISHED=0
+
+          # Check if queue exists and has items
+          if [ ! -f "$QUEUE_FILE" ] || [ "$(cat $QUEUE_FILE)" = "[]" ]; then
+            echo "No scheduled posts in queue."
+            exit 0
+          fi
+
+          # Read queue
+          QUEUE=$(cat "$QUEUE_FILE")
+          NEW_QUEUE="[]"
+
+          # Process each post
+          echo "$QUEUE" | jq -c '.[]' | while IFS= read -r POST; do
+            SCHEDULED=$(echo "$POST" | jq -r '.scheduled_time_unix')
+            CONTAINER_ID=$(echo "$POST" | jq -r '.container_id')
+            PLATFORM=$(echo "$POST" | jq -r '.platform')
+            CAPTION_PREVIEW=$(echo "$POST" | jq -r '.caption_preview')
+            VIDEO_USED=$(echo "$POST" | jq -r '.video_used')
+            SCHEDULED_LABEL=$(echo "$POST" | jq -r '.scheduled_label')
+
+            if [ "$NOW" -ge "$SCHEDULED" ]; then
+              echo "Publishing: $CAPTION_PREVIEW"
+
+              if [ "$PLATFORM" = "instagram" ]; then
+                RESPONSE=$(curl -s -X POST \
+                  "https://graph.facebook.com/v21.0/${INSTAGRAM_USER_ID}/media_publish" \
+                  --data-urlencode "creation_id=${CONTAINER_ID}" \
+                  --data-urlencode "access_token=${INSTAGRAM_ACCESS_TOKEN}")
+
+                POST_ID=$(echo "$RESPONSE" | jq -r '.id // empty')
+
+                if [ -n "$POST_ID" ]; then
+                  # Get permalink
+                  sleep 5
+                  PERMALINK=$(curl -s \
+                    "https://graph.facebook.com/v21.0/${INSTAGRAM_USER_ID}/media?fields=id,permalink&limit=1&access_token=${INSTAGRAM_ACCESS_TOKEN}" \
+                    | jq -r '.data[0].permalink // "URL ophalen mislukt"')
+
+                  echo "Published! URL: $PERMALINK"
+
+                  # Append to log
+                  TIMESTAMP=$(date -u "+%Y-%m-%d %H:%M UTC")
+                  cat >> "$LOG_FILE" << LOGENTRY
+
+## ${TIMESTAMP} — Scheduled post (auto-published)
+
+| Field | Value |
+|-------|-------|
+| Datum | ${TIMESTAMP} |
+| Platform | Instagram |
+| Post type | Awareness |
+| Gepland voor | ${SCHEDULED_LABEL} |
+| Video gebruikt | ${VIDEO_USED} |
+| Live URL | ${PERMALINK} |
+| Caption preview | ${CAPTION_PREVIEW} |
+| Status | Gepubliceerd via GitHub Actions |
+
+---
+LOGENTRY
+
+                  echo "PUBLISHED:$CONTAINER_ID"
+                else
+                  echo "ERROR publishing $CONTAINER_ID: $RESPONSE"
+                  # Keep in queue for retry
+                  echo "$POST" >> /tmp/keep_posts.json
+                fi
+              fi
+            else
+              # Not due yet, keep in queue
+              echo "$POST" >> /tmp/keep_posts.json
+            fi
+          done
+
+          # Rebuild queue from kept posts
+          if [ -f /tmp/keep_posts.json ]; then
+            NEW_QUEUE=$(cat /tmp/keep_posts.json | jq -s '.')
+          else
+            NEW_QUEUE="[]"
+          fi
+
+          echo "$NEW_QUEUE" > "$QUEUE_FILE"
+
+      - name: Commit updated queue and log
+        run: |
+          git config user.name "ShelfieEase Bot"
+          git config user.email "bot@shelfieease.app"
+          git add scheduled-posts.json social-posts-log.md
+          if git diff --staged --quiet; then
+            echo "Nothing to commit."
+          else
+            git commit -m "Auto-publish scheduled posts [skip ci]"
+            git push
+          fi
