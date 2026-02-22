@@ -66,23 +66,17 @@ jobs:
 
                   # Append to log
                   TIMESTAMP=$(date -u "+%Y-%m-%d %H:%M UTC")
-                  cat >> "$LOG_FILE" << LOGENTRY
-
-## ${TIMESTAMP} — Scheduled post (auto-published)
-
-| Field | Value |
-|-------|-------|
-| Datum | ${TIMESTAMP} |
-| Platform | Instagram |
-| Post type | Awareness |
-| Gepland voor | ${SCHEDULED_LABEL} |
-| Video gebruikt | ${VIDEO_USED} |
-| Live URL | ${PERMALINK} |
-| Caption preview | ${CAPTION_PREVIEW} |
-| Status | Gepubliceerd via GitHub Actions |
-
----
-LOGENTRY
+                  printf '\n## %s — Scheduled post (auto-published)\n\n' "$TIMESTAMP" >> "$LOG_FILE"
+                  printf '| Field | Value |\n' >> "$LOG_FILE"
+                  printf '|-------|-------|\n' >> "$LOG_FILE"
+                  printf '| Datum | %s |\n' "$TIMESTAMP" >> "$LOG_FILE"
+                  printf '| Platform | Instagram |\n' >> "$LOG_FILE"
+                  printf '| Gepland voor | %s |\n' "$SCHEDULED_LABEL" >> "$LOG_FILE"
+                  printf '| Video gebruikt | %s |\n' "$VIDEO_USED" >> "$LOG_FILE"
+                  printf '| Live URL | %s |\n' "$PERMALINK" >> "$LOG_FILE"
+                  printf '| Caption preview | %s |\n' "$CAPTION_PREVIEW" >> "$LOG_FILE"
+                  printf '| Status | Gepubliceerd via GitHub Actions |\n\n' >> "$LOG_FILE"
+                  printf '---\n' >> "$LOG_FILE"
 
                   echo "PUBLISHED:$CONTAINER_ID"
                 else
