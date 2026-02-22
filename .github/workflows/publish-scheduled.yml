@@ -104,9 +104,9 @@ jobs:
         run: |
           git config user.name "ShelfieEase Bot"
           git config user.email "bot@shelfieease.app"
-          git add scheduled-posts.json social-posts-log.md
+          git add -A
           if git diff --staged --quiet; then
-            echo "Nothing to commit."
+            echo "Nothing to commit - queue was empty."
           else
             git commit -m "Auto-publish scheduled posts [skip ci]"
             git push
