@@ -19,11 +19,14 @@ jobs:
         env:
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
           INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
+          TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
+          TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
         run: |
           QUEUE_FILE="scheduled-posts.json"
           LOG_FILE="social-posts-log.md"
           NOW=$(date -u +%s)
-          PUBLISHED=0
 
           # Check if queue exists and has items
           if [ ! -f "$QUEUE_FILE" ] || [ "$(cat $QUEUE_FILE)" = "[]" ]; then
@@ -33,21 +36,21 @@ jobs:
 
           # Read queue
           QUEUE=$(cat "$QUEUE_FILE")
-          NEW_QUEUE="[]"
 
           # Process each post
           echo "$QUEUE" | jq -c '.[]' | while IFS= read -r POST; do
             SCHEDULED=$(echo "$POST" | jq -r '.scheduled_time_unix')
-            CONTAINER_ID=$(echo "$POST" | jq -r '.container_id')
             PLATFORM=$(echo "$POST" | jq -r '.platform')
             CAPTION_PREVIEW=$(echo "$POST" | jq -r '.caption_preview')
-            VIDEO_USED=$(echo "$POST" | jq -r '.video_used')
             SCHEDULED_LABEL=$(echo "$POST" | jq -r '.scheduled_label')
 
             if [ "$NOW" -ge "$SCHEDULED" ]; then
               echo "Publishing: $CAPTION_PREVIEW"
 
               if [ "$PLATFORM" = "instagram" ]; then
+                CONTAINER_ID=$(echo "$POST" | jq -r '.container_id')
+                VIDEO_USED=$(echo "$POST" | jq -r '.video_used')
+
                 RESPONSE=$(curl -s -X POST \
                   "https://graph.facebook.com/v21.0/${INSTAGRAM_USER_ID}/media_publish" \
                   --data-urlencode "creation_id=${CONTAINER_ID}" \
@@ -56,7 +59,6 @@ jobs:
                 POST_ID=$(echo "$RESPONSE" | jq -r '.id // empty')
 
                 if [ -n "$POST_ID" ]; then
-                  # Get permalink
                   sleep 5
                   PERMALINK=$(curl -s \
                     "https://graph.facebook.com/v21.0/${INSTAGRAM_USER_ID}/media?fields=id,permalink&limit=1&access_token=${INSTAGRAM_ACCESS_TOKEN}" \
@@ -64,7 +66,6 @@ jobs:
 
                   echo "Published! URL: $PERMALINK"
 
-                  # Append to log
                   TIMESTAMP=$(date -u "+%Y-%m-%d %H:%M UTC")
                   printf '\n## %s — Scheduled post (auto-published)\n\n' "$TIMESTAMP" >> "$LOG_FILE"
                   printf '| Field | Value |\n' >> "$LOG_FILE"
@@ -77,14 +78,66 @@ jobs:
                   printf '| Caption preview | %s |\n' "$CAPTION_PREVIEW" >> "$LOG_FILE"
                   printf '| Status | Gepubliceerd via GitHub Actions |\n\n' >> "$LOG_FILE"
                   printf '---\n' >> "$LOG_FILE"
-
-                  echo "PUBLISHED:$CONTAINER_ID"
                 else
                   echo "ERROR publishing $CONTAINER_ID: $RESPONSE"
-                  # Keep in queue for retry
+                  echo "$POST" >> /tmp/keep_posts.json
+                fi
+
+              elif [ "$PLATFORM" = "tiktok" ]; then
+                VIDEO_FILE=$(echo "$POST" | jq -r '.video_file')
+
+                # Refresh token first
+                REFRESH_RESPONSE=$(curl -s -X POST "https://open.tiktokapis.com/v2/oauth/token/" \
+                  -H "Content-Type: application/x-www-form-urlencoded" \
+                  -d "client_key=${TIKTOK_CLIENT_KEY}" \
+                  -d "client_secret=${TIKTOK_CLIENT_SECRET}" \
+                  -d "grant_type=refresh_token" \
+                  -d "refresh_token=${TIKTOK_REFRESH_TOKEN}")
+                NEW_TOKEN=$(echo "$REFRESH_RESPONSE" | jq -r '.access_token // empty')
+                if [ -z "$NEW_TOKEN" ]; then
+                  NEW_TOKEN="$TIKTOK_ACCESS_TOKEN"
+                fi
+
+                FILE_SIZE=$(stat -c%s "$VIDEO_FILE")
+
+                # Init upload
+                INIT_RESPONSE=$(curl -s -X POST "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/" \
+                  -H "Authorization: Bearer ${NEW_TOKEN}" \
+                  -H "Content-Type: application/json; charset=UTF-8" \
+                  -d "{\"source_info\":{\"source\":\"FILE_UPLOAD\",\"video_size\":${FILE_SIZE},\"chunk_size\":${FILE_SIZE},\"total_chunk_count\":1}}")
+
+                PUBLISH_ID=$(echo "$INIT_RESPONSE" | jq -r '.data.publish_id // empty')
+                UPLOAD_URL=$(echo "$INIT_RESPONSE" | jq -r '.data.upload_url // empty')
+
+                if [ -n "$UPLOAD_URL" ]; then
+                  LAST_BYTE=$((FILE_SIZE - 1))
+
+                  # Upload video
+                  curl -s -X PUT "$UPLOAD_URL" \
+                    -H "Content-Type: video/mp4" \
+                    -H "Content-Range: bytes 0-${LAST_BYTE}/${FILE_SIZE}" \
+                    -H "Content-Length: ${FILE_SIZE}" \
+                    --data-binary "@${VIDEO_FILE}"
+
+                  echo "TikTok upload done! Publish ID: $PUBLISH_ID"
+
+                  TIMESTAMP=$(date -u "+%Y-%m-%d %H:%M UTC")
+                  printf '\n## %s — Scheduled TikTok post (auto-uploaded)\n\n' "$TIMESTAMP" >> "$LOG_FILE"
+                  printf '| Field | Value |\n' >> "$LOG_FILE"
+                  printf '|-------|-------|\n' >> "$LOG_FILE"
+                  printf '| Datum | %s |\n' "$TIMESTAMP" >> "$LOG_FILE"
+                  printf '| Platform | TikTok |\n' >> "$LOG_FILE"
+                  printf '| Gepland voor | %s |\n' "$SCHEDULED_LABEL" >> "$LOG_FILE"
+                  printf '| Video gebruikt | %s |\n' "$VIDEO_FILE" >> "$LOG_FILE"
+                  printf '| Caption preview | %s |\n' "$CAPTION_PREVIEW" >> "$LOG_FILE"
+                  printf '| Status | In TikTok inbox — open app en tik Publish |\n\n' >> "$LOG_FILE"
+                  printf '---\n' >> "$LOG_FILE"
+                else
+                  echo "ERROR init TikTok upload: $INIT_RESPONSE"
                   echo "$POST" >> /tmp/keep_posts.json
                 fi
               fi
+
             else
               # Not due yet, keep in queue
               echo "$POST" >> /tmp/keep_posts.json
