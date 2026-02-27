@@ -2,15 +2,6 @@
   {
     "platform": "tiktok",
     "type": "inbox",
-    "scheduled_time_unix": 1,
-    "scheduled_label": "2026-02-27 (nu gepost)",
-    "video_file": "public/videos/post-guilt.mp4",
-    "caption_preview": "save this if you have book-buying guilt 😭📚",
-    "caption": "save this if you have book-buying guilt 😭📚\n\n❌ buying a book you already own\n❌ forgetting you started a series\n❌ no idea what's in your TBR\n❌ recommending a book you never finished 👀\n\nShelfieEase fixes all of this — scan your ISBN, sort into shelves, done 🫶\n\ntry the free demo → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #TBR #BookLovers #Bookish"
-  },
-  {
-    "platform": "tiktok",
-    "type": "inbox",
     "scheduled_time_unix": 1772303400,
     "scheduled_label": "2026-02-28 19:30 CET",
     "video_file": "public/videos/post-collector.mp4",
