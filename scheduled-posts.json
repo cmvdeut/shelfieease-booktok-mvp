@@ -2,10 +2,55 @@
   {
     "platform": "tiktok",
     "type": "inbox",
-    "scheduled_time_unix": 1771871400,
-    "scheduled_label": "2026-02-23 19:30 CET",
-    "video_file": "public/videos/myths.mp4",
-    "caption_preview": "myths non-readers tell us 😭📚",
-    "caption": "myths non-readers tell us 😭📚\n\n\"you don't need more books\"\n\"just use the library\"\n\"you'll never read all of those\"\n\nbestie i have a SYSTEM 🫶\nShelfieEase tracks every book you own, what's read, what's TBR, what you accidentally bought twice 👀\n\ntry the free demo → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #ReadingApp #BookCollection #TBR #Bookish #ReadingCommunity #BookApp #BookOrganization #ReadersOfTikTok #BookishApp"
+    "scheduled_time_unix": 1772217000,
+    "scheduled_label": "2026-02-27 19:30 CET",
+    "video_file": "public/videos/post-guilt.mp4",
+    "caption_preview": "save this if you have book-buying guilt 😭📚",
+    "caption": "save this if you have book-buying guilt 😭📚\n\n❌ buying a book you already own\n❌ forgetting you started a series\n❌ no idea what's in your TBR\n❌ recommending a book you never finished 👀\n\nShelfieEase fixes all of this — scan your ISBN, sort into shelves, done 🫶\n\ntry the free demo → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #BookBuying #TBR #Bookish #BookCollection #ReadingApp #BookOrganizer #ReadersOfTikTok"
+  },
+  {
+    "platform": "tiktok",
+    "type": "inbox",
+    "scheduled_time_unix": 1772303400,
+    "scheduled_label": "2026-02-28 19:30 CET",
+    "video_file": "public/videos/post-collector.mp4",
+    "caption_preview": "you as a book collector 📚",
+    "caption": "which number hits different? 👇😭\n\nShelfieEase tracks your TBR, Reading & Finished automatically — so you can keep buying with a clear conscience 🫶📚\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookCollector #TBR #CurrentlyReading #ReadingStats #Bookish #BookApp #ReadersOfTikTok"
+  },
+  {
+    "platform": "tiktok",
+    "type": "inbox",
+    "scheduled_time_unix": 1772389800,
+    "scheduled_label": "2026-03-01 19:30 CET",
+    "video_file": "public/videos/post-stopme.mp4",
+    "caption_preview": "stop me if this is you 🛑",
+    "caption": "if this has never happened to you, are you even a real book lover 😭📚\n\nShelfieEase tracks your entire collection so this NEVER happens again — scan once, always know what you have 🫶\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #DuplicateBooks #TBR #Bookish #BookCollection #ReadingApp #BookOrganizer"
+  },
+  {
+    "platform": "tiktok",
+    "type": "inbox",
+    "scheduled_time_unix": 1772476200,
+    "scheduled_label": "2026-03-02 19:30 CET",
+    "video_file": "public/videos/post-booktok.mp4",
+    "caption_preview": "BookTok girlies are sleeping on this 👇",
+    "caption": "your bookshelf deserves better than chaos 📚✨\n\nscan ISBN → emoji shelves → share your Shelfie\n\ntry the free demo → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #ReadingApp #BookOrganizer #EmojiShelves #TBR #Bookish #BookApp #ReadersOfTikTok"
+  },
+  {
+    "platform": "tiktok",
+    "type": "inbox",
+    "scheduled_time_unix": 1772562600,
+    "scheduled_label": "2026-03-03 19:30 CET",
+    "video_file": "public/videos/phone-showcase.mp4",
+    "caption_preview": "your books deserve better than a pile 📚",
+    "caption": "your books deserve better than a pile 📚\n\nscan · shelf · share — your entire collection in one place ✨\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #BookApp #BookOrganizer #TBR #ReadingApp #Bookish #BookCollection #ReadersOfTikTok"
+  },
+  {
+    "platform": "tiktok",
+    "type": "inbox",
+    "scheduled_time_unix": 1772649000,
+    "scheduled_label": "2026-03-04 19:30 CET",
+    "video_file": "public/videos/post-unpopular.mp4",
+    "caption_preview": "unpopular opinion 👇",
+    "caption": "drop your TBR count in the comments 👇 (no judgment whatsoever)\n\nShelfieEase: organize first, panic later 🫶📚\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #BookCollection #Bookish #UnpopularOpinion #ReadingApp #BookOrganizer"
   }
 ]

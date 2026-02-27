@@ -23,6 +23,8 @@ jobs:
           TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
           TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
           TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+          TIKTOK_USE_DIRECT_POST: ${{ secrets.TIKTOK_USE_DIRECT_POST }}
+          TIKTOK_PRIVACY_LEVEL: ${{ secrets.TIKTOK_PRIVACY_LEVEL }}
         run: |
           QUEUE_FILE="scheduled-posts.json"
           LOG_FILE="social-posts-log.md"
@@ -85,6 +87,7 @@ jobs:
 
               elif [ "$PLATFORM" = "tiktok" ]; then
                 VIDEO_FILE=$(echo "$POST" | jq -r '.video_file')
+                CAPTION=$(echo "$POST" | jq -r '.caption // .caption_preview // ""')
 
                 # Refresh token first
                 REFRESH_RESPONSE=$(curl -s -X POST "https://open.tiktokapis.com/v2/oauth/token/" \
@@ -99,12 +102,28 @@ jobs:
                 fi
 
                 FILE_SIZE=$(stat -c%s "$VIDEO_FILE")
+                PRIVACY_LEVEL="${TIKTOK_PRIVACY_LEVEL:-SELF_ONLY}"
 
-                # Init upload
-                INIT_RESPONSE=$(curl -s -X POST "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/" \
+                if [ "$TIKTOK_USE_DIRECT_POST" = "true" ]; then
+                  # Direct Post: video + caption in one go (needs video.publish scope)
+                  INIT_BODY=$(jq -n \
+                    --arg title "$CAPTION" \
+                    --arg pl "$PRIVACY_LEVEL" \
+                    --argjson vs "$FILE_SIZE" \
+                    '{ post_info: { title: $title, privacy_level: $pl }, source_info: { source: "FILE_UPLOAD", video_size: $vs, chunk_size: $vs, total_chunk_count: 1 } }')
+                  INIT_URL="https://open.tiktokapis.com/v2/post/publish/video/init/"
+                  STATUS_LABEL="Direct post (caption mee)"
+                else
+                  # Inbox: video only, caption handmatig in app
+                  INIT_BODY=$(jq -n --argjson vs "$FILE_SIZE" '{ source_info: { source: "FILE_UPLOAD", video_size: $vs, chunk_size: $vs, total_chunk_count: 1 } }')
+                  INIT_URL="https://open.tiktokapis.com/v2/post/publish/inbox/video/init/"
+                  STATUS_LABEL="In TikTok inbox — open app en tik Publish"
+                fi
+
+                INIT_RESPONSE=$(curl -s -X POST "$INIT_URL" \
                   -H "Authorization: Bearer ${NEW_TOKEN}" \
                   -H "Content-Type: application/json; charset=UTF-8" \
-                  -d "{\"source_info\":{\"source\":\"FILE_UPLOAD\",\"video_size\":${FILE_SIZE},\"chunk_size\":${FILE_SIZE},\"total_chunk_count\":1}}")
+                  -d "$INIT_BODY")
 
                 PUBLISH_ID=$(echo "$INIT_RESPONSE" | jq -r '.data.publish_id // empty')
                 UPLOAD_URL=$(echo "$INIT_RESPONSE" | jq -r '.data.upload_url // empty')
@@ -121,6 +140,10 @@ jobs:
 
                   echo "TikTok upload done! Publish ID: $PUBLISH_ID"
 
+                  # Save pending post for caption helper page
+                  UPLOADED_AT=$(date -u +%s)
+                  echo "$POST" | jq --argjson ua "$UPLOADED_AT" '. + {uploaded_at: $ua}' > /tmp/tiktok-pending.json
+
                   TIMESTAMP=$(date -u "+%Y-%m-%d %H:%M UTC")
                   printf '\n## %s — Scheduled TikTok post (auto-uploaded)\n\n' "$TIMESTAMP" >> "$LOG_FILE"
                   printf '| Field | Value |\n' >> "$LOG_FILE"
@@ -130,7 +153,7 @@ jobs:
                   printf '| Gepland voor | %s |\n' "$SCHEDULED_LABEL" >> "$LOG_FILE"
                   printf '| Video gebruikt | %s |\n' "$VIDEO_FILE" >> "$LOG_FILE"
                   printf '| Caption preview | %s |\n' "$CAPTION_PREVIEW" >> "$LOG_FILE"
-                  printf '| Status | In TikTok inbox — open app en tik Publish |\n\n' >> "$LOG_FILE"
+                  printf '| Status | %s |\n\n' "$STATUS_LABEL" >> "$LOG_FILE"
                   printf '---\n' >> "$LOG_FILE"
                 else
                   echo "ERROR init TikTok upload: $INIT_RESPONSE"
@@ -152,6 +175,17 @@ jobs:
           fi
 
           echo "$NEW_QUEUE" > "$QUEUE_FILE"
+
+          # Write tiktok-data.json for caption helper page (shelfieease.app/tiktok)
+          PENDING_DATA=$(cat /tmp/tiktok-pending.json 2>/dev/null || echo "null")
+          UPCOMING_DATA=$(echo "$NEW_QUEUE" | jq '[.[] | select(.platform == "tiktok")] | .[0:5]')
+          UPDATED_AT=$(date -u +%s)
+          jq -n \
+            --argjson pending "$PENDING_DATA" \
+            --argjson upcoming "$UPCOMING_DATA" \
+            --argjson updated "$UPDATED_AT" \
+            '{pending: $pending, upcoming: $upcoming, updated_at: $updated}' \
+            > public/tiktok-data.json
 
       - name: Commit updated queue and log
         run: |

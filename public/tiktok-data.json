@@ -1,0 +1,51 @@
+{
+  "pending": null,
+  "upcoming": [
+    {
+      "platform": "tiktok",
+      "type": "inbox",
+      "scheduled_time_unix": 1772217000,
+      "scheduled_label": "2026-02-27 19:30 CET",
+      "video_file": "public/videos/post-guilt.mp4",
+      "caption_preview": "save this if you have book-buying guilt 😭📚",
+      "caption": "save this if you have book-buying guilt 😭📚\n\n❌ buying a book you already own\n❌ forgetting you started a series\n❌ no idea what's in your TBR\n❌ recommending a book you never finished 👀\n\nShelfieEase fixes all of this — scan je ISBN, sort into shelves, done 🫶\n\ntry the free demo → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #BookBuying #TBR #Bookish #BookCollection #ReadingApp #BookOrganizer #ReadersOfTikTok"
+    },
+    {
+      "platform": "tiktok",
+      "type": "inbox",
+      "scheduled_time_unix": 1772303400,
+      "scheduled_label": "2026-02-28 19:30 CET",
+      "video_file": "public/videos/post-collector.mp4",
+      "caption_preview": "you as a book collector 📚",
+      "caption": "which number hits different? 👇😭\n\nShelfieEase tracks je TBR, Reading & Finished automatisch — zodat je met een gerust hart nieuwe boeken kunt blijven kopen 🫶📚\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookCollector #TBR #CurrentlyReading #ReadingStats #Bookish #BookApp #ReadersOfTikTok"
+    },
+    {
+      "platform": "tiktok",
+      "type": "inbox",
+      "scheduled_time_unix": 1772389800,
+      "scheduled_label": "2026-03-01 19:30 CET",
+      "video_file": "public/videos/post-stopme.mp4",
+      "caption_preview": "stop me if this is you 🛑",
+      "caption": "if this has never happened to you, are you even a real book lover 😭📚\n\nShelfieEase tracks your entire collection so this NEVER happens again — scan once, always know what you have 🫶\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #DuplicateBooks #TBR #Bookish #BookCollection #ReadingApp #BookOrganizer"
+    },
+    {
+      "platform": "tiktok",
+      "type": "inbox",
+      "scheduled_time_unix": 1772476200,
+      "scheduled_label": "2026-03-02 19:30 CET",
+      "video_file": "public/videos/post-booktok.mp4",
+      "caption_preview": "BookTok girlies are sleeping on this 👇",
+      "caption": "your bookshelf deserves better than chaos 📚✨\n\nscan ISBN → emoji shelves → share your Shelfie\n\ntry the free demo → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #ReadingApp #BookOrganizer #EmojiShelves #TBR #Bookish #BookApp #ReadersOfTikTok"
+    },
+    {
+      "platform": "tiktok",
+      "type": "inbox",
+      "scheduled_time_unix": 1772562600,
+      "scheduled_label": "2026-03-03 19:30 CET",
+      "video_file": "public/videos/phone-showcase.mp4",
+      "caption_preview": "your books deserve better than a pile 📚",
+      "caption": "your books deserve better than a pile 📚\n\nscan · shelf · share — your entire collection in one place ✨\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #BookApp #BookOrganizer #TBR #ReadingApp #Bookish #BookCollection #ReadersOfTikTok"
+    }
+  ],
+  "updated_at": 1772217000
+}
