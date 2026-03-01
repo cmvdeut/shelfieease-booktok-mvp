@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
+    "tiktok-data": "node scripts/generate-tiktok-data.js",
     "build:cf": "cross-env CF_PAGES=1 next build",
     "start": "next start",
     "lint": "eslint"
