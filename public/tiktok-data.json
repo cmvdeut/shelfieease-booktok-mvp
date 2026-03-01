@@ -1,14 +1,15 @@
 {
-  "pending": {
-    "platform": "tiktok",
-    "type": "inbox",
-    "scheduled_time_unix": 1772463000,
-    "scheduled_label": "2026-03-01 19:30 CET",
-    "video_file": "TikTok/Pilars/(15) Double Buy.mp4",
-    "caption_preview": "POV: you're at the bookstore and you NEED to know if you already own this 📚",
-    "caption": "POV: you're at the bookstore and you NEED to know if you already own this 📚\n\nShelfieEase = your whole collection on your phone. Scan before you buy, never double up again 🫶\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #BookCollection #TBR #Bookish #ReadingApp #BookOrganizer #DuplicateBooks #ReadersOfTikTok"
-  },
+  "pending": null,
   "upcoming": [
+    {
+      "platform": "tiktok",
+      "type": "inbox",
+      "scheduled_time_unix": 1772463000,
+      "scheduled_label": "2026-03-01 19:30 CET",
+      "video_file": "TikTok/Pilars/(15) Double Buy.mp4",
+      "caption_preview": "POV: you're at the bookstore and you NEED to know if you already own this 📚",
+      "caption": "POV: you're at the bookstore and you NEED to know if you already own this 📚\n\nShelfieEase = your whole collection on your phone. Scan before you buy, never double up again 🫶\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #BookCollection #TBR #Bookish #ReadingApp #BookOrganizer #DuplicateBooks #ReadersOfTikTok"
+    },
     {
       "platform": "tiktok",
       "type": "inbox",
@@ -44,88 +45,7 @@
       "video_file": "TikTok/Pilars/(49) visula light.mp4",
       "caption_preview": "your shelves deserve emojis 📚🛍️🔥",
       "caption": "your shelves deserve emojis 📚🛍️🔥\n\ncreate shelves for every vibe — TBR, favorites, gifts, DNF, whatever you want\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #EmojiShelves #BookOrganizer #TBR #Bookish #BookApp #ReadersOfTikTok"
-    },
-    {
-      "platform": "tiktok",
-      "type": "inbox",
-      "scheduled_time_unix": 1772895000,
-      "scheduled_label": "2026-03-06 19:30 CET",
-      "video_file": "TikTok/Pilars/(64) Sharing.mp4",
-      "caption_preview": "share your current read as a Shelfie card 📚✨",
-      "caption": "share your current read as a Shelfie card 📚✨\n\none tap → pretty card → post or save. BookTok made easy\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #CurrentlyReading #ShareYourShelfie #Bookish #ReadingApp #BookOrganizer #ReadersOfTikTok"
-    },
-    {
-      "platform": "tiktok",
-      "type": "inbox",
-      "scheduled_time_unix": 1772981400,
-      "scheduled_label": "2026-03-07 19:30 CET",
-      "video_file": "TikTok/Pilars/(107) Cluster stress.mp4",
-      "caption_preview": "when your TBR pile gives you stress 😭📚",
-      "caption": "when your TBR pile gives you stress 😭📚\n\nShelfieEase turns chaos into shelves — scan once, always know what you have and what's next 🫶\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #BookCollection #Bookish #ReadingApp #BookOrganizer #ReadersOfTikTok"
-    },
-    {
-      "platform": "tiktok",
-      "type": "inbox",
-      "scheduled_time_unix": 1773067800,
-      "scheduled_label": "2026-03-08 19:30 CET",
-      "video_file": "TikTok/Pilars/(114) Calm Relief.mp4",
-      "caption_preview": "POV: your bookshelf finally makes sense 📚✨",
-      "caption": "POV: your bookshelf finally makes sense 📚✨\n\nscan once → always know what you have, what you're reading, and what's next\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #BookOrganizer #TBR #Bookish #ReadingApp #BookCollection #ReadersOfTikTok"
-    },
-    {
-      "platform": "tiktok",
-      "type": "inbox",
-      "scheduled_time_unix": 1773154200,
-      "scheduled_label": "2026-03-09 19:30 CET",
-      "video_file": "TikTok/Pilars/(145) Myths.mp4",
-      "caption_preview": "save this for when someone says \"you'll never read all of those\" 😭📚",
-      "caption": "save this for when someone says \"you'll never read all of those\" 😭📚\n\nmaybe not. but I'll know exactly what I have and what I'm reading next 🫶\n\nShelfieEase — scan, shelf, share. try free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #BookCollection #Bookish #ReadingApp #BookOrganizer #ReadersOfTikTok"
-    },
-    {
-      "platform": "tiktok",
-      "type": "inbox",
-      "scheduled_time_unix": 1773240600,
-      "scheduled_label": "2026-03-10 19:30 CET",
-      "video_file": "TikTok/Pilars/(156) stop over-organizing.mp4",
-      "caption_preview": "one app. scan, shelf, share. that's it 📚",
-      "caption": "one app. scan, shelf, share. that's it 📚\n\nno spreadsheets, no over-organizing — just your books in emoji shelves and a share card when you need it\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #BookApp #BookOrganizer #TBR #Bookish #ReadingApp #ReadersOfTikTok"
-    },
-    {
-      "platform": "tiktok",
-      "type": "inbox",
-      "scheduled_time_unix": 1773327000,
-      "scheduled_label": "2026-03-11 19:30 CET",
-      "video_file": "TikTok/Pilars/post 3.mp4",
-      "caption_preview": "your bookshelf deserves better than chaos 📚✨",
-      "caption": "your bookshelf deserves better than chaos 📚✨\n\nscan ISBN → emoji shelves → share your Shelfie\n\ntry the free demo → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #ReadingApp #BookOrganizer #EmojiShelves #TBR #Bookish #BookApp #ReadersOfTikTok"
-    },
-    {
-      "platform": "tiktok",
-      "type": "inbox",
-      "scheduled_time_unix": 1773413400,
-      "scheduled_label": "2026-03-12 19:30 CET",
-      "video_file": "TikTok/Pilars/post 4.mp4",
-      "caption_preview": "your books deserve better than a pile 📚",
-      "caption": "your books deserve better than a pile 📚\n\nscan · shelf · share — your entire collection in one place ✨\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #BookApp #BookOrganizer #TBR #ReadingApp #Bookish #BookCollection #ReadersOfTikTok"
-    },
-    {
-      "platform": "tiktok",
-      "type": "inbox",
-      "scheduled_time_unix": 1773499800,
-      "scheduled_label": "2026-03-13 19:30 CET",
-      "video_file": "TikTok/Pilars/Video 1 - Identity.mp4",
-      "caption_preview": "which number hits different? 👇😭",
-      "caption": "which number hits different? 👇😭\n\nShelfieEase tracks your TBR, Reading & Finished automatically — so you can keep buying with a clear conscience 🫶📚\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookCollector #TBR #CurrentlyReading #ReadingStats #Bookish #BookApp #ReadersOfTikTok"
-    },
-    {
-      "platform": "tiktok",
-      "type": "inbox",
-      "scheduled_time_unix": 1773586200,
-      "scheduled_label": "2026-03-14 19:30 CET",
-      "video_file": "TikTok/Pilars/(15) Double Buy.mp4",
-      "caption_preview": "did I already own this? 📚",
-      "caption": "did I already own this? 📚\n\nscan before you buy — ShelfieEase keeps your whole collection on your phone so you never double up again 🫶\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #DuplicateBooks #TBR #Bookish #BookCollection #ReadingApp #BookOrganizer #ReadersOfTikTok"
     }
   ],
-  "updated_at": 1772373628
+  "updated_at": 1772375055
 }
