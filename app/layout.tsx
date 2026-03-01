@@ -1,6 +1,7 @@
 import "./globals.css";
 
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 import { ClientErrorTrap } from "@/components/ClientErrorTrap";
 import { MoodProvider } from "@/components/MoodProvider";
 import { MoodSwitcher } from "@/components/MoodSwitcher";
@@ -220,6 +221,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </MoodProvider>
         <MoodSwitcher />
+        <Analytics />
         <script
           dangerouslySetInnerHTML={{
             __html: `
