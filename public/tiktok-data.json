@@ -1,103 +1,51 @@
 {
-  "pending": {
-    "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer",
-    "caption_preview": "[Caption toevoegen] Double buy / dubbel gekocht",
-    "scheduled_label": "2026-03-01 19:30 CET",
-    "video_file": "TikTok/Pilars/(15) Double Buy.mp4",
-    "scheduled_time_unix": 1772463000
-  },
+  "pending": null,
   "upcoming": [
     {
-      "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer",
-      "caption_preview": "[Caption toevoegen] One system / scan shelf share",
+      "platform": "tiktok",
+      "type": "inbox",
+      "scheduled_time_unix": 1772463000,
+      "scheduled_label": "2026-03-01 19:30 CET",
+      "video_file": "TikTok/Pilars/(15) Double Buy.mp4",
+      "caption_preview": "[Caption toevoegen] Double buy / dubbel gekocht",
+      "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer"
+    },
+    {
+      "platform": "tiktok",
+      "type": "inbox",
+      "scheduled_time_unix": 1772549400,
       "scheduled_label": "2026-03-02 19:30 CET",
       "video_file": "TikTok/Pilars/(19) one system.mp4",
-      "scheduled_time_unix": 1772549400
+      "caption_preview": "[Caption toevoegen] One system / scan shelf share",
+      "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer"
     },
     {
-      "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer",
-      "caption_preview": "[Caption toevoegen] Identity / book collector",
+      "platform": "tiktok",
+      "type": "inbox",
+      "scheduled_time_unix": 1772635800,
       "scheduled_label": "2026-03-03 19:30 CET",
       "video_file": "TikTok/Pilars/(21) Identity.mp4",
-      "scheduled_time_unix": 1772635800
+      "caption_preview": "[Caption toevoegen] Identity / book collector",
+      "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer"
     },
     {
-      "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer",
-      "caption_preview": "[Caption toevoegen] Scattered reading / TBR chaos",
+      "platform": "tiktok",
+      "type": "inbox",
+      "scheduled_time_unix": 1772722200,
       "scheduled_label": "2026-03-04 19:30 CET",
       "video_file": "TikTok/Pilars/(43)scattered reading.mp4",
-      "scheduled_time_unix": 1772722200
+      "caption_preview": "[Caption toevoegen] Scattered reading / TBR chaos",
+      "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer"
     },
     {
-      "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer",
-      "caption_preview": "[Caption toevoegen] Visual / light vibe",
+      "platform": "tiktok",
+      "type": "inbox",
+      "scheduled_time_unix": 1772808600,
       "scheduled_label": "2026-03-05 19:30 CET",
       "video_file": "TikTok/Pilars/(49) visula light.mp4",
-      "scheduled_time_unix": 1772808600
-    },
-    {
-      "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer",
-      "caption_preview": "[Caption toevoegen] Sharing / share your Shelfie",
-      "scheduled_label": "2026-03-06 19:30 CET",
-      "video_file": "TikTok/Pilars/(64) Sharing.mp4",
-      "scheduled_time_unix": 1772895000
-    },
-    {
-      "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer",
-      "caption_preview": "[Caption toevoegen] Cluster stress / chaos",
-      "scheduled_label": "2026-03-07 19:30 CET",
-      "video_file": "TikTok/Pilars/(107) Cluster stress.mp4",
-      "scheduled_time_unix": 1772981400
-    },
-    {
-      "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer",
-      "caption_preview": "[Caption toevoegen] Calm relief / na het organiseren",
-      "scheduled_label": "2026-03-08 19:30 CET",
-      "video_file": "TikTok/Pilars/(114) Calm Relief.mp4",
-      "scheduled_time_unix": 1773067800
-    },
-    {
-      "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer",
-      "caption_preview": "[Caption toevoegen] Myths / mythes over lezers",
-      "scheduled_label": "2026-03-09 19:30 CET",
-      "video_file": "TikTok/Pilars/(145) Myths.mp4",
-      "scheduled_time_unix": 1773154200
-    },
-    {
-      "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer",
-      "caption_preview": "[Caption toevoegen] Stop over-organizing",
-      "scheduled_label": "2026-03-10 19:30 CET",
-      "video_file": "TikTok/Pilars/(156) stop over-organizing.mp4",
-      "scheduled_time_unix": 1773240600
-    },
-    {
-      "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer",
-      "caption_preview": "[Caption toevoegen]",
-      "scheduled_label": "2026-03-11 19:30 CET",
-      "video_file": "TikTok/Pilars/post 3.mp4",
-      "scheduled_time_unix": 1773327000
-    },
-    {
-      "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer",
-      "caption_preview": "[Caption toevoegen]",
-      "scheduled_label": "2026-03-12 19:30 CET",
-      "video_file": "TikTok/Pilars/post 4.mp4",
-      "scheduled_time_unix": 1773413400
-    },
-    {
-      "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer",
-      "caption_preview": "[Caption toevoegen] Identity / collector",
-      "scheduled_label": "2026-03-13 19:30 CET",
-      "video_file": "TikTok/Pilars/Video 1 - Identity.mp4",
-      "scheduled_time_unix": 1773499800
-    },
-    {
-      "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer",
-      "caption_preview": "[Caption toevoegen] Double buy (herhaling of andere invalshoek)",
-      "scheduled_label": "2026-03-14 19:30 CET",
-      "video_file": "TikTok/Pilars/(15) Double Buy.mp4",
-      "scheduled_time_unix": 1773586200
+      "caption_preview": "[Caption toevoegen] Visual / light vibe",
+      "caption": "[Caption hier invullen]\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish #ReadingApp #BookOrganizer"
     }
   ],
-  "updated_at": 1772463000
+  "updated_at": 1772373390
 }
