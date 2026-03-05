@@ -69,15 +69,15 @@ jobs:
                   echo "Published! URL: $PERMALINK"
 
                   TIMESTAMP=$(date -u "+%Y-%m-%d %H:%M UTC")
-                  printf '\n## %s — Scheduled post (auto-published)\n\n' "$TIMESTAMP" >> "$LOG_FILE"
+                  printf '\n## %s — Scheduled post (auto-published)\n\n' -- "$TIMESTAMP" >> "$LOG_FILE"
                   printf '| Field | Value |\n' >> "$LOG_FILE"
                   printf '|-------|-------|\n' >> "$LOG_FILE"
-                  printf '| Datum | %s |\n' "$TIMESTAMP" >> "$LOG_FILE"
+                  printf '| Datum | %s |\n' -- "$TIMESTAMP" >> "$LOG_FILE"
                   printf '| Platform | Instagram |\n' >> "$LOG_FILE"
-                  printf '| Gepland voor | %s |\n' "$SCHEDULED_LABEL" >> "$LOG_FILE"
-                  printf '| Video gebruikt | %s |\n' "$VIDEO_USED" >> "$LOG_FILE"
-                  printf '| Live URL | %s |\n' "$PERMALINK" >> "$LOG_FILE"
-                  printf '| Caption preview | %s |\n' "$CAPTION_PREVIEW" >> "$LOG_FILE"
+                  printf '| Gepland voor | %s |\n' -- "$SCHEDULED_LABEL" >> "$LOG_FILE"
+                  printf '| Video gebruikt | %s |\n' -- "$VIDEO_USED" >> "$LOG_FILE"
+                  printf '| Live URL | %s |\n' -- "$PERMALINK" >> "$LOG_FILE"
+                  printf '| Caption preview | %s |\n' -- "$CAPTION_PREVIEW" >> "$LOG_FILE"
                   printf '| Status | Gepubliceerd via GitHub Actions |\n\n' >> "$LOG_FILE"
                   printf '---\n' >> "$LOG_FILE"
                 else
@@ -88,6 +88,13 @@ jobs:
               elif [ "$PLATFORM" = "tiktok" ]; then
                 VIDEO_FILE=$(echo "$POST" | jq -r '.video_file')
                 CAPTION=$(echo "$POST" | jq -r '.caption // .caption_preview // ""')
+
+                # Video file must exist (paths with spaces/parentheses are supported when quoted)
+                if [ ! -f "$VIDEO_FILE" ]; then
+                  echo "ERROR: Video file not found: $VIDEO_FILE"
+                  echo "$POST" >> /tmp/keep_posts.json
+                  continue
+                fi
 
                 # Refresh token first
                 REFRESH_RESPONSE=$(curl -s -X POST "https://open.tiktokapis.com/v2/oauth/token/" \
@@ -102,6 +109,11 @@ jobs:
                 fi
 
                 FILE_SIZE=$(stat -c%s "$VIDEO_FILE")
+                if [ -z "$FILE_SIZE" ] || [ "$FILE_SIZE" -lt 1 ]; then
+                  echo "ERROR: Could not get file size for: $VIDEO_FILE"
+                  echo "$POST" >> /tmp/keep_posts.json
+                  continue
+                fi
                 PRIVACY_LEVEL="${TIKTOK_PRIVACY_LEVEL:-SELF_ONLY}"
 
                 if [ "$TIKTOK_USE_DIRECT_POST" = "true" ]; then
@@ -131,12 +143,12 @@ jobs:
                 if [ -n "$UPLOAD_URL" ]; then
                   LAST_BYTE=$((FILE_SIZE - 1))
 
-                  # Upload video
+                  # Upload video (quoted path for filenames with spaces/parentheses)
                   curl -s -X PUT "$UPLOAD_URL" \
                     -H "Content-Type: video/mp4" \
                     -H "Content-Range: bytes 0-${LAST_BYTE}/${FILE_SIZE}" \
                     -H "Content-Length: ${FILE_SIZE}" \
-                    --data-binary "@${VIDEO_FILE}"
+                    --data-binary "@""${VIDEO_FILE}""
 
                   echo "TikTok upload done! Publish ID: $PUBLISH_ID"
 
@@ -145,18 +157,18 @@ jobs:
                   echo "$POST" | jq --argjson ua "$UPLOADED_AT" '. + {uploaded_at: $ua}' > /tmp/tiktok-pending.json
 
                   TIMESTAMP=$(date -u "+%Y-%m-%d %H:%M UTC")
-                  printf '\n## %s — Scheduled TikTok post (auto-uploaded)\n\n' "$TIMESTAMP" >> "$LOG_FILE"
+                  printf '\n## %s — Scheduled TikTok post (auto-uploaded)\n\n' -- "$TIMESTAMP" >> "$LOG_FILE"
                   printf '| Field | Value |\n' >> "$LOG_FILE"
                   printf '|-------|-------|\n' >> "$LOG_FILE"
-                  printf '| Datum | %s |\n' "$TIMESTAMP" >> "$LOG_FILE"
+                  printf '| Datum | %s |\n' -- "$TIMESTAMP" >> "$LOG_FILE"
                   printf '| Platform | TikTok |\n' >> "$LOG_FILE"
-                  printf '| Gepland voor | %s |\n' "$SCHEDULED_LABEL" >> "$LOG_FILE"
-                  printf '| Video gebruikt | %s |\n' "$VIDEO_FILE" >> "$LOG_FILE"
-                  printf '| Caption preview | %s |\n' "$CAPTION_PREVIEW" >> "$LOG_FILE"
-                  printf '| Status | %s |\n\n' "$STATUS_LABEL" >> "$LOG_FILE"
+                  printf '| Gepland voor | %s |\n' -- "$SCHEDULED_LABEL" >> "$LOG_FILE"
+                  printf '| Video gebruikt | %s |\n' -- "$VIDEO_FILE" >> "$LOG_FILE"
+                  printf '| Caption preview | %s |\n' -- "$CAPTION_PREVIEW" >> "$LOG_FILE"
+                  printf '| Status | %s |\n\n' -- "$STATUS_LABEL" >> "$LOG_FILE"
                   printf '---\n' >> "$LOG_FILE"
                 else
-                  echo "ERROR init TikTok upload: $INIT_RESPONSE"
+                  echo "ERROR TikTok init (post stays in queue). Response: $INIT_RESPONSE"
                   echo "$POST" >> /tmp/keep_posts.json
                 fi
               fi
