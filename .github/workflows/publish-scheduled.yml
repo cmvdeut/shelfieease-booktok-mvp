@@ -5,6 +5,10 @@ on:
     - cron: '*/15 * * * *'  # Every 15 minutes
   workflow_dispatch:         # Allow manual trigger from GitHub UI
 
+concurrency:
+  group: publish-scheduled
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -208,5 +212,5 @@ jobs:
             echo "Nothing to commit - queue was empty."
           else
             git commit -m "Auto-publish scheduled posts [skip ci]"
-            git push
+            git pull --rebase origin main && git push
           fi
