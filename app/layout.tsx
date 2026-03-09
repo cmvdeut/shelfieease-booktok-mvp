@@ -183,6 +183,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     };
 
     window.addEventListener("error", function (e) {
+      if (e.message && e.message.indexOf("Failed to load chunk") !== -1) {
+        window.location.reload();
+        return;
+      }
       window.__seLog("window.error", {
         message: e.message,
         filename: e.filename,
@@ -194,6 +198,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
     window.addEventListener("unhandledrejection", function (e) {
       var r = e.reason || {};
+      if (r.message && r.message.indexOf("Failed to load chunk") !== -1) {
+        window.location.reload();
+        return;
+      }
       window.__seLog("unhandledrejection", {
         message: r.message || String(r),
         stack: r.stack || null
