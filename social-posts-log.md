@@ -213,3 +213,39 @@ try the free demo → link in bio! shelfieease.app
 | Status | Gepubliceerd |
 
 ---
+
+## 2026-03-12 21:03 UTC — TikTok (auto-uploaded)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-03-12 21:03 UTC |
+| Platform | TikTok |
+| Gepland voor | 2026-03-10 19:30 CET |
+| Video | TikTok/Pilars/(49) visula light.mp4 |
+| Caption | your shelves deserve emojis 📚🛍️🔥 |
+| Status | In TikTok inbox |
+
+---
+
+## 2026-03-12 21:03 UTC — TikTok (auto-uploaded)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-03-12 21:03 UTC |
+| Platform | TikTok |
+| Gepland voor | 2026-03-11 19:30 CET |
+| Video | TikTok/Pilars/(64) Sharing.mp4 |
+| Caption | share your current read as a Shelfie card 📚✨ |
+| Status | In TikTok inbox |
+
+---
+
+## 2026-03-12 21:03 UTC — TikTok (auto-uploaded)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-03-12 21:03 UTC |
+| Platform | TikTok |
+| Gepland voor | 2026-03-12 19:30 CET |
+| Video | TikTok/Pilars/(107) Cluster stress.mp4 |
+| Caption | when your TBR pile gives you stress 😭📚 |
+| Status | In TikTok inbox |
+
+---
