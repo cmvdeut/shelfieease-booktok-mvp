@@ -57,8 +57,59 @@ jobs:
               echo "Publishing: $CAPTION_PREVIEW"
 
               if [ "$PLATFORM" = "instagram" ]; then
-                CONTAINER_ID=$(echo "$POST" | jq -r '.container_id')
-                VIDEO_USED=$(echo "$POST" | jq -r '.video_used')
+                CAPTION=$(echo "$POST" | jq -r '.caption // .caption_preview // ""')
+                VIDEO_FILE=$(echo "$POST" | jq -r '.video_file // empty')
+                CONTAINER_ID=$(echo "$POST" | jq -r '.container_id // empty')
+
+                # Auto-create container from video_file if no container_id given
+                if [ -z "$CONTAINER_ID" ]; then
+                  if [ -z "$VIDEO_FILE" ]; then
+                    echo "ERROR: Instagram post has no container_id or video_file"
+                    echo "$POST" >> /tmp/keep_posts.json
+                    continue
+                  fi
+
+                  # Build public URL — strip "public/" prefix (served at site root)
+                  VIDEO_PATH="${VIDEO_FILE#public/}"
+                  VIDEO_URL="https://www.shelfieease.app/${VIDEO_PATH}"
+                  echo "Creating Instagram container: $VIDEO_URL"
+
+                  CONTAINER_RESPONSE=$(curl -s -X POST \
+                    "https://graph.facebook.com/v21.0/${INSTAGRAM_USER_ID}/media" \
+                    --data-urlencode "video_url=${VIDEO_URL}" \
+                    --data-urlencode "caption=${CAPTION}" \
+                    --data-urlencode "media_type=REELS" \
+                    --data-urlencode "access_token=${INSTAGRAM_ACCESS_TOKEN}")
+
+                  CONTAINER_ID=$(echo "$CONTAINER_RESPONSE" | jq -r '.id // empty')
+
+                  if [ -z "$CONTAINER_ID" ]; then
+                    echo "ERROR: Failed to create container: $CONTAINER_RESPONSE"
+                    echo "$POST" >> /tmp/keep_posts.json
+                    continue
+                  fi
+
+                  echo "Container $CONTAINER_ID created. Waiting for processing..."
+
+                  # Poll for FINISHED status (5 attempts × 15s = 75s max)
+                  STATUS="PROCESSING"
+                  for attempt in 1 2 3 4 5; do
+                    sleep 15
+                    STATUS_RESPONSE=$(curl -s \
+                      "https://graph.facebook.com/v21.0/${CONTAINER_ID}?fields=status_code&access_token=${INSTAGRAM_ACCESS_TOKEN}")
+                    STATUS=$(echo "$STATUS_RESPONSE" | jq -r '.status_code // "UNKNOWN"')
+                    echo "Status check $attempt: $STATUS"
+                    if [ "$STATUS" = "FINISHED" ]; then
+                      break
+                    fi
+                  done
+
+                  if [ "$STATUS" != "FINISHED" ]; then
+                    echo "ERROR: Container not ready: $STATUS"
+                    echo "$POST" >> /tmp/keep_posts.json
+                    continue
+                  fi
+                fi
 
                 RESPONSE=$(curl -s -X POST \
                   "https://graph.facebook.com/v21.0/${INSTAGRAM_USER_ID}/media_publish" \
@@ -83,7 +134,7 @@ jobs:
                     echo "| Datum | $TIMESTAMP |"
                     echo "| Platform | Instagram |"
                     echo "| Gepland voor | $SCHEDULED_LABEL |"
-                    echo "| Video gebruikt | $VIDEO_USED |"
+                    echo "| Video gebruikt | ${VIDEO_FILE:-$CONTAINER_ID} |"
                     echo "| Live URL | $PERMALINK |"
                     echo "| Caption preview | $CAPTION_PREVIEW |"
                     echo "| Status | Gepubliceerd via GitHub Actions |"
