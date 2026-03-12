@@ -152,7 +152,7 @@ jobs:
                     -H "Content-Type: video/mp4" \
                     -H "Content-Range: bytes 0-${LAST_BYTE}/${FILE_SIZE}" \
                     -H "Content-Length: ${FILE_SIZE}" \
-                    --data-binary "@""${VIDEO_FILE}""
+                    --data-binary "@${VIDEO_FILE}"
 
                   echo "TikTok upload done! Publish ID: $PUBLISH_ID"
 
@@ -172,7 +172,7 @@ jobs:
                   printf '| Status | %s |\n\n' -- "$STATUS_LABEL" >> "$LOG_FILE"
                   printf '---\n' >> "$LOG_FILE"
                 else
-                  echo "ERROR TikTok init (post stays in queue). Response: $INIT_RESPONSE"
+                  echo "ERROR TikTok init failed, post stays in queue. Response: $INIT_RESPONSE"
                   echo "$POST" >> /tmp/keep_posts.json
                 fi
               fi
