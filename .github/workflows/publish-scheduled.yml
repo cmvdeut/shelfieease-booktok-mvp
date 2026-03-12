@@ -20,6 +20,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Publish due posts
+        shell: bash
         env:
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
           INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
@@ -30,21 +31,23 @@ jobs:
           TIKTOK_USE_DIRECT_POST: ${{ secrets.TIKTOK_USE_DIRECT_POST }}
           TIKTOK_PRIVACY_LEVEL: ${{ secrets.TIKTOK_PRIVACY_LEVEL }}
         run: |
+          set -euo pipefail
           QUEUE_FILE="scheduled-posts.json"
           LOG_FILE="social-posts-log.md"
           NOW=$(date -u +%s)
 
-          # Check if queue exists and has items
-          if [ ! -f "$QUEUE_FILE" ] || [ "$(cat $QUEUE_FILE)" = "[]" ]; then
+          if [ ! -f "$QUEUE_FILE" ] || [ "$(cat "$QUEUE_FILE")" = "[]" ]; then
             echo "No scheduled posts in queue."
             exit 0
           fi
 
-          # Read queue
           QUEUE=$(cat "$QUEUE_FILE")
+          COUNT=$(echo "$QUEUE" | jq 'length')
+          echo "Queue has $COUNT posts."
 
-          # Process each post
-          echo "$QUEUE" | jq -c '.[]' | while IFS= read -r POST; do
+          # Process using index loop (avoids subshell issues with pipe+while)
+          for i in $(seq 0 $((COUNT - 1))); do
+            POST=$(echo "$QUEUE" | jq -c ".[$i]")
             SCHEDULED=$(echo "$POST" | jq -r '.scheduled_time_unix')
             PLATFORM=$(echo "$POST" | jq -r '.platform')
             CAPTION_PREVIEW=$(echo "$POST" | jq -r '.caption_preview')
@@ -71,19 +74,22 @@ jobs:
                     | jq -r '.data[0].permalink // "URL ophalen mislukt"')
 
                   echo "Published! URL: $PERMALINK"
-
                   TIMESTAMP=$(date -u "+%Y-%m-%d %H:%M UTC")
-                  printf '\n## %s — Scheduled post (auto-published)\n\n' "$TIMESTAMP" >> "$LOG_FILE"
-                  printf '| Field | Value |\n' >> "$LOG_FILE"
-                  printf '|-------|-------|\n' >> "$LOG_FILE"
-                  printf '| Datum | %s |\n' "$TIMESTAMP" >> "$LOG_FILE"
-                  printf '| Platform | Instagram |\n' >> "$LOG_FILE"
-                  printf '| Gepland voor | %s |\n' "$SCHEDULED_LABEL" >> "$LOG_FILE"
-                  printf '| Video gebruikt | %s |\n' "$VIDEO_USED" >> "$LOG_FILE"
-                  printf '| Live URL | %s |\n' "$PERMALINK" >> "$LOG_FILE"
-                  printf '| Caption preview | %s |\n' "$CAPTION_PREVIEW" >> "$LOG_FILE"
-                  printf '| Status | Gepubliceerd via GitHub Actions |\n\n' >> "$LOG_FILE"
-                  printf '---\n' >> "$LOG_FILE"
+                  {
+                    echo ""
+                    echo "## $TIMESTAMP — Instagram (auto-published)"
+                    echo "| Field | Value |"
+                    echo "|-------|-------|"
+                    echo "| Datum | $TIMESTAMP |"
+                    echo "| Platform | Instagram |"
+                    echo "| Gepland voor | $SCHEDULED_LABEL |"
+                    echo "| Video gebruikt | $VIDEO_USED |"
+                    echo "| Live URL | $PERMALINK |"
+                    echo "| Caption preview | $CAPTION_PREVIEW |"
+                    echo "| Status | Gepubliceerd via GitHub Actions |"
+                    echo ""
+                    echo "---"
+                  } >> "$LOG_FILE"
                 else
                   echo "ERROR publishing $CONTAINER_ID: $RESPONSE"
                   echo "$POST" >> /tmp/keep_posts.json
@@ -93,14 +99,13 @@ jobs:
                 VIDEO_FILE=$(echo "$POST" | jq -r '.video_file')
                 CAPTION=$(echo "$POST" | jq -r '.caption // .caption_preview // ""')
 
-                # Video file must exist (paths with spaces/parentheses are supported when quoted)
                 if [ ! -f "$VIDEO_FILE" ]; then
                   echo "ERROR: Video file not found: $VIDEO_FILE"
                   echo "$POST" >> /tmp/keep_posts.json
                   continue
                 fi
 
-                # Refresh token first
+                # Refresh token
                 REFRESH_RESPONSE=$(curl -s -X POST "https://open.tiktokapis.com/v2/oauth/token/" \
                   -H "Content-Type: application/x-www-form-urlencoded" \
                   -d "client_key=${TIKTOK_CLIENT_KEY}" \
@@ -118,22 +123,23 @@ jobs:
                   echo "$POST" >> /tmp/keep_posts.json
                   continue
                 fi
+
                 PRIVACY_LEVEL="${TIKTOK_PRIVACY_LEVEL:-SELF_ONLY}"
 
                 if [ "$TIKTOK_USE_DIRECT_POST" = "true" ]; then
-                  # Direct Post: video + caption in one go (needs video.publish scope)
                   INIT_BODY=$(jq -n \
                     --arg title "$CAPTION" \
                     --arg pl "$PRIVACY_LEVEL" \
                     --argjson vs "$FILE_SIZE" \
-                    '{ post_info: { title: $title, privacy_level: $pl }, source_info: { source: "FILE_UPLOAD", video_size: $vs, chunk_size: $vs, total_chunk_count: 1 } }')
+                    '{"post_info":{"title":$title,"privacy_level":$pl},"source_info":{"source":"FILE_UPLOAD","video_size":$vs,"chunk_size":$vs,"total_chunk_count":1}}')
                   INIT_URL="https://open.tiktokapis.com/v2/post/publish/video/init/"
-                  STATUS_LABEL="Direct post (caption mee)"
+                  STATUS_LABEL="Direct post"
                 else
-                  # Inbox: video only, caption handmatig in app
-                  INIT_BODY=$(jq -n --argjson vs "$FILE_SIZE" '{ source_info: { source: "FILE_UPLOAD", video_size: $vs, chunk_size: $vs, total_chunk_count: 1 } }')
+                  INIT_BODY=$(jq -n \
+                    --argjson vs "$FILE_SIZE" \
+                    '{"source_info":{"source":"FILE_UPLOAD","video_size":$vs,"chunk_size":$vs,"total_chunk_count":1}}')
                   INIT_URL="https://open.tiktokapis.com/v2/post/publish/inbox/video/init/"
-                  STATUS_LABEL="In TikTok inbox — open app en tik Publish"
+                  STATUS_LABEL="In TikTok inbox"
                 fi
 
                 INIT_RESPONSE=$(curl -s -X POST "$INIT_URL" \
@@ -146,8 +152,6 @@ jobs:
 
                 if [ -n "$UPLOAD_URL" ]; then
                   LAST_BYTE=$((FILE_SIZE - 1))
-
-                  # Upload video (quoted path for filenames with spaces/parentheses)
                   curl -s -X PUT "$UPLOAD_URL" \
                     -H "Content-Type: video/mp4" \
                     -H "Content-Range: bytes 0-${LAST_BYTE}/${FILE_SIZE}" \
@@ -156,43 +160,46 @@ jobs:
 
                   echo "TikTok upload done! Publish ID: $PUBLISH_ID"
 
-                  # Save pending post for caption helper page
                   UPLOADED_AT=$(date -u +%s)
                   echo "$POST" | jq --argjson ua "$UPLOADED_AT" '. + {uploaded_at: $ua}' > /tmp/tiktok-pending.json
 
                   TIMESTAMP=$(date -u "+%Y-%m-%d %H:%M UTC")
-                  printf '\n## %s — Scheduled TikTok post (auto-uploaded)\n\n' "$TIMESTAMP" >> "$LOG_FILE"
-                  printf '| Field | Value |\n' >> "$LOG_FILE"
-                  printf '|-------|-------|\n' >> "$LOG_FILE"
-                  printf '| Datum | %s |\n' "$TIMESTAMP" >> "$LOG_FILE"
-                  printf '| Platform | TikTok |\n' >> "$LOG_FILE"
-                  printf '| Gepland voor | %s |\n' "$SCHEDULED_LABEL" >> "$LOG_FILE"
-                  printf '| Video gebruikt | %s |\n' "$VIDEO_FILE" >> "$LOG_FILE"
-                  printf '| Caption preview | %s |\n' "$CAPTION_PREVIEW" >> "$LOG_FILE"
-                  printf '| Status | %s |\n\n' "$STATUS_LABEL" >> "$LOG_FILE"
-                  printf '---\n' >> "$LOG_FILE"
+                  {
+                    echo ""
+                    echo "## $TIMESTAMP — TikTok (auto-uploaded)"
+                    echo "| Field | Value |"
+                    echo "|-------|-------|"
+                    echo "| Datum | $TIMESTAMP |"
+                    echo "| Platform | TikTok |"
+                    echo "| Gepland voor | $SCHEDULED_LABEL |"
+                    echo "| Video | $VIDEO_FILE |"
+                    echo "| Caption | $CAPTION_PREVIEW |"
+                    echo "| Status | $STATUS_LABEL |"
+                    echo ""
+                    echo "---"
+                  } >> "$LOG_FILE"
                 else
-                  echo "ERROR TikTok init failed, post stays in queue. Response: $INIT_RESPONSE"
+                  echo "ERROR: TikTok init failed, post stays in queue. Response: $INIT_RESPONSE"
                   echo "$POST" >> /tmp/keep_posts.json
                 fi
               fi
 
             else
-              # Not due yet, keep in queue
+              echo "Not due yet: $CAPTION_PREVIEW"
               echo "$POST" >> /tmp/keep_posts.json
             fi
           done
 
-          # Rebuild queue from kept posts
+          # Rebuild queue
           if [ -f /tmp/keep_posts.json ]; then
-            NEW_QUEUE=$(cat /tmp/keep_posts.json | jq -s '.')
+            NEW_QUEUE=$(jq -s '.' /tmp/keep_posts.json)
           else
             NEW_QUEUE="[]"
           fi
 
           echo "$NEW_QUEUE" > "$QUEUE_FILE"
 
-          # Write tiktok-data.json for caption helper page (shelfieease.app/tiktok)
+          # Update tiktok-data.json for caption helper page
           PENDING_DATA=$(cat /tmp/tiktok-pending.json 2>/dev/null || echo "null")
           UPCOMING_DATA=$(echo "$NEW_QUEUE" | jq '[.[] | select(.platform == "tiktok")] | .[0:5]')
           UPDATED_AT=$(date -u +%s)
@@ -200,16 +207,17 @@ jobs:
             --argjson pending "$PENDING_DATA" \
             --argjson upcoming "$UPCOMING_DATA" \
             --argjson updated "$UPDATED_AT" \
-            '{pending: $pending, upcoming: $upcoming, updated_at: $updated}' \
+            '{"pending":$pending,"upcoming":$upcoming,"updated_at":$updated}' \
             > public/tiktok-data.json
 
       - name: Commit updated queue and log
+        shell: bash
         run: |
           git config user.name "ShelfieEase Bot"
           git config user.email "bot@shelfieease.app"
           git add -A
           if git diff --staged --quiet; then
-            echo "Nothing to commit - queue was empty."
+            echo "Nothing to commit."
           else
             git commit -m "Auto-publish scheduled posts [skip ci]"
             git pull --rebase origin main && git push
