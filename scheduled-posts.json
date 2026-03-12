@@ -1,13 +1,5 @@
 [
   {
-    "platform": "instagram",
-    "scheduled_time_unix": 1773350000,
-    "scheduled_label": "2026-03-13 TEST",
-    "video_file": "public/videos/calm-relief.mp4",
-    "caption_preview": "POV: your bookshelf finally makes sense 📚✨",
-    "caption": "POV: your bookshelf finally makes sense 📚✨\n\nscan once → always know what you have, what you're reading, and what's next\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookOrganizer #TBR #Bookish"
-  },
-  {
     "platform": "tiktok",
     "type": "inbox",
     "scheduled_time_unix": 1773426600,

@@ -91,10 +91,10 @@ jobs:
 
                   echo "Container $CONTAINER_ID created. Waiting for processing..."
 
-                  # Poll for FINISHED status (5 attempts × 15s = 75s max)
+                  # Poll for FINISHED status (10 attempts × 20s = 200s max)
                   STATUS="PROCESSING"
-                  for attempt in 1 2 3 4 5; do
-                    sleep 15
+                  for attempt in 1 2 3 4 5 6 7 8 9 10; do
+                    sleep 20
                     STATUS_RESPONSE=$(curl -s \
                       "https://graph.facebook.com/v21.0/${CONTAINER_ID}?fields=status_code&access_token=${INSTAGRAM_ACCESS_TOKEN}")
                     STATUS=$(echo "$STATUS_RESPONSE" | jq -r '.status_code // "UNKNOWN"')
