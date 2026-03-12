@@ -6,7 +6,7 @@
       "type": "inbox",
       "scheduled_time_unix": 1773426600,
       "scheduled_label": "2026-03-13 19:30 CET",
-      "video_file": "TikTok/Pilars/(114) Calm Relief.mp4",
+      "video_file": "public/videos/calm-relief.mp4",
       "caption_preview": "POV: your bookshelf finally makes sense 📚✨",
       "caption": "POV: your bookshelf finally makes sense 📚✨\n\nscan once → always know what you have, what you're reading, and what's next\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookOrganizer #TBR #Bookish"
     },
@@ -15,7 +15,7 @@
       "type": "inbox",
       "scheduled_time_unix": 1773513000,
       "scheduled_label": "2026-03-14 19:30 CET",
-      "video_file": "TikTok/Pilars/(145) Myths.mp4",
+      "video_file": "public/videos/myths.mp4",
       "caption_preview": "save this for when someone says \"you'll never read all of those\" 😭📚",
       "caption": "save this for when someone says \"you'll never read all of those\" 😭📚\n\nmaybe not. but I'll know exactly what I have and what I'm reading next 🫶\n\nShelfieEase — scan, shelf, share. try free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #TBR #BookOrganizer #Bookish"
     },
@@ -24,7 +24,7 @@
       "type": "inbox",
       "scheduled_time_unix": 1773565200,
       "scheduled_label": "2026-03-15 10:00 CET",
-      "video_file": "TikTok/Pilars/(156) stop over-organizing.mp4",
+      "video_file": "public/videos/stop-over-organizing.mp4",
       "caption_preview": "one app. scan, shelf, share. that's it 📚",
       "caption": "one app. scan, shelf, share. that's it 📚\n\nno spreadsheets, no over-organizing — just your books in emoji shelves and a share card when you need it\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookApp #TBR #Bookish"
     },
@@ -33,7 +33,7 @@
       "type": "inbox",
       "scheduled_time_unix": 1773685800,
       "scheduled_label": "2026-03-16 19:30 CET",
-      "video_file": "TikTok/Pilars/post 3.mp4",
+      "video_file": "public/videos/post-3.mp4",
       "caption_preview": "your bookshelf deserves better than chaos 📚✨",
       "caption": "your bookshelf deserves better than chaos 📚✨\n\nscan ISBN → emoji shelves → share your Shelfie\n\ntry the free demo → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookOrganizer #TBR #Bookish"
     },
@@ -42,10 +42,10 @@
       "type": "inbox",
       "scheduled_time_unix": 1773772200,
       "scheduled_label": "2026-03-17 19:30 CET",
-      "video_file": "TikTok/Pilars/post 4.mp4",
+      "video_file": "public/videos/post-4.mp4",
       "caption_preview": "your books deserve better than a pile 📚",
       "caption": "your books deserve better than a pile 📚\n\nscan · shelf · share — your entire collection in one place ✨\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookApp #TBR #Bookish"
     }
   ],
-  "updated_at": 1773349527
+  "updated_at": 1773350649
 }
