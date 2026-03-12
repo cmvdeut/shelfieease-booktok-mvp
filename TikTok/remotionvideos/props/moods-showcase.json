@@ -1,0 +1,9 @@
+{
+  "hook": "3 moods. one app. your vibe. 📚",
+  "screens": [
+    { "file": "screenshots/www.shelfieease.app_aestetic.png", "label": "✨ aesthetic — dark & moody" },
+    { "file": "screenshots/www.shelfieease.app_bold.png",     "label": "🔥 bold — high contrast" },
+    { "file": "screenshots/www.shelfieease.app_calm.png",     "label": "🌿 calm — warm & cozy" }
+  ],
+  "cta": "try free → shelfieease.app"
+}

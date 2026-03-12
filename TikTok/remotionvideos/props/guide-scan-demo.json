@@ -1,0 +1,10 @@
+{
+  "hook": "this app scans your books and builds your shelf 📚",
+  "lines": [
+    "scan → auto title, cover & author",
+    "sort into emoji shelves",
+    "track TBR · Reading · Finished",
+    "share your Shelfie anywhere"
+  ],
+  "cta": "free demo → shelfieease.app"
+}
