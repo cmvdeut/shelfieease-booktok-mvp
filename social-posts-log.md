@@ -249,3 +249,15 @@ try the free demo → link in bio! shelfieease.app
 | Status | In TikTok inbox |
 
 ---
+
+## 2026-03-13 21:05 UTC — TikTok (auto-uploaded)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-03-13 21:05 UTC |
+| Platform | TikTok |
+| Gepland voor | 2026-03-13 19:30 CET |
+| Video | public/videos/calm-relief.mp4 |
+| Caption | POV: your bookshelf finally makes sense 📚✨ |
+| Status | In TikTok inbox |
+
+---

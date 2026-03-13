@@ -1,15 +1,15 @@
 {
-  "pending": null,
+  "pending": {
+    "platform": "tiktok",
+    "type": "inbox",
+    "scheduled_time_unix": 1773426600,
+    "scheduled_label": "2026-03-13 19:30 CET",
+    "video_file": "public/videos/calm-relief.mp4",
+    "caption_preview": "POV: your bookshelf finally makes sense 📚✨",
+    "caption": "POV: your bookshelf finally makes sense 📚✨\n\nscan once → always know what you have, what you're reading, and what's next\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookOrganizer #TBR #Bookish",
+    "uploaded_at": 1773435934
+  },
   "upcoming": [
-    {
-      "platform": "tiktok",
-      "type": "inbox",
-      "scheduled_time_unix": 1773426600,
-      "scheduled_label": "2026-03-13 19:30 CET",
-      "video_file": "public/videos/calm-relief.mp4",
-      "caption_preview": "POV: your bookshelf finally makes sense 📚✨",
-      "caption": "POV: your bookshelf finally makes sense 📚✨\n\nscan once → always know what you have, what you're reading, and what's next\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookOrganizer #TBR #Bookish"
-    },
     {
       "platform": "tiktok",
       "type": "inbox",
@@ -45,7 +45,16 @@
       "video_file": "public/videos/post-4.mp4",
       "caption_preview": "your books deserve better than a pile 📚",
       "caption": "your books deserve better than a pile 📚\n\nscan · shelf · share — your entire collection in one place ✨\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookApp #TBR #Bookish"
+    },
+    {
+      "platform": "tiktok",
+      "type": "inbox",
+      "scheduled_time_unix": 1773858600,
+      "scheduled_label": "2026-03-18 19:30 CET",
+      "video_file": "public/videos/identity.mp4",
+      "caption_preview": "which number hits different? 👇😭",
+      "caption": "which number hits different? 👇😭\n\nShelfieEase tracks your TBR, Reading & Finished automatically — so you can keep buying with a clear conscience 🫶📚\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookCollector #TBR #Bookish"
     }
   ],
-  "updated_at": 1773434293
+  "updated_at": 1773435934
 }
