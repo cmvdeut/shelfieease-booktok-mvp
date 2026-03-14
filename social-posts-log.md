@@ -261,3 +261,15 @@ try the free demo → link in bio! shelfieease.app
 | Status | In TikTok inbox |
 
 ---
+
+## 2026-03-14 18:34 UTC — TikTok (auto-uploaded)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-03-14 18:34 UTC |
+| Platform | TikTok |
+| Gepland voor | 2026-03-14 19:30 CET |
+| Video | public/videos/myths.mp4 |
+| Caption | save this for when someone says "you'll never read all of those" 😭📚 |
+| Status | In TikTok inbox |
+
+---

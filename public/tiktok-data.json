@@ -1,15 +1,15 @@
 {
-  "pending": null,
+  "pending": {
+    "platform": "tiktok",
+    "type": "inbox",
+    "scheduled_time_unix": 1773513000,
+    "scheduled_label": "2026-03-14 19:30 CET",
+    "video_file": "public/videos/myths.mp4",
+    "caption_preview": "save this for when someone says \"you'll never read all of those\" 😭📚",
+    "caption": "save this for when someone says \"you'll never read all of those\" 😭📚\n\nmaybe not. but I'll know exactly what I have and what I'm reading next 🫶\n\nShelfieEase — scan, shelf, share. try free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #TBR #BookOrganizer #Bookish",
+    "uploaded_at": 1773513265
+  },
   "upcoming": [
-    {
-      "platform": "tiktok",
-      "type": "inbox",
-      "scheduled_time_unix": 1773513000,
-      "scheduled_label": "2026-03-14 19:30 CET",
-      "video_file": "public/videos/myths.mp4",
-      "caption_preview": "save this for when someone says \"you'll never read all of those\" 😭📚",
-      "caption": "save this for when someone says \"you'll never read all of those\" 😭📚\n\nmaybe not. but I'll know exactly what I have and what I'm reading next 🫶\n\nShelfieEase — scan, shelf, share. try free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #TBR #BookOrganizer #Bookish"
-    },
     {
       "platform": "tiktok",
       "type": "inbox",
@@ -45,7 +45,16 @@
       "video_file": "public/videos/identity.mp4",
       "caption_preview": "which number hits different? 👇😭",
       "caption": "which number hits different? 👇😭\n\nShelfieEase tracks your TBR, Reading & Finished automatically — so you can keep buying with a clear conscience 🫶📚\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookCollector #TBR #Bookish"
+    },
+    {
+      "platform": "tiktok",
+      "type": "inbox",
+      "scheduled_time_unix": 1773945000,
+      "scheduled_label": "2026-03-19 19:30 CET",
+      "video_file": "public/videos/double-buy.mp4",
+      "caption_preview": "did I already own this? 📚",
+      "caption": "did I already own this? 📚\n\nscan before you buy — ShelfieEase keeps your whole collection on your phone so you never double up again 🫶\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish"
     }
   ],
-  "updated_at": 1773510782
+  "updated_at": 1773513266
 }
