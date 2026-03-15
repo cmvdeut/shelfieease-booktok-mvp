@@ -1,15 +1,15 @@
 {
-  "pending": null,
+  "pending": {
+    "platform": "tiktok",
+    "type": "inbox",
+    "scheduled_time_unix": 1773565200,
+    "scheduled_label": "2026-03-15 10:00 CET",
+    "video_file": "public/videos/stop-over-organizing.mp4",
+    "caption_preview": "one app. scan, shelf, share. that's it 📚",
+    "caption": "one app. scan, shelf, share. that's it 📚\n\nno spreadsheets, no over-organizing — just your books in emoji shelves and a share card when you need it\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookApp #TBR #Bookish",
+    "uploaded_at": 1773565571
+  },
   "upcoming": [
-    {
-      "platform": "tiktok",
-      "type": "inbox",
-      "scheduled_time_unix": 1773565200,
-      "scheduled_label": "2026-03-15 10:00 CET",
-      "video_file": "public/videos/stop-over-organizing.mp4",
-      "caption_preview": "one app. scan, shelf, share. that's it 📚",
-      "caption": "one app. scan, shelf, share. that's it 📚\n\nno spreadsheets, no over-organizing — just your books in emoji shelves and a share card when you need it\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookApp #TBR #Bookish"
-    },
     {
       "platform": "tiktok",
       "type": "inbox",
@@ -45,7 +45,16 @@
       "video_file": "public/videos/double-buy.mp4",
       "caption_preview": "did I already own this? 📚",
       "caption": "did I already own this? 📚\n\nscan before you buy — ShelfieEase keeps your whole collection on your phone so you never double up again 🫶\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish"
+    },
+    {
+      "platform": "tiktok",
+      "type": "inbox",
+      "scheduled_time_unix": 1774031400,
+      "scheduled_label": "2026-03-20 19:30 CET",
+      "video_file": "public/videos/guide-pov-app.mp4",
+      "caption_preview": "POV: you finally found the perfect book app 📚",
+      "caption": "POV: you finally found the perfect book app 📚\n\nscan ISBN → instant library · emoji shelves for every vibe · reading stats without stress · share your shelf on TikTok\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookApp #TBR #Bookish"
     }
   ],
-  "updated_at": 1773563622
+  "updated_at": 1773565572
 }

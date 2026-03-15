@@ -273,3 +273,15 @@ try the free demo → link in bio! shelfieease.app
 | Status | In TikTok inbox |
 
 ---
+
+## 2026-03-15 09:06 UTC — TikTok (auto-uploaded)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-03-15 09:06 UTC |
+| Platform | TikTok |
+| Gepland voor | 2026-03-15 10:00 CET |
+| Video | public/videos/stop-over-organizing.mp4 |
+| Caption | one app. scan, shelf, share. that's it 📚 |
+| Status | In TikTok inbox |
+
+---
