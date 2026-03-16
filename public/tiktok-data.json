@@ -1,14 +1,5 @@
 {
-  "pending": {
-    "platform": "tiktok",
-    "type": "inbox",
-    "scheduled_time_unix": 1773685800,
-    "scheduled_label": "2026-03-16 19:30 CET",
-    "video_file": "public/videos/post-3.mp4",
-    "caption_preview": "your bookshelf deserves better than chaos 📚✨",
-    "caption": "your bookshelf deserves better than chaos 📚✨\n\nscan ISBN → emoji shelves → share your Shelfie\n\ntry the free demo → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookOrganizer #TBR #Bookish",
-    "uploaded_at": 1773688817
-  },
+  "pending": null,
   "upcoming": [
     {
       "platform": "tiktok",
@@ -56,5 +47,5 @@
       "caption": "this app scans your books and builds your shelf 📚\n\nscan → auto title, cover & author · sort into emoji shelves · track TBR · Reading · Finished · share your Shelfie\n\nfree demo → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookOrganizer #TBR #Bookish"
     }
   ],
-  "updated_at": 1773688817
+  "updated_at": 1773691194
 }
