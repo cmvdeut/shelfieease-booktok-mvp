@@ -285,3 +285,15 @@ try the free demo → link in bio! shelfieease.app
 | Status | In TikTok inbox |
 
 ---
+
+## 2026-03-16 19:20 UTC — TikTok (auto-uploaded)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-03-16 19:20 UTC |
+| Platform | TikTok |
+| Gepland voor | 2026-03-16 19:30 CET |
+| Video | public/videos/post-3.mp4 |
+| Caption | your bookshelf deserves better than chaos 📚✨ |
+| Status | In TikTok inbox |
+
+---
