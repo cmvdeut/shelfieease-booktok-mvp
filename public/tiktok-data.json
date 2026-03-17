@@ -1,14 +1,5 @@
 {
-  "pending": {
-    "platform": "tiktok",
-    "type": "inbox",
-    "scheduled_time_unix": 1773772200,
-    "scheduled_label": "2026-03-17 19:30 CET",
-    "video_file": "public/videos/post-4.mp4",
-    "caption_preview": "your books deserve better than a pile 📚",
-    "caption": "your books deserve better than a pile 📚\n\nscan · shelf · share — your entire collection in one place ✨\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookApp #TBR #Bookish",
-    "uploaded_at": 1773775231
-  },
+  "pending": null,
   "upcoming": [
     {
       "platform": "tiktok",
@@ -56,5 +47,5 @@
       "caption": "BookTok, this app was made for us 📚\n\n✅ scan with your camera ✅ emoji shelves (TBR, faves, DNF...) ✅ no-stress reading stats ✅ 9:16 share cards for TikTok\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookApp #BookLovers #Bookish"
     }
   ],
-  "updated_at": 1773775231
+  "updated_at": 1773777758
 }
