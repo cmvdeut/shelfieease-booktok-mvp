@@ -1,15 +1,15 @@
 {
-  "pending": null,
+  "pending": {
+    "platform": "tiktok",
+    "type": "inbox",
+    "scheduled_time_unix": 1773772200,
+    "scheduled_label": "2026-03-17 19:30 CET",
+    "video_file": "public/videos/post-4.mp4",
+    "caption_preview": "your books deserve better than a pile 📚",
+    "caption": "your books deserve better than a pile 📚\n\nscan · shelf · share — your entire collection in one place ✨\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookApp #TBR #Bookish",
+    "uploaded_at": 1773775231
+  },
   "upcoming": [
-    {
-      "platform": "tiktok",
-      "type": "inbox",
-      "scheduled_time_unix": 1773772200,
-      "scheduled_label": "2026-03-17 19:30 CET",
-      "video_file": "public/videos/post-4.mp4",
-      "caption_preview": "your books deserve better than a pile 📚",
-      "caption": "your books deserve better than a pile 📚\n\nscan · shelf · share — your entire collection in one place ✨\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookApp #TBR #Bookish"
-    },
     {
       "platform": "tiktok",
       "type": "inbox",
@@ -45,7 +45,16 @@
       "video_file": "public/videos/guide-scan-demo.mp4",
       "caption_preview": "this app scans your books and builds your shelf 📚",
       "caption": "this app scans your books and builds your shelf 📚\n\nscan → auto title, cover & author · sort into emoji shelves · track TBR · Reading · Finished · share your Shelfie\n\nfree demo → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookOrganizer #TBR #Bookish"
+    },
+    {
+      "platform": "tiktok",
+      "type": "inbox",
+      "scheduled_time_unix": 1774204200,
+      "scheduled_label": "2026-03-22 19:30 CET",
+      "video_file": "public/videos/guide-made-for-us.mp4",
+      "caption_preview": "BookTok, this app was made for us 📚",
+      "caption": "BookTok, this app was made for us 📚\n\n✅ scan with your camera ✅ emoji shelves (TBR, faves, DNF...) ✅ no-stress reading stats ✅ 9:16 share cards for TikTok\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookApp #BookLovers #Bookish"
     }
   ],
-  "updated_at": 1773771087
+  "updated_at": 1773775231
 }
