@@ -1,15 +1,15 @@
 {
-  "pending": null,
+  "pending": {
+    "platform": "tiktok",
+    "type": "inbox",
+    "scheduled_time_unix": 1773858600,
+    "scheduled_label": "2026-03-18 19:30 CET",
+    "video_file": "public/videos/identity.mp4",
+    "caption_preview": "which number hits different? 👇😭",
+    "caption": "which number hits different? 👇😭\n\nShelfieEase tracks your TBR, Reading & Finished automatically — so you can keep buying with a clear conscience 🫶📚\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookCollector #TBR #Bookish",
+    "uploaded_at": 1773860141
+  },
   "upcoming": [
-    {
-      "platform": "tiktok",
-      "type": "inbox",
-      "scheduled_time_unix": 1773858600,
-      "scheduled_label": "2026-03-18 19:30 CET",
-      "video_file": "public/videos/identity.mp4",
-      "caption_preview": "which number hits different? 👇😭",
-      "caption": "which number hits different? 👇😭\n\nShelfieEase tracks your TBR, Reading & Finished automatically — so you can keep buying with a clear conscience 🫶📚\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookCollector #TBR #Bookish"
-    },
     {
       "platform": "tiktok",
       "type": "inbox",
@@ -45,7 +45,16 @@
       "video_file": "public/videos/guide-made-for-us.mp4",
       "caption_preview": "BookTok, this app was made for us 📚",
       "caption": "BookTok, this app was made for us 📚\n\n✅ scan with your camera ✅ emoji shelves (TBR, faves, DNF...) ✅ no-stress reading stats ✅ 9:16 share cards for TikTok\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookApp #BookLovers #Bookish"
+    },
+    {
+      "platform": "tiktok",
+      "type": "inbox",
+      "scheduled_time_unix": 1774290600,
+      "scheduled_label": "2026-03-23 19:30 CET",
+      "video_file": "public/videos/guide-200-books.mp4",
+      "caption_preview": "200 books → organized shelves in 10 min 📚",
+      "caption": "200 books → organized shelves in 10 min 📚\n\nproblem: chaos, no idea what you own · solution: scan with ShelfieEase · result: shelves by genre · bonus: reading stats\n\nfree demo → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #TBR #BookOrganizer #Bookish"
     }
   ],
-  "updated_at": 1773856690
+  "updated_at": 1773860141
 }
