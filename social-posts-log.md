@@ -321,3 +321,15 @@ try the free demo → link in bio! shelfieease.app
 | Status | In TikTok inbox |
 
 ---
+
+## 2026-03-19 19:14 UTC — TikTok (auto-uploaded)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-03-19 19:14 UTC |
+| Platform | TikTok |
+| Gepland voor | 2026-03-19 19:30 CET |
+| Video | public/videos/double-buy.mp4 |
+| Caption | did I already own this? 📚 |
+| Status | In TikTok inbox |
+
+---
