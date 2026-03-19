@@ -1,14 +1,5 @@
 {
-  "pending": {
-    "platform": "tiktok",
-    "type": "inbox",
-    "scheduled_time_unix": 1773945000,
-    "scheduled_label": "2026-03-19 19:30 CET",
-    "video_file": "public/videos/double-buy.mp4",
-    "caption_preview": "did I already own this? 📚",
-    "caption": "did I already own this? 📚\n\nscan before you buy — ShelfieEase keeps your whole collection on your phone so you never double up again 🫶\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookLovers #TBR #Bookish",
-    "uploaded_at": 1773947662
-  },
+  "pending": null,
   "upcoming": [
     {
       "platform": "tiktok",
@@ -56,5 +47,5 @@
       "caption": "this app fixes your TBR chaos 📚\n\ncreate a TBR shelf · scan books in · see exactly how many are waiting · never lose track again 🫶\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #TBR #BookOrganizer #Bookish"
     }
   ],
-  "updated_at": 1773947663
+  "updated_at": 1773950040
 }
