@@ -1,15 +1,15 @@
 {
-  "pending": null,
+  "pending": {
+    "platform": "tiktok",
+    "type": "inbox",
+    "scheduled_time_unix": 1774031400,
+    "scheduled_label": "2026-03-20 19:30 CET",
+    "video_file": "public/videos/guide-pov-app.mp4",
+    "caption_preview": "POV: you finally found the perfect book app 📚",
+    "caption": "POV: you finally found the perfect book app 📚\n\nscan ISBN → instant library · emoji shelves for every vibe · reading stats without stress · share your shelf on TikTok\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookApp #TBR #Bookish",
+    "uploaded_at": 1774032215
+  },
   "upcoming": [
-    {
-      "platform": "tiktok",
-      "type": "inbox",
-      "scheduled_time_unix": 1774031400,
-      "scheduled_label": "2026-03-20 19:30 CET",
-      "video_file": "public/videos/guide-pov-app.mp4",
-      "caption_preview": "POV: you finally found the perfect book app 📚",
-      "caption": "POV: you finally found the perfect book app 📚\n\nscan ISBN → instant library · emoji shelves for every vibe · reading stats without stress · share your shelf on TikTok\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookApp #TBR #Bookish"
-    },
     {
       "platform": "tiktok",
       "type": "inbox",
@@ -45,7 +45,16 @@
       "video_file": "public/videos/guide-tbr-chaos.mp4",
       "caption_preview": "this app fixes your TBR chaos 📚",
       "caption": "this app fixes your TBR chaos 📚\n\ncreate a TBR shelf · scan books in · see exactly how many are waiting · never lose track again 🫶\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #TBR #BookOrganizer #Bookish"
+    },
+    {
+      "platform": "tiktok",
+      "type": "inbox",
+      "scheduled_time_unix": 1774463400,
+      "scheduled_label": "2026-03-25 19:30 CET",
+      "video_file": "public/videos/moods-showcase.mp4",
+      "caption_preview": "3 moods. one app. which one are you? 📚",
+      "caption": "3 moods. one app. which one are you? 👇📚\n\naesthetic · bold · calm — switch anytime in ShelfieEase\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookApp #Bookish #TBR"
     }
   ],
-  "updated_at": 1774029153
+  "updated_at": 1774032215
 }

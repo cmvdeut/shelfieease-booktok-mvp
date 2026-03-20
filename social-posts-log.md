@@ -333,3 +333,15 @@ try the free demo → link in bio! shelfieease.app
 | Status | In TikTok inbox |
 
 ---
+
+## 2026-03-20 18:43 UTC — TikTok (auto-uploaded)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-03-20 18:43 UTC |
+| Platform | TikTok |
+| Gepland voor | 2026-03-20 19:30 CET |
+| Video | public/videos/guide-pov-app.mp4 |
+| Caption | POV: you finally found the perfect book app 📚 |
+| Status | In TikTok inbox |
+
+---
