@@ -345,3 +345,15 @@ try the free demo → link in bio! shelfieease.app
 | Status | In TikTok inbox |
 
 ---
+
+## 2026-03-21 18:40 UTC — TikTok (auto-uploaded)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-03-21 18:40 UTC |
+| Platform | TikTok |
+| Gepland voor | 2026-03-21 19:30 CET |
+| Video | public/videos/guide-scan-demo.mp4 |
+| Caption | this app scans your books and builds your shelf 📚 |
+| Status | In TikTok inbox |
+
+---
