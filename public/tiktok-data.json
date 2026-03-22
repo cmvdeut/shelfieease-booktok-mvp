@@ -1,14 +1,5 @@
 {
-  "pending": {
-    "platform": "tiktok",
-    "type": "inbox",
-    "scheduled_time_unix": 1774204200,
-    "scheduled_label": "2026-03-22 19:30 CET",
-    "video_file": "public/videos/guide-made-for-us.mp4",
-    "caption_preview": "BookTok, this app was made for us 📚",
-    "caption": "BookTok, this app was made for us 📚\n\n✅ scan with your camera ✅ emoji shelves (TBR, faves, DNF...) ✅ no-stress reading stats ✅ 9:16 share cards for TikTok\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookApp #BookLovers #Bookish",
-    "uploaded_at": 1774204411
-  },
+  "pending": null,
   "upcoming": [
     {
       "platform": "tiktok",
@@ -38,5 +29,5 @@
       "caption": "3 moods. one app. which one are you? 👇📚\n\naesthetic · bold · calm — switch anytime in ShelfieEase\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookApp #Bookish #TBR"
     }
   ],
-  "updated_at": 1774204412
+  "updated_at": 1774206324
 }
