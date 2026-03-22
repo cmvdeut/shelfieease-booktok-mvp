@@ -357,3 +357,15 @@ try the free demo → link in bio! shelfieease.app
 | Status | In TikTok inbox |
 
 ---
+
+## 2026-03-22 18:33 UTC — TikTok (auto-uploaded)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-03-22 18:33 UTC |
+| Platform | TikTok |
+| Gepland voor | 2026-03-22 19:30 CET |
+| Video | public/videos/guide-made-for-us.mp4 |
+| Caption | BookTok, this app was made for us 📚 |
+| Status | In TikTok inbox |
+
+---
