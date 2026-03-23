@@ -1,15 +1,15 @@
 {
-  "pending": null,
+  "pending": {
+    "platform": "tiktok",
+    "type": "inbox",
+    "scheduled_time_unix": 1774290600,
+    "scheduled_label": "2026-03-23 19:30 CET",
+    "video_file": "public/videos/guide-200-books.mp4",
+    "caption_preview": "200 books → organized shelves in 10 min 📚",
+    "caption": "200 books → organized shelves in 10 min 📚\n\nproblem: chaos, no idea what you own · solution: scan with ShelfieEase · result: shelves by genre · bonus: reading stats\n\nfree demo → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #TBR #BookOrganizer #Bookish",
+    "uploaded_at": 1774290698
+  },
   "upcoming": [
-    {
-      "platform": "tiktok",
-      "type": "inbox",
-      "scheduled_time_unix": 1774290600,
-      "scheduled_label": "2026-03-23 19:30 CET",
-      "video_file": "public/videos/guide-200-books.mp4",
-      "caption_preview": "200 books → organized shelves in 10 min 📚",
-      "caption": "200 books → organized shelves in 10 min 📚\n\nproblem: chaos, no idea what you own · solution: scan with ShelfieEase · result: shelves by genre · bonus: reading stats\n\nfree demo → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #TBR #BookOrganizer #Bookish"
-    },
     {
       "platform": "tiktok",
       "type": "inbox",
@@ -29,5 +29,5 @@
       "caption": "3 moods. one app. which one are you? 👇📚\n\naesthetic · bold · calm — switch anytime in ShelfieEase\n\ntry free → link in bio! shelfieease.app\n\n#BookTok #ShelfieEase #BookApp #Bookish #TBR"
     }
   ],
-  "updated_at": 1774287309
+  "updated_at": 1774290699
 }

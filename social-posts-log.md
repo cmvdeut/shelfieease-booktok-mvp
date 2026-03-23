@@ -369,3 +369,15 @@ try the free demo → link in bio! shelfieease.app
 | Status | In TikTok inbox |
 
 ---
+
+## 2026-03-23 18:31 UTC — TikTok (auto-uploaded)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-03-23 18:31 UTC |
+| Platform | TikTok |
+| Gepland voor | 2026-03-23 19:30 CET |
+| Video | public/videos/guide-200-books.mp4 |
+| Caption | 200 books → organized shelves in 10 min 📚 |
+| Status | In TikTok inbox |
+
+---
