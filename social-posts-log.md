@@ -381,3 +381,15 @@ try the free demo → link in bio! shelfieease.app
 | Status | In TikTok inbox |
 
 ---
+
+## 2026-03-24 18:38 UTC — TikTok (auto-uploaded)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-03-24 18:38 UTC |
+| Platform | TikTok |
+| Gepland voor | 2026-03-24 19:30 CET |
+| Video | public/videos/guide-tbr-chaos.mp4 |
+| Caption | this app fixes your TBR chaos 📚 |
+| Status | In TikTok inbox |
+
+---
