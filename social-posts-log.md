@@ -393,3 +393,15 @@ try the free demo → link in bio! shelfieease.app
 | Status | In TikTok inbox |
 
 ---
+
+## 2026-03-25 19:11 UTC — TikTok (auto-uploaded)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-03-25 19:11 UTC |
+| Platform | TikTok |
+| Gepland voor | 2026-03-25 19:30 CET |
+| Video | public/videos/moods-showcase.mp4 |
+| Caption | 3 moods. one app. which one are you? 📚 |
+| Status | In TikTok inbox |
+
+---
