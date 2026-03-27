@@ -151,6 +151,8 @@ export default function LibraryPage() {
   const [duplicateWarning, setDuplicateWarning] = useState<{ isbn: string; existingShelf: Shelf | null } | null>(null);
   const [showDemoLimitModal, setShowDemoLimitModal] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistStatus, setWaitlistStatus] = useState<"idle" | "loading" | "done">("idle");
   const [scope, setScope] = useState<"shelf" | "all">("all");
   const [statusFilter, setStatusFilter] = useState<Set<BookStatus>>(new Set());
   const [sortBy, setSortBy] = useState<"recent" | "title" | "author">("recent");
@@ -901,6 +903,21 @@ export default function LibraryPage() {
     if (scope === "shelf" && !activeShelf) return;
     // Share always 1 book: "This is what I'm currently reading" / "Aanrader"
     generateShareCard(1);
+  }
+
+  async function handleWaitlistSubmit() {
+    if (!waitlistEmail.trim() || waitlistStatus === "loading") return;
+    setWaitlistStatus("loading");
+    try {
+      await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: waitlistEmail.trim() }),
+      });
+    } catch {
+      // Silently fail — don't block the user over this
+    }
+    setWaitlistStatus("done");
   }
 
   async function goToCheckout() {
@@ -2166,36 +2183,112 @@ export default function LibraryPage() {
       {showDemoLimitModal && (
         <div style={modalOverlay} onClick={() => setShowDemoLimitModal(false)}>
           <div style={modal} onClick={(e) => e.stopPropagation()}>
-            <h2 style={modalTitle}>{tPay("demoReachedTitle")}</h2>
-            <p style={{ color: "var(--muted)", lineHeight: 1.5 }}>
+            <h2 style={{ ...modalTitle, marginBottom: 8 }}>{tPay("demoReachedTitle")}</h2>
+            <p style={{ color: "var(--muted)", lineHeight: 1.5, margin: "0 0 16px", fontSize: 14 }}>
               {tPay("demoReachedBody").split("\n").map((line, i) => (
-                <span key={i}>
-                  {line}
-                  {i < tPay("demoReachedBody").split("\n").length - 1 && <br />}
-                </span>
+                <span key={i}>{line}{i < tPay("demoReachedBody").split("\n").length - 1 && <br />}</span>
               ))}
             </p>
 
-            <div style={modalActions}>
-              <button
-                style={btnPrimary}
-                onClick={goToCheckout}
-                disabled={checkoutLoading}
-              >
-                {checkoutLoading
-                  ? t({ nl: "Laden...", en: "Loading..." }, lang)
-                  : tPay("unlockCta")}
-              </button>
+            <ul style={{ listStyle: "none", margin: "0 0 20px", padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+              {([tPay("demoFeature1"), tPay("demoFeature2"), tPay("demoFeature3")] as string[]).map((f) => (
+                <li key={f} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "var(--text)" }}>
+                  <span style={{ color: "#6d5efc", fontWeight: 700 }}>✓</span> {f}
+                </li>
+              ))}
+            </ul>
 
-              <button
-                style={btnGhost}
-                onClick={() => setShowDemoLimitModal(false)}
-                disabled={checkoutLoading}
-              >
-                {tPay("later")}
-              </button>
+            <button
+              style={{ ...btnPrimary, width: "100%", justifyContent: "center" }}
+              onClick={goToCheckout}
+              disabled={checkoutLoading}
+            >
+              {checkoutLoading ? t({ nl: "Laden...", en: "Loading..." }, lang) : tPay("unlockCta")}
+            </button>
+            <p style={{ textAlign: "center", fontSize: 12, color: "var(--muted)", margin: "6px 0 20px" }}>
+              {tPay("demoOneTime")}
+            </p>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 16px" }}>
+              <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+              <span style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap" }}>or</span>
+              <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
             </div>
+
+            {waitlistStatus === "done" ? (
+              <p style={{ textAlign: "center", fontSize: 14, color: "#6d5efc", fontWeight: 700, margin: "0 0 16px" }}>
+                {tPay("waitlistSuccess")} 🎉
+              </p>
+            ) : (
+              <>
+                <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 8px" }}>{tPay("waitlistLabel")}</p>
+                <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                  <input
+                    type="email"
+                    value={waitlistEmail}
+                    onChange={(e) => setWaitlistEmail(e.target.value)}
+                    placeholder={tPay("waitlistPlaceholder")}
+                    style={{ ...formInput, flex: 1, fontSize: 14, padding: "10px 12px" }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void handleWaitlistSubmit();
+                      }
+                    }}
+                  />
+                  <button
+                    style={{ ...btnPrimary, whiteSpace: "nowrap", padding: "10px 14px", fontSize: 13 }}
+                    onClick={handleWaitlistSubmit}
+                    disabled={waitlistStatus === "loading"}
+                  >
+                    {waitlistStatus === "loading" ? "…" : tPay("waitlistCta")}
+                  </button>
+                </div>
+              </>
+            )}
+
+            <button style={{ ...btnGhost, width: "100%", justifyContent: "center" }} onClick={() => setShowDemoLimitModal(false)}>
+              {tPay("later")}
+            </button>
           </div>
+        </div>
+      )}
+
+      {/* Demo spots left banner: show when 7–9 books so user sees Unlock CTA before hitting limit */}
+      {!isProUser() && books.length >= 7 && books.length < 10 && (
+        <div
+          style={{
+            margin: "0 16px 12px",
+            padding: "12px 16px",
+            borderRadius: 12,
+            background: "var(--accentSoft)",
+            border: "1px solid var(--border)",
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <span style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.4 }}>
+            {demoRemaining() === 1
+              ? t({ nl: "Nog 1 plek in de gratis demo.", en: "1 spot left in the free demo." }, lang)
+              : t(
+                  { nl: `Nog ${demoRemaining()} plekken in de gratis demo.`, en: `${demoRemaining()} spots left in the free demo.` },
+                  lang
+                )}{" "}
+            {t({ nl: "Unlock onbeperkt voor €4,99.", en: "Unlock unlimited for €4.99." }, lang)}
+          </span>
+          <button
+            type="button"
+            style={btnPrimary}
+            onClick={goToCheckout}
+            disabled={checkoutLoading}
+          >
+            {checkoutLoading
+              ? t({ nl: "Laden...", en: "Loading..." }, lang)
+              : tPay("unlockCta")}
+          </button>
         </div>
       )}
 

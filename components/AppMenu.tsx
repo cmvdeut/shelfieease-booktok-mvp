@@ -251,6 +251,18 @@ export function AppMenu() {
       disabled: false,
     },
     {
+      label: "📸 Instagram",
+      href: "https://www.instagram.com/shelfieease/",
+      external: true,
+      disabled: false,
+    },
+    {
+      label: "🎵 TikTok",
+      href: "https://www.tiktok.com/@shelfieease",
+      external: true,
+      disabled: false,
+    },
+    {
       label: t({ nl: "Privacybeleid", en: "Privacy policy" }, lang),
       href: "/privacy",
       disabled: false,
@@ -348,7 +360,10 @@ export function AppMenu() {
                   }}
                   onClick={() => {
                     if (!item.disabled) {
-                      if (item.href) {
+                      if (item.href && item.external) {
+                        setIsOpen(false);
+                        window.open(item.href, "_blank", "noopener,noreferrer");
+                      } else if (item.href) {
                         setIsOpen(false);
                         router.push(item.href);
                       } else if (item.onClick) {
@@ -360,6 +375,14 @@ export function AppMenu() {
                   {item.label}
                 </div>
               );
+
+              if (item.href && item.external && !item.disabled) {
+                return (
+                  <a key={index} href={item.href} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                    {content}
+                  </a>
+                );
+              }
 
               if (item.href && !item.disabled) {
                 return (

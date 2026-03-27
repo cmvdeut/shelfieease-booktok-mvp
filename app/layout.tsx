@@ -7,10 +7,37 @@ import { MoodSwitcher } from "@/components/MoodSwitcher";
 import { AppMenu } from "@/components/AppMenu";
 import UiBoot from "@/components/UiBoot";
 
+const siteUrl =
+  typeof process.env.NEXT_PUBLIC_SITE_URL === "string" && process.env.NEXT_PUBLIC_SITE_URL
+    ? process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "")
+    : "https://www.shelfieease.app";
+
 export const metadata = {
-  title: "ShelfieEase",
-  description: "Scan books. Build your shelf. Share the vibe.",
+  title: "ShelfieEase — Book Scanning & Shelf Tracker for BookTok",
+  description: "Scan books by ISBN, build your shelf, and share a TikTok-ready shelfie in seconds. The book tracker built for BookTok creators.",
   manifest: "/site.webmanifest",
+  metadataBase: new URL(siteUrl),
+  openGraph: {
+    title: "ShelfieEase — Book Scanning & Shelf Tracker for BookTok",
+    description: "Scan books by ISBN, build your shelf, and share a TikTok-ready shelfie in seconds. The book tracker built for BookTok creators.",
+    url: "/",
+    siteName: "ShelfieEase",
+    type: "website",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "ShelfieEase — Book Scanning & Shelf Tracker for BookTok",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ShelfieEase — Book Scanning & Shelf Tracker for BookTok",
+    description: "Scan books by ISBN, build your shelf, and share a TikTok-ready shelfie in seconds.",
+    images: ["/opengraph-image"],
+  },
   icons: {
     icon: [
       { url: "/icons/v2/favicon.ico" },
@@ -30,9 +57,28 @@ export const viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="nl">
+    <html lang="en">
       <head>
         <meta name="theme-color" content="#6B4EFF" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              "name": "ShelfieEase",
+              "applicationCategory": "UtilitiesApplication",
+              "operatingSystem": "Web",
+              "description": "Scan books by ISBN, build your shelf, and share a TikTok-ready shelfie in seconds. The book tracker built for BookTok creators.",
+              "url": "https://www.shelfieease.app",
+              "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+              }
+            })
+          }}
+        />
         <style dangerouslySetInnerHTML={{
           __html: `
 :root {
