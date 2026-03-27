@@ -180,24 +180,98 @@ function HomePageInner() {
 
         {/* Hero */}
         <section style={{ marginTop: 24 }}>
+          {/* Social proof badge */}
+          <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 12,
+              fontWeight: 600,
+              color: "var(--muted)",
+              background: "var(--panel)",
+              border: "1px solid var(--border)",
+              borderRadius: 999,
+              padding: "4px 10px",
+            }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/>
+              </svg>
+              700+ views on TikTok
+            </span>
+          </div>
+
           {socialWelcome && (
-            <p
-              style={{
-                marginBottom: 12,
-                fontSize: 14,
-                fontWeight: 600,
-                color: "var(--accent1)",
-              }}
-            >
+            <p style={{ marginBottom: 12, fontSize: 14, fontWeight: 600, color: "var(--accent1)" }}>
               {socialWelcome}
             </p>
           )}
-          <h2 style={{ fontSize: "clamp(1.25rem, 1.5rem, 1.5rem)", fontWeight: 600, lineHeight: 1.25, color: "var(--text)" }}>
-            {getHeadlineByMood(currentMood, lang)}
-          </h2>
-          <p style={{ marginTop: 8, fontSize: "clamp(0.875rem, 1rem, 1rem)", color: "var(--muted)" }}>
-            {getSubHeadlineByMood(currentMood, lang)}
-          </p>
+
+          {/* Headline + shelfie card mockup side by side */}
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <h2 style={{ fontSize: "clamp(1.25rem, 1.5rem, 1.5rem)", fontWeight: 600, lineHeight: 1.25, color: "var(--text)" }}>
+                {getHeadlineByMood(currentMood, lang)}
+              </h2>
+              <p style={{ marginTop: 8, fontSize: "clamp(0.875rem, 1rem, 1rem)", color: "var(--muted)" }}>
+                {getSubHeadlineByMood(currentMood, lang)}
+              </p>
+            </div>
+
+            {/* 9:16 shelfie card mockup */}
+            <div style={{
+              flexShrink: 0,
+              width: 108,
+              height: 192,
+              borderRadius: 14,
+              background: "linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(109,94,252,0.2)",
+              display: "flex",
+              flexDirection: "column",
+              padding: "10px 8px 8px",
+              gap: 6,
+              overflow: "hidden",
+              position: "relative",
+            }}>
+              {/* Glow */}
+              <div style={{
+                position: "absolute", top: -20, right: -20,
+                width: 80, height: 80, borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(109,94,252,0.3), transparent)",
+                pointerEvents: "none",
+              }} />
+
+              {/* Card header */}
+              <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.9)", letterSpacing: "0.03em" }}>
+                My Shelf 📚
+              </div>
+
+              {/* Book covers */}
+              <div style={{ display: "flex", gap: 4, flex: 1 }}>
+                {/* Column 1 */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+                  <div style={{ borderRadius: 4, flex: "0 0 52px", background: "linear-gradient(135deg, #e96c7f, #c0392b)", opacity: 0.9 }} />
+                  <div style={{ borderRadius: 4, flex: "0 0 40px", background: "linear-gradient(135deg, #6d5efc, #a855f7)", opacity: 0.9 }} />
+                  <div style={{ borderRadius: 4, flex: 1, background: "linear-gradient(135deg, #22c55e, #16a34a)", opacity: 0.85 }} />
+                </div>
+                {/* Column 2 */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+                  <div style={{ borderRadius: 4, flex: "0 0 36px", background: "linear-gradient(135deg, #f59e0b, #d97706)", opacity: 0.9 }} />
+                  <div style={{ borderRadius: 4, flex: "0 0 56px", background: "linear-gradient(135deg, #38bdf8, #0284c7)", opacity: 0.9 }} />
+                  <div style={{ borderRadius: 4, flex: 1, background: "linear-gradient(135deg, #fb923c, #ea580c)", opacity: 0.85 }} />
+                </div>
+              </div>
+
+              {/* Card footer */}
+              <div style={{
+                fontSize: 7, color: "rgba(255,255,255,0.5)",
+                textAlign: "center", letterSpacing: "0.04em", fontWeight: 600,
+              }}>
+                @shelfieease
+              </div>
+            </div>
+          </div>
 
           {/* Actions */}
           <div style={{ marginTop: 20, display: "grid", gap: 12 }}>
