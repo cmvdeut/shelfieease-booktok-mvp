@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { getMood, type Mood } from "@/components/MoodProvider";
 import { detectUiLang, t } from "@/lib/i18n";
 import { isProUser } from "@/lib/demo";
@@ -53,7 +53,7 @@ function getSubHeadlineByMood(mood: Mood | null, lang: ReturnType<typeof detectU
   return t(dict, lang);
 }
 
-export default function HomePage() {
+function HomePageInner() {
   const searchParams = useSearchParams();
   const utmSource = searchParams.get("utm_source")?.toLowerCase() ?? "";
 
@@ -426,5 +426,13 @@ export default function HomePage() {
         </footer>
       </div>
     </main>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense>
+      <HomePageInner />
+    </Suspense>
   );
 }
