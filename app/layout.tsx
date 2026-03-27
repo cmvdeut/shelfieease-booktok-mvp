@@ -38,6 +38,9 @@ export const metadata = {
     description: "Scan books by ISBN, build your shelf, and share a TikTok-ready shelfie in seconds.",
     images: ["/opengraph-image"],
   },
+  verification: {
+    google: "AN7HjMnbeCLXP6sWheQrqxaW0wrmpd1HGcwr2t4RWrQ",
+  },
   icons: {
     icon: [
       { url: "/icons/v2/favicon.ico" },
