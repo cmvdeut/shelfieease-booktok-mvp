@@ -10,28 +10,28 @@ import { isProUser } from "@/lib/demo";
 // Headlines per mood with NL/EN
 const headlines = {
   default: {
-    nl: "Maak je eigen boekenshelf in seconden.",
-    en: "Build your bookshelf in seconds.",
+    nl: "Je boekenshelf, klaar om te posten.",
+    en: "Your bookshelf, ready to post.",
   },
   bold: {
-    nl: "Scan. Orden. Deel je boeken.",
-    en: "Scan. Sort. Share your books.",
+    nl: "Scan. Shelf. Post naar BookTok.",
+    en: "Scan. Shelf. Post to BookTok.",
   },
   calm: {
-    nl: "Al je boeken, rustig op één plek.",
-    en: "All your books, calmly in one place.",
+    nl: "Al je boeken, prachtig op een rij.",
+    en: "All your books, beautifully shelved.",
   },
 };
 
 // Subheadlines per mood with NL/EN
 const subheadlines = {
   default: {
-    nl: "Scan een ISBN of typ 'm in. Zet boeken in shelves. Klaar.",
-    en: "Scan an ISBN or type it in. Sort into shelves. Done.",
+    nl: "De shelf tracker voor BookTok creators. Scan, orden en deel je shelfie in seconden.",
+    en: "The shelf tracker built for BookTok creators. Scan, organize, and share your shelfie in seconds.",
   },
   bold: {
-    nl: "In seconden van barcode naar overzicht.",
-    en: "From barcode to bookshelf in seconds.",
+    nl: "In seconden van barcode naar BookTok.",
+    en: "From barcode to BookTok in seconds.",
   },
   calm: {
     nl: "Scan of voeg toe. Jij bepaalt het tempo.",
