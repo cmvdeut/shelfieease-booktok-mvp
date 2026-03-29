@@ -3186,7 +3186,7 @@ const ShareCard = React.forwardRef<
         }}
       >
         {mode === "share" ? <div style={{ opacity: isBold ? 0.55 : 0.45, fontWeight: 900 }}>#BookTok #TBR</div> : <div />}
-        <div style={{ opacity: 0.7, fontWeight: 950 }}>{mode === "shelfie" ? "ShelfieEase" : "ShelfieEase · Share"}</div>
+        <div style={{ opacity: 0.7, fontWeight: 950 }}>{mode === "shelfie" ? "ShelfieEase · shelfieease.app" : "ShelfieEase · shelfieease.app"}</div>
       </div>
     </div>
   );
