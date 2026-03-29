@@ -301,6 +301,15 @@ function HomePageInner() {
               {t({ nl: "Handmatig invoeren blijft altijd mogelijk.", en: "Manual entry is always possible." }, lang)}
             </div>
 
+            <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 8 }}>
+              <Link href="/privacy" style={{ fontSize: 11, color: "var(--muted2)", textDecoration: "underline" }}>
+                Privacy Policy
+              </Link>
+              <Link href="/terms" style={{ fontSize: 11, color: "var(--muted2)", textDecoration: "underline" }}>
+                Terms of Service
+              </Link>
+            </div>
+
             {/* Device compatibility info - only show for demo users */}
             {!isPro && (
               <div
