@@ -214,6 +214,9 @@ export default function LibraryPage() {
     duplicateWarningText: t({ nl: "Dit boek staat al in shelf:", en: "This book is already in shelf:" }, lang),
     addAnyway: t({ nl: "Toch toevoegen", en: "Add anyway" }, lang),
   }), [lang]);
+  const demoSpotsLeft = demoRemaining();
+  const showPreLimitUpgradeBanner = !isProUser() && books.length >= 7 && books.length < 10;
+  const showStickyUpgradeBar = !isProUser() && books.length >= 7;
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const actionMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -2255,7 +2258,7 @@ export default function LibraryPage() {
       )}
 
       {/* Demo spots left banner: show when 7–9 books so user sees Unlock CTA before hitting limit */}
-      {!isProUser() && books.length >= 7 && books.length < 10 && (
+      {showPreLimitUpgradeBanner && (
         <div
           style={{
             margin: "0 16px 12px",
@@ -2271,10 +2274,10 @@ export default function LibraryPage() {
           }}
         >
           <span style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.4 }}>
-            {demoRemaining() === 1
+            {demoSpotsLeft === 1
               ? t({ nl: "Nog 1 plek in de gratis demo.", en: "1 spot left in the free demo." }, lang)
               : t(
-                  { nl: `Nog ${demoRemaining()} plekken in de gratis demo.`, en: `${demoRemaining()} spots left in the free demo.` },
+                  { nl: `Nog ${demoSpotsLeft} plekken in de gratis demo.`, en: `${demoSpotsLeft} spots left in the free demo.` },
                   lang
                 )}{" "}
             {t({ nl: "Unlock onbeperkt voor €4,99.", en: "Unlock unlimited for €4.99." }, lang)}
@@ -2711,6 +2714,37 @@ export default function LibraryPage() {
         </div>
       )}
 
+      {showStickyUpgradeBar && (
+        <div
+          style={{
+            position: "fixed",
+            left: 12,
+            right: 12,
+            bottom: "calc(10px + env(safe-area-inset-bottom, 0px))",
+            zIndex: 100001,
+            borderRadius: 16,
+            border: "1px solid var(--border)",
+            background: "color-mix(in srgb, var(--panel) 96%, var(--bg))",
+            boxShadow: `0 12px 30px var(--shadow)`,
+            padding: "10px 12px",
+            display: "grid",
+            gap: 8,
+          }}
+        >
+          <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
+            {t({ nl: "One-time payment • no subscription", en: "One-time payment • no subscription" }, lang)}
+          </div>
+          <button
+            type="button"
+            style={{ ...btnPrimary, width: "100%", justifyContent: "center", fontSize: 15 }}
+            onClick={goToCheckout}
+            disabled={checkoutLoading}
+          >
+            {checkoutLoading ? t({ nl: "Laden...", en: "Loading..." }, lang) : "Unlock €4.99"}
+          </button>
+        </div>
+      )}
+
       {/* CSS voor animaties + glow */}
       <style>{css}</style>
 
@@ -2719,7 +2753,7 @@ export default function LibraryPage() {
         <div
           style={{
             position: "fixed",
-            bottom: 20,
+            bottom: showStickyUpgradeBar ? "calc(96px + env(safe-area-inset-bottom, 0px))" : 20,
             left: "50%",
             transform: "translateX(-50%)",
             background: "var(--panel)",
@@ -2743,7 +2777,17 @@ export default function LibraryPage() {
       )}
 
       {!isProUser() && (
-        <div style={{ fontSize: 14, opacity: 0.7, marginTop: 8, textAlign: "center", padding: "16px", color: "var(--muted)", fontWeight: 500 }}>
+        <div
+          style={{
+            fontSize: 14,
+            opacity: 0.7,
+            marginTop: 8,
+            textAlign: "center",
+            padding: showStickyUpgradeBar ? "16px 16px 104px" : "16px",
+            color: "var(--muted)",
+            fontWeight: 500,
+          }}
+        >
           {t({ nl: "Demo-versie · max. 10 boeken", en: "Demo version · max. 10 books" }, lang)}
         </div>
       )}
