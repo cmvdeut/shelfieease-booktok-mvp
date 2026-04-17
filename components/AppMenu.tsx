@@ -9,6 +9,7 @@ import { loadBooks, loadShelves, getActiveShelfId } from "@/lib/storage";
 import { shareShelfAsPdf } from "@/lib/pdf";
 
 export function AppMenu() {
+  const MENU_Z_INDEX = 200000;
   const [isOpen, setIsOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -287,12 +288,26 @@ export function AppMenu() {
 
   return (
     <>
+      {isOpen && !showDeleteConfirm && (
+        <div
+          onClick={() => setIsOpen(false)}
+          aria-hidden="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.12)",
+            backdropFilter: "blur(1.5px)",
+            zIndex: MENU_Z_INDEX - 1,
+          }}
+        />
+      )}
+
       <div
         style={{
           position: "fixed",
           top: `calc(12px + env(safe-area-inset-top, 0px))`,
           right: 12,
-          zIndex: 10000,
+          zIndex: MENU_Z_INDEX,
         }}
       >
         <button
@@ -326,7 +341,7 @@ export function AppMenu() {
               top: 48,
               right: 0,
               minWidth: 200,
-              background: "var(--panelSolid)",
+              background: "color-mix(in srgb, var(--panel) 96%, var(--bg))",
               border: "1px solid var(--border)",
               borderRadius: 16,
               boxShadow: `0 8px 24px var(--shadow)`,
@@ -334,7 +349,7 @@ export function AppMenu() {
               display: "flex",
               flexDirection: "column",
               gap: 4,
-              zIndex: 10000,
+              zIndex: MENU_Z_INDEX + 1,
             }}
           >
             {menuItems.map((item, index) => {
@@ -405,7 +420,7 @@ export function AppMenu() {
             position: "fixed",
             inset: 0,
             background: "rgba(0,0,0,0.5)",
-            zIndex: 10000,
+            zIndex: MENU_Z_INDEX + 2,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -506,7 +521,7 @@ export function AppMenu() {
             padding: "12px 20px",
             borderRadius: 16,
             fontWeight: 700,
-            zIndex: 10001,
+            zIndex: MENU_Z_INDEX + 3,
             backdropFilter: "blur(12px)",
             pointerEvents: "none",
             color: "var(--text)",
