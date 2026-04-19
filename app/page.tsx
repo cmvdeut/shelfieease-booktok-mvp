@@ -6,36 +6,37 @@ import { useState, useEffect, Suspense } from "react";
 import { getMood, type Mood } from "@/components/MoodProvider";
 import { detectUiLang, t } from "@/lib/i18n";
 import { isProUser } from "@/lib/demo";
+import { trackEvent } from "@/lib/analytics";
 
 // Headlines per mood with NL/EN
 const headlines = {
   default: {
-    nl: "Je boekenshelf, klaar om te posten.",
-    en: "Your bookshelf, ready to post.",
+    nl: "Scan je boekenkast. Nooit meer twijfelen of je het al hebt.",
+    en: "Scan your bookshelf. Never wonder if you already own it.",
   },
   bold: {
-    nl: "Scan. Shelf. Post naar BookTok.",
-    en: "Scan. Shelf. Post to BookTok.",
+    nl: "Scan je boekenkast. Nooit meer twijfelen of je het al hebt.",
+    en: "Scan your bookshelf. Never wonder if you already own it.",
   },
   calm: {
-    nl: "Al je boeken, prachtig op een rij.",
-    en: "All your books, beautifully shelved.",
+    nl: "Scan je boekenkast. Nooit meer twijfelen of je het al hebt.",
+    en: "Scan your bookshelf. Never wonder if you already own it.",
   },
 };
 
 // Subheadlines per mood with NL/EN
 const subheadlines = {
   default: {
-    nl: "De shelf tracker voor BookTok creators. Scan, orden en deel je shelfie in seconden.",
-    en: "The shelf tracker built for BookTok creators. Scan, organize, and share your shelfie in seconds.",
+    nl: "Voorkom dubbele aankopen, zet je TBR op orde en deel een shelfie voor BookTok. Geen download. Geen account. Gratis tot 10 boeken.",
+    en: "Avoid duplicate buys, organize your TBR in minutes, and share a shelfie made for BookTok. No download. No sign-up. Free up to 10 books.",
   },
   bold: {
-    nl: "In seconden van barcode naar BookTok.",
-    en: "From barcode to BookTok in seconds.",
+    nl: "Voorkom dubbele aankopen, zet je TBR op orde en deel een shelfie voor BookTok. Geen download. Geen account. Gratis tot 10 boeken.",
+    en: "Avoid duplicate buys, organize your TBR in minutes, and share a shelfie made for BookTok. No download. No sign-up. Free up to 10 books.",
   },
   calm: {
-    nl: "Scan of voeg toe. Jij bepaalt het tempo.",
-    en: "Scan or add. You set the pace.",
+    nl: "Voorkom dubbele aankopen, zet je TBR op orde en deel een shelfie voor BookTok. Geen download. Geen account. Gratis tot 10 boeken.",
+    en: "Avoid duplicate buys, organize your TBR in minutes, and share a shelfie made for BookTok. No download. No sign-up. Free up to 10 books.",
   },
 };
 
@@ -81,8 +82,8 @@ function HomePageInner() {
     setIsMounted(true);
     const initialMood = getMood();
     setCurrentMood(initialMood);
-    // Also check PRO status on mount to ensure it's up to date
     setIsPro(isProUser());
+    trackEvent("landing_view");
   }, []);
 
   // Listen for mood changes to update headlines live
@@ -197,7 +198,7 @@ function HomePageInner() {
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/>
               </svg>
-              700+ views on TikTok
+              {t({ nl: "Gratis te testen • Geen account nodig", en: "Free to try • No sign-up needed" }, lang)}
             </span>
           </div>
 
@@ -277,6 +278,7 @@ function HomePageInner() {
           <div style={{ marginTop: 20, display: "grid", gap: 12 }}>
             <Link
               href="/scan"
+              onClick={() => trackEvent("cta_start_free_click")}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -297,6 +299,15 @@ function HomePageInner() {
               {t({ nl: "Scan een boek", en: "Scan a book" }, lang)}
               <span style={{ opacity: 0.8 }}>→</span>
             </Link>
+            <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", marginTop: -2 }}>
+              {t(
+                {
+                  nl: "Minder dan één dubbele aankoop — €4,99 eenmalig",
+                  en: "Less than the cost of one duplicate purchase — €4.99 one-time",
+                },
+                lang
+              )}
+            </div>
             <div style={{ fontSize: 11, color: "var(--muted2)", opacity: 0.7, textAlign: "center", marginTop: 4 }}>
               {t({ nl: "Handmatig invoeren blijft altijd mogelijk.", en: "Manual entry is always possible." }, lang)}
             </div>

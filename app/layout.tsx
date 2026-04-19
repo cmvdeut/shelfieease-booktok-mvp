@@ -277,6 +277,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </MoodProvider>
         <MoodSwitcher />
+        <Script
+          defer
+          data-domain="shelfieease.app"
+          src="https://plausible.io/js/script.tagged-events.js"
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `

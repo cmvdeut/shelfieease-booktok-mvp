@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Scanner from "@/components/Scanner";
 import { detectUiLang, t } from "@/lib/i18n";
 import { canAddBook, isProUser } from "@/lib/demo";
+import { trackEvent } from "@/lib/analytics";
 
 function normalizeIsbn(raw: string) {
   return raw.toUpperCase().replace(/[^0-9X]/g, "");
@@ -19,17 +20,18 @@ export default function ScanPage() {
 
   const manualNormalized = useMemo(() => normalizeIsbn(manual), [manual]);
 
+  useEffect(() => { trackEvent("scan_started"); }, []);
+
   // Handle ISBN query parameter from native scanner
   useEffect(() => {
     if (typeof window === "undefined") return;
-    
+
     const params = new URLSearchParams(window.location.search);
     const isbnParam = params.get("isbn");
     if (isbnParam) {
       const normalized = normalizeIsbn(isbnParam);
       if (normalized) {
         setHasIsbnParam(true);
-        // Use the same flow as normal detection - navigate to library with addIsbn
         router.replace(`/library?addIsbn=${encodeURIComponent(normalized)}`);
       }
     }
@@ -38,15 +40,13 @@ export default function ScanPage() {
   const onDetected = useCallback(
     (isbn: string) => {
       setLastScan(isbn);
+      trackEvent("scan_success");
 
-      // Check demo limit before navigating
       if (!canAddBook()) {
-        // Navigate to library to show demo limit modal
         router.push(`/library?showDemoLimit=true`);
         return;
       }
 
-      // Navigate to library with addIsbn parameter
       router.push(`/library?addIsbn=${encodeURIComponent(isbn)}`);
     },
     [router]
@@ -55,10 +55,9 @@ export default function ScanPage() {
   const submitManual = useCallback(() => {
     const v = manualNormalized;
     if (!v) return;
+    trackEvent("manual_isbn_used");
 
-    // Check demo limit before navigating
     if (!canAddBook()) {
-      // Navigate to library to show demo limit modal
       router.push(`/library?showDemoLimit=true`);
       return;
     }

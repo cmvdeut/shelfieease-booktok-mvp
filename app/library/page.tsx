@@ -34,6 +34,7 @@ import { CoverPlaceholder } from "@/components/CoverPlaceholder";
 import { toBlob } from "html-to-image";
 import { detectUiLang, t, isNlUi, tPay } from "@/lib/i18n";
 import { canAddBook, demoRemaining, isProUser } from "@/lib/demo";
+import { trackEvent } from "@/lib/analytics";
 
 function googleSearchUrl(q: string): string {
   return `https://www.google.com/search?q=${encodeURIComponent(q)}`;
@@ -256,6 +257,7 @@ export default function LibraryPage() {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("showDemoLimit") === "true") {
+      trackEvent("pricing_viewed");
       setShowDemoLimitModal(true);
       router.replace("/library");
     }
@@ -658,7 +660,9 @@ export default function LibraryPage() {
     // Validate emoji - fallback to 📚 if empty
     const emojiTrimmed = emoji.trim() || "📚";
 
+    const isFirst = shelves.length === 0;
     const shelf = createShelf(nameTrimmed, emojiTrimmed);
+    if (isFirst) trackEvent("first_shelf_created");
     const updatedShelves = loadShelves();
     setShelves(updatedShelves);
     setActiveShelfIdState(shelf.id);
@@ -709,6 +713,7 @@ export default function LibraryPage() {
 
     // Check demo limit before adding book
     if (!canAddBook()) {
+      trackEvent("pricing_viewed");
       setShowDemoLimitModal(true);
       return;
     }
@@ -797,6 +802,7 @@ export default function LibraryPage() {
 
     // Check demo limit before adding book
     if (!canAddBook()) {
+      trackEvent("pricing_viewed");
       setShowDemoLimitModal(true);
       setManualIsbnInput("");
       return;
@@ -1077,6 +1083,7 @@ export default function LibraryPage() {
             : `✨ My ${shelfLabel} update!\n📚 Total: ${stats.total} | TBR: ${stats.tbr} | Reading: ${stats.reading} | Read: ${stats.read}\nWhat should I add next? 👀\n#BookTok #TBR #ReadingCommunity #Shelfie #Bookish`);
 
       // Mobile: try native share sheet with file
+      trackEvent("shelfie_generated");
       setShareBlob(blob);
       setShareFilename(filename);
       setShareCaption(caption);
@@ -1087,6 +1094,7 @@ export default function LibraryPage() {
         const file = new File([blob], filename, { type: "image/png" });
         if ((navigator as any).canShare?.({ files: [file] })) {
           try {
+            trackEvent("share_shelfie_clicked", { method: "mobile_share" });
             await navigator.share({
               title,
               text: caption,
@@ -1387,6 +1395,7 @@ export default function LibraryPage() {
                 style={btnPrimary}
                 onClick={() => {
                   if (!shareBlob || !shareFilename) return;
+                  trackEvent("share_shelfie_clicked", { method: "download" });
                   downloadImage(shareBlob, shareFilename);
                 }}
               >
@@ -1465,6 +1474,7 @@ export default function LibraryPage() {
                 onClick={async () => {
                   if (!shareBlob) return;
                   if (!navigator.share) return;
+                  trackEvent("share_shelfie_clicked", { method: "native_share" });
                   const file = new File([shareBlob], shareFilename || "shelf.png", { type: "image/png" });
                   if ((navigator as any).canShare?.({ files: [file] })) {
                     try {

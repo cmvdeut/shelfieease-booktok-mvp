@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { t } from "@/lib/i18n";
+import { trackEvent } from "@/lib/analytics";
 
 // Detect if device is iOS
 function isIOS(): boolean {
@@ -73,6 +74,7 @@ export default function PaySuccessPage() {
         const data = await res.json();
         if (data?.paid) {
           localStorage.setItem("se:pro", "1");
+          trackEvent("upgrade_completed");
           setStatus("ok");
         } else {
           setStatus("fail");
