@@ -1,21 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Goodreads Alternative for BookTok — ShelfieEase",
+export const metadata: Metadata = buildPageMetadata({
+  title: "Goodreads Alternative for BookTok",
   description:
     "Looking for a Goodreads alternative built for BookTok? ShelfieEase lets you scan books, build shelves, and share a TikTok-ready shelfie card — no account needed.",
-  openGraph: {
-    title: "Goodreads Alternative for BookTok — ShelfieEase",
-    description:
-      "Scan books, build shelves, and share a TikTok-ready shelfie card. No account needed. Built for BookTok creators.",
-    url: "/goodreads-alternative",
-    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
-  },
-  alternates: {
-    canonical: "https://www.shelfieease.app/goodreads-alternative",
-  },
-};
+  path: "/goodreads-alternative",
+});
 
 const comparison = [
   {

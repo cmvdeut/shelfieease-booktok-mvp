@@ -1,50 +1,42 @@
 import "./globals.css";
 
 import Script from "next/script";
+import type { Metadata } from "next";
 import { ClientErrorTrap } from "@/components/ClientErrorTrap";
 import { MoodProvider } from "@/components/MoodProvider";
 import { MoodSwitcher } from "@/components/MoodSwitcher";
 import { AppMenu } from "@/components/AppMenu";
 import UiBoot from "@/components/UiBoot";
+import {
+  buildJsonLdGraph,
+  DEFAULT_DESCRIPTION,
+  DEFAULT_TITLE,
+  homeMetadata,
+  KEYWORDS,
+  SITE_URL,
+} from "@/lib/seo";
 
-const siteUrl =
-  typeof process.env.NEXT_PUBLIC_SITE_URL === "string" && process.env.NEXT_PUBLIC_SITE_URL
-    ? process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "")
-    : "https://www.shelfieease.app";
-
-export const metadata = {
-  title: "ShelfieEase — Book Scanning & Shelf Tracker for BookTok",
-  description: "Scan books by ISBN, build your shelf, and share a TikTok-ready shelfie in seconds. The book tracker built for BookTok creators.",
-  manifest: "/site.webmanifest",
-  metadataBase: new URL(siteUrl),
-  openGraph: {
-    title: "ShelfieEase — Book Scanning & Shelf Tracker for BookTok",
-    description: "Scan books by ISBN, build your shelf, and share a TikTok-ready shelfie in seconds. The book tracker built for BookTok creators.",
-    url: "/",
-    siteName: "ShelfieEase",
-    type: "website",
-    images: [
-      {
-        url: "/opengraph-image",
-        width: 1200,
-        height: 630,
-        alt: "ShelfieEase — Book Scanning & Shelf Tracker for BookTok",
-      },
-    ],
+export const metadata: Metadata = {
+  ...homeMetadata,
+  title: {
+    default: DEFAULT_TITLE,
+    template: "%s | ShelfieEase",
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "ShelfieEase — Book Scanning & Shelf Tracker for BookTok",
-    description: "Scan books by ISBN, build your shelf, and share a TikTok-ready shelfie in seconds.",
-    images: ["/opengraph-image"],
+  description: DEFAULT_DESCRIPTION,
+  keywords: KEYWORDS,
+  manifest: "/site.webmanifest",
+  metadataBase: new URL(SITE_URL),
+  alternates: {
+    canonical: SITE_URL,
+    types: {
+      "text/plain": [{ url: "/llms.txt", title: "LLM product summary" }],
+    },
   },
   verification: {
     google: "AN7HjMnbeCLXP6sWheQrqxaW0wrmpd1HGcwr2t4RWrQ",
   },
   icons: {
-    icon: [
-      { url: "/icons/v2/favicon.ico" },
-    ],
+    icon: [{ url: "/icons/v2/favicon.ico" }],
     apple: [{ url: "/icons/v2/apple-touch-icon.png", sizes: "180x180" }],
     shortcut: [{ url: "/icons/v2/favicon-32.png", sizes: "32x32" }],
   },
@@ -63,23 +55,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <head>
         <meta name="theme-color" content="#6B4EFF" />
+        <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM product summary" />
+        <link rel="alternate" type="text/plain" href="/llms-full.txt" title="LLM full product context" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "SoftwareApplication",
-              "name": "ShelfieEase",
-              "applicationCategory": "UtilitiesApplication",
-              "operatingSystem": "Web",
-              "description": "Scan books by ISBN, build your shelf, and share a TikTok-ready shelfie in seconds. The book tracker built for BookTok creators.",
-              "url": "https://www.shelfieease.app",
-              "offers": {
-                "@type": "Offer",
-                "price": "0",
-                "priceCurrency": "USD"
-              }
-            })
+            __html: JSON.stringify(buildJsonLdGraph()),
           }}
         />
         <style dangerouslySetInnerHTML={{
@@ -277,11 +258,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </MoodProvider>
         <MoodSwitcher />
-        <Script
-          defer
-          data-domain="shelfieease.app"
-          src="https://plausible.io/js/script.tagged-events.js"
-        />
+        <Script async src="https://plausible.io/js/pa-M1U-She7jLRkpuv6GfaOJ.js" />
+        <script dangerouslySetInnerHTML={{ __html: `window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()` }} />
         <script
           dangerouslySetInnerHTML={{
             __html: `

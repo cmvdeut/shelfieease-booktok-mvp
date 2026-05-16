@@ -33,7 +33,7 @@ import { CoverImg } from "@/components/CoverImg";
 import { CoverPlaceholder } from "@/components/CoverPlaceholder";
 import { toBlob } from "html-to-image";
 import { detectUiLang, t, isNlUi, tPay } from "@/lib/i18n";
-import { canAddBook, demoRemaining, isProUser } from "@/lib/demo";
+import { canAddBook, demoRemaining, isProUser, seedDemoBooks } from "@/lib/demo";
 import { trackEvent } from "@/lib/analytics";
 
 function googleSearchUrl(q: string): string {
@@ -351,6 +351,8 @@ export default function LibraryPage() {
   }, [currentMood]);
 
   useEffect(() => {
+    seedDemoBooks();
+
     // Ensure default shelves exist
     ensureDefaultShelves();
 

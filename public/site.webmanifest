@@ -1,6 +1,7 @@
 {
-  "name": "ShelfieEase",
+  "name": "ShelfieEase — BookTok Shelf Tracker",
   "short_name": "ShelfieEase",
+  "description": "Scan books by ISBN, organize your shelf, and share a TikTok-ready shelfie. No app download required.",
   "version": "2",
   "start_url": "/?source=pwa",
   "icons": [

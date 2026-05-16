@@ -1,0 +1,48 @@
+# *
+User-agent: *
+Allow: /
+
+# *
+User-agent: *
+Disallow: /tiktok
+Disallow: /admin
+Disallow: /debug
+Disallow: /api
+
+# GPTBot
+User-agent: GPTBot
+Allow: /
+
+# ChatGPT-User
+User-agent: ChatGPT-User
+Allow: /
+
+# OAI-SearchBot
+User-agent: OAI-SearchBot
+Allow: /
+
+# ClaudeBot
+User-agent: ClaudeBot
+Allow: /
+
+# anthropic-ai
+User-agent: anthropic-ai
+Allow: /
+
+# PerplexityBot
+User-agent: PerplexityBot
+Allow: /
+
+# Google-Extended
+User-agent: Google-Extended
+Allow: /
+
+# Bytespider
+User-agent: Bytespider
+Allow: /
+
+# Host
+Host: https://www.shelfieease.app
+
+# Sitemaps
+Sitemap: https://www.shelfieease.app/sitemap.xml

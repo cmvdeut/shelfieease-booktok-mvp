@@ -1,21 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "BookTok Shelf Tracker — Scan, Organize & Share Your Books | ShelfieEase",
+export const metadata: Metadata = buildPageMetadata({
+  title: "BookTok Shelf Tracker — Scan, Organize & Share Your Books",
   description:
     "The free BookTok shelf tracker. Scan books by ISBN, organize them into shelves, and generate a TikTok-ready shelfie card in seconds. Built for BookTok creators.",
-  openGraph: {
-    title: "BookTok Shelf Tracker — ShelfieEase",
-    description:
-      "Scan books by ISBN, build your shelf, and share a TikTok-ready shelfie card. The book tracker built for BookTok creators.",
-    url: "/booktok-shelf-tracker",
-    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
-  },
-  alternates: {
-    canonical: "https://www.shelfieease.app/booktok-shelf-tracker",
-  },
-};
+  path: "/booktok-shelf-tracker",
+});
 
 const steps = [
   {
@@ -144,7 +136,7 @@ export default function BooktokShelfTrackerPage() {
             >
               <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z" />
             </svg>
-            700+ views on TikTok
+            Free to try · no sign-up needed
           </div>
 
           <h1
