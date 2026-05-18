@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useMemo, useState, useRef, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import {
   loadBooks,
@@ -55,8 +55,9 @@ function googleCoverUrl(title: string, authors: string, isbn: string, nl: boolea
   return `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=isch`;
 }
 
-export default function LibraryPage() {
+function LibraryPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [lang, setLang] = useState<ReturnType<typeof detectUiLang>>(() => {
     // Default to "en" for SSR to match detectUiLang() which always returns "en"
     // This prevents hydration mismatch
@@ -222,7 +223,6 @@ export default function LibraryPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const actionMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const shareCardRef = useRef<HTMLDivElement>(null);
-  const handledIsbnRef = useRef<string | null>(null);
 
 
   // Handle Stripe return: /library?paid=1
@@ -263,63 +263,58 @@ export default function LibraryPage() {
     }
   }, [router]);
 
-  // Handle addIsbn query parameter - open modal instead of auto-adding
+  // Handle addIsbn query parameter - open modal and fetch book metadata
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const rawIsbn = params.get("addIsbn");
+    const rawIsbn = searchParams.get("addIsbn");
     if (!rawIsbn) return;
 
-    // Normaliseer ISBN: alleen cijfers en X behouden
     const normalizedIsbn = rawIsbn.replace(/[^0-9X]/gi, "").trim();
     if (!normalizedIsbn) {
       router.replace("/library");
       return;
     }
 
-    // Voorkom dat hetzelfde ISBN meerdere keren wordt verwerkt
-    if (handledIsbnRef.current === normalizedIsbn) {
-      return;
-    }
-    handledIsbnRef.current = normalizedIsbn;
+    let cancelled = false;
 
     setPendingIsbn(normalizedIsbn);
     setAddModalOpen(true);
     setAddLoading(true);
     setTargetShelfId(getActiveShelfId() || ensureDefaultShelf().id);
+    setManualTitle("");
+    setManualAuthors("");
 
     (async () => {
       try {
-        const data = await lookupByIsbn(normalizedIsbn);
-        // Check if book was found: title should not be empty and should have content
-        const isUnknown = !data.title || data.title.trim() === "" || (data.authors && data.authors.length === 0 && !data.coverUrl);
+        const res = await fetch(`/api/lookup?isbn=${encodeURIComponent(normalizedIsbn)}`);
+        const data = res.ok
+          ? ((await res.json()) as Awaited<ReturnType<typeof lookupByIsbn>>)
+          : await lookupByIsbn(normalizedIsbn);
+
+        if (cancelled) return;
+
+        const hasTitle = Boolean(data.title?.trim());
         setPendingData({
-          title: data.title || "Onbekend",
+          title: hasTitle ? data.title : "Onbekend",
           authors: data.authors || [],
-          coverUrl: "", // Don't fetch cover automatically - user can use "Cover zoeken" button
+          coverUrl: data.coverUrl && !isBadCoverUrl(data.coverUrl) ? data.coverUrl : "",
         });
-        // Initialize manual input fields if book not found
-        if (isUnknown) {
-          setManualTitle("");
-          setManualAuthors("");
-        } else {
-          // Clear manual fields if book was found
-          setManualTitle("");
-          setManualAuthors("");
-        }
       } catch (e) {
+        if (cancelled) return;
         console.error("Failed to lookup ISBN:", e);
         setPendingData({
           title: "Onbekend",
           authors: [],
           coverUrl: "",
         });
-        setManualTitle("");
-        setManualAuthors("");
       } finally {
-        setAddLoading(false);
+        if (!cancelled) setAddLoading(false);
       }
     })();
-  }, [router]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, router]);
 
   // Update lang on client mount to ensure correct language detection
   useEffect(() => {
@@ -761,7 +756,6 @@ export default function LibraryPage() {
     setManualAuthors("");
     setBookSearchQuery("");
     setBookSearchResults([]);
-    handledIsbnRef.current = null;
     router.replace("/library");
   }
 
@@ -794,7 +788,6 @@ export default function LibraryPage() {
     setManualAuthors("");
     setBookSearchQuery("");
     setBookSearchResults([]);
-    handledIsbnRef.current = null;
     router.replace("/library");
   }
 
@@ -1691,8 +1684,11 @@ export default function LibraryPage() {
                         {/* Retry scan option */}
                         {pendingIsbn && (
                           <div style={{ marginBottom: 16, padding: "12px 16px", borderRadius: 12, background: "var(--panel2)", border: "1px solid var(--border)" }}>
-                            <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
+                            <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 4 }}>
                               {t({ nl: "Boek niet gevonden voor ISBN:", en: "Book not found for ISBN:" }, lang)} <span style={{ fontWeight: 600, color: "var(--text)" }}>{pendingIsbn}</span>
+                            </div>
+                            <div style={{ fontSize: 12, color: "var(--muted2)", marginBottom: 8 }}>
+                              {t({ nl: "Zoek hieronder op titel of vul handmatig in, dan klik je op Toevoegen.", en: "Search by title below or fill in manually, then tap Add to Shelf." }, lang)}
                             </div>
                             <button
                               type="button"
@@ -1956,7 +1952,7 @@ export default function LibraryPage() {
                           justifyContent: "center",
                         }}
                         onClick={handleAddBookToShelf}
-                        disabled={!targetShelfId || (pendingData && (!pendingData.title || pendingData.title === "Onbekend" || pendingData.title.trim() === "") && !manualTitle.trim())}
+                        disabled={!targetShelfId}
                       >
                         {copy.addToShelf}
                       </button>
@@ -2805,6 +2801,27 @@ export default function LibraryPage() {
       )}
 
     </main>
+  );
+}
+
+export default function LibraryPage() {
+  return (
+    <Suspense
+      fallback={
+        <main
+          style={{
+            minHeight: "100dvh",
+            padding: 24,
+            color: "var(--text)",
+            background: "var(--bg)",
+          }}
+        >
+          <p style={{ color: "var(--muted)" }}>Loading…</p>
+        </main>
+      }
+    >
+      <LibraryPageContent />
+    </Suspense>
   );
 }
 

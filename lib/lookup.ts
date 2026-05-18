@@ -128,10 +128,13 @@ function isbn13to10(isbn13: string): string | null {
  */
 async function searchGoogleBooks(isbn: string): Promise<GoogleBooksVolume[]> {
   try {
+    // API key is only available server-side (non-NEXT_PUBLIC_ env var)
+    const key = typeof process !== "undefined" ? (process.env.GOOGLE_BOOKS_API_KEY || "") : "";
+    const keyParam = key ? `&key=${encodeURIComponent(key)}` : "";
     const res = await fetch(
       `https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(
         isbn
-      )}&maxResults=1&fields=items(id,volumeInfo(title,authors,imageLinks,industryIdentifiers))`
+      )}&maxResults=1&fields=items(id,volumeInfo(title,authors,imageLinks,industryIdentifiers))${keyParam}`
     );
     const json = (await res.json()) as GoogleBooksResponse;
     return json.items || [];
@@ -146,13 +149,15 @@ async function searchGoogleBooks(isbn: string): Promise<GoogleBooksVolume[]> {
  */
 export async function searchBooksByTitleOrAuthor(query: string, maxResults: number = 10): Promise<LookupResult[]> {
   if (!query || query.trim().length < 2) return [];
-  
+
   try {
     const searchQuery = query.trim();
+    const key = typeof process !== "undefined" ? (process.env.GOOGLE_BOOKS_API_KEY || "") : "";
+    const keyParam = key ? `&key=${encodeURIComponent(key)}` : "";
     const res = await fetch(
       `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
         searchQuery
-      )}&maxResults=${maxResults}&fields=items(id,volumeInfo(title,authors,imageLinks,industryIdentifiers))`
+      )}&maxResults=${maxResults}&fields=items(id,volumeInfo(title,authors,imageLinks,industryIdentifiers))${keyParam}`
     );
     const json = (await res.json()) as GoogleBooksResponse;
     const items = json.items || [];
@@ -181,6 +186,8 @@ export async function searchBooksByTitleOrAuthor(query: string, maxResults: numb
 }
 
 type OpenLibrarySearchDoc = {
+  title?: string;
+  author_name?: string[];
   cover_i?: number;
   edition_key?: string[];
   [key: string]: unknown;
@@ -203,6 +210,38 @@ type OpenLibraryBookData = {
 type OpenLibraryBooksResponse = {
   [key: string]: OpenLibraryBookData;
 };
+
+/**
+ * Fetch title, authors, and cover from Open Library search.json by ISBN.
+ */
+async function openLibraryMetadataByIsbn(isbn: string): Promise<LookupResult> {
+  if (!isbn) return { title: "", authors: [], coverUrl: "" };
+
+  try {
+    const url = `https://openlibrary.org/search.json?isbn=${encodeURIComponent(isbn)}&limit=1`;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return { title: "", authors: [], coverUrl: "" };
+
+    const json = (await res.json()) as OpenLibrarySearchResponse;
+    const doc = json?.docs?.[0];
+    if (!doc) return { title: "", authors: [], coverUrl: "" };
+
+    const title = typeof doc.title === "string" ? doc.title.trim() : "";
+    const authors = Array.isArray(doc.author_name)
+      ? doc.author_name.filter((a): a is string => typeof a === "string" && a.trim() !== "")
+      : [];
+
+    let coverUrl = "";
+    if (doc.cover_i) {
+      coverUrl = `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg?default=false`;
+    }
+    if (isBadCoverUrl(coverUrl)) coverUrl = "";
+
+    return { title, authors, coverUrl };
+  } catch {
+    return { title: "", authors: [], coverUrl: "" };
+  }
+}
 
 /**
  * Get cover from Open Library via search.json API (prevents 404 spam).
@@ -365,6 +404,24 @@ export async function lookupByIsbn(isbn13: string): Promise<LookupResult> {
     }
   } catch {
     // ignore errors, return what we have
+  }
+
+  // --- 1b) Open Library metadata when Google Books has no title ---
+  if (!title.trim()) {
+    const olMeta = await openLibraryMetadataByIsbn(clean);
+    if (olMeta.title) title = olMeta.title;
+    if (olMeta.authors.length > 0) authors = olMeta.authors;
+    if (!coverUrl && olMeta.coverUrl) coverUrl = olMeta.coverUrl;
+
+    if (!title.trim()) {
+      const isbn10 = isbn13to10(clean);
+      if (isbn10) {
+        const ol10 = await openLibraryMetadataByIsbn(isbn10);
+        if (ol10.title) title = ol10.title;
+        if (ol10.authors.length > 0) authors = ol10.authors;
+        if (!coverUrl && ol10.coverUrl) coverUrl = ol10.coverUrl;
+      }
+    }
   }
 
   // --- 2) Open Library fallback if Google Books didn't provide a cover ---
