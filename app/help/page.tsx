@@ -2,12 +2,29 @@
 
 import Link from "next/link";
 import React from "react";
-import { detectUiLang, t } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { useUiLang } from "@/components/UiLangProvider";
 
 export default function HelpPage() {
-  const lang = detectUiLang();
+  const { lang } = useUiLang();
 
   const faqs = [
+    {
+      q: t(
+        {
+          nl: "Hoe wissel ik van taal?",
+          en: "How do I change the language?",
+        },
+        lang
+      ),
+      a: t(
+        {
+          nl: "Open het menu (⋯ rechtsboven) → Instellingen → kies NL of EN. Je keuze wordt op dit apparaat onthouden.",
+          en: "Open the menu (⋯ top right) → Settings → choose NL or EN. Your choice is saved on this device.",
+        },
+        lang
+      ),
+    },
     {
       q: t(
         {

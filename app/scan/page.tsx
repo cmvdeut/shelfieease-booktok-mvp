@@ -3,7 +3,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Scanner from "@/components/Scanner";
-import { detectUiLang, t } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { useUiLang } from "@/components/UiLangProvider";
 import { canAddBook, isProUser } from "@/lib/demo";
 import { trackEvent } from "@/lib/analytics";
 
@@ -13,7 +14,7 @@ function normalizeIsbn(raw: string) {
 
 export default function ScanPage() {
   const router = useRouter();
-  const lang = detectUiLang();
+  const { lang } = useUiLang();
   const [manual, setManual] = useState("");
   const [lastScan, setLastScan] = useState<string | null>(null);
   const [hasIsbnParam, setHasIsbnParam] = useState(false);
@@ -32,7 +33,7 @@ export default function ScanPage() {
       const normalized = normalizeIsbn(isbnParam);
       if (normalized) {
         setHasIsbnParam(true);
-        router.replace(`/library?addIsbn=${encodeURIComponent(normalized)}`);
+        router.replace(`/library?addIsbn=${encodeURIComponent(normalized)}`); // native scanner + web
       }
     }
   }, [router]);

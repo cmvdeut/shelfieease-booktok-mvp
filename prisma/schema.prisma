@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model SocialAccount {
+  id        String   @id @default(cuid())
+  platform  String
+  label     String
+  accountId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ScheduleSlot {
+  id        String   @id @default(cuid())
+  dayOfWeek Int
+  hour      Int
+  minute    Int
+  timezone  String   @default("Europe/Amsterdam")
+  platforms String
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Post {
+  id             String       @id @default(cuid())
+  platform       String
+  format         String       @default("reel")
+  status         String       @default("scheduled")
+  scheduledAt    DateTime
+  caption        String
+  captionPreview String?
+  mediaPath      String?
+  permalink      String?
+  error          String?
+  manualOnly     Boolean      @default(false)
+  locale         String?
+  campaign       String?
+  calendarDay    Int?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  publishLogs    PublishLog[]
+}
+
+model PublishLog {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  attempt   Int
+  success   Boolean
+  message   String
+  raw       String?
+  createdAt DateTime @default(now())
+}

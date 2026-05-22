@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import React from "react";
-import { detectUiLang, t } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { useUiLang } from "@/components/UiLangProvider";
 
 export default function AboutPage() {
-  const lang = detectUiLang();
+  const { lang } = useUiLang();
 
   return (
     <main

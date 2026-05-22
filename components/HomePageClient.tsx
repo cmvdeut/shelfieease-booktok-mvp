@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
 import { getMood, type Mood } from "@/components/MoodProvider";
-import { detectUiLang, t } from "@/lib/i18n";
+import { t, type UiLang } from "@/lib/i18n";
+import { useUiLang } from "@/components/UiLangProvider";
 import { isProUser } from "@/lib/demo";
 import { trackEvent } from "@/lib/analytics";
 
@@ -41,14 +42,14 @@ const subheadlines = {
 };
 
 // Helper function to get headline based on mood and language
-function getHeadlineByMood(mood: Mood | null, lang: ReturnType<typeof detectUiLang>): string {
+function getHeadlineByMood(mood: Mood | null, lang: UiLang): string {
   const effectiveMood = mood || "default";
   const dict = headlines[effectiveMood] || headlines.default;
   return t(dict, lang);
 }
 
 // Helper function to get subheadline based on mood and language
-function getSubHeadlineByMood(mood: Mood | null, lang: ReturnType<typeof detectUiLang>): string {
+function getSubHeadlineByMood(mood: Mood | null, lang: UiLang): string {
   const effectiveMood = mood || "default";
   const dict = subheadlines[effectiveMood] || subheadlines.default;
   return t(dict, lang);
@@ -67,8 +68,7 @@ function HomePageInner() {
     return isProUser();
   });
 
-  // Detect UI language
-  const lang = detectUiLang();
+  const { lang } = useUiLang();
 
   const socialWelcome =
     utmSource === "tiktok"

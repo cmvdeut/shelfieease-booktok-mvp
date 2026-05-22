@@ -4,6 +4,7 @@ import Script from "next/script";
 import type { Metadata } from "next";
 import { ClientErrorTrap } from "@/components/ClientErrorTrap";
 import { MoodProvider } from "@/components/MoodProvider";
+import { UiLangProvider } from "@/components/UiLangProvider";
 import { MoodSwitcher } from "@/components/MoodSwitcher";
 import { AppMenu } from "@/components/AppMenu";
 import UiBoot from "@/components/UiBoot";
@@ -52,7 +53,7 @@ export const viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="nl" suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#6B4EFF" />
         <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM product summary" />
@@ -212,9 +213,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       } catch (e) {}
     };
 
+    function seReloadAfterChunkError() {
+      var key = "se:chunk-reload-attempt";
+      try {
+        var n = parseInt(sessionStorage.getItem(key) || "0", 10);
+        if (n < 2) {
+          sessionStorage.setItem(key, String(n + 1));
+          var u = new URL(location.href);
+          u.searchParams.set("_se", String(Date.now()));
+          location.replace(u.toString());
+          return;
+        }
+      } catch (err) {}
+      location.reload();
+    }
+
     window.addEventListener("error", function (e) {
       if (e.message && e.message.indexOf("Failed to load chunk") !== -1) {
-        window.location.reload();
+        seReloadAfterChunkError();
         return;
       }
       window.__seLog("window.error", {
@@ -229,7 +245,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     window.addEventListener("unhandledrejection", function (e) {
       var r = e.reason || {};
       if (r.message && r.message.indexOf("Failed to load chunk") !== -1) {
-        window.location.reload();
+        seReloadAfterChunkError();
         return;
       }
       window.__seLog("unhandledrejection", {
@@ -252,11 +268,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         }}
       >
         <UiBoot />
-        <MoodProvider>
-          <ClientErrorTrap />
-          <AppMenu />
-          {children}
-        </MoodProvider>
+        <UiLangProvider>
+          <MoodProvider>
+            <ClientErrorTrap />
+            <AppMenu />
+            {children}
+          </MoodProvider>
+        </UiLangProvider>
         <MoodSwitcher />
         <Script async src="https://plausible.io/js/pa-M1U-She7jLRkpuv6GfaOJ.js" />
         <script dangerouslySetInnerHTML={{ __html: `window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()` }} />

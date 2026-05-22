@@ -32,7 +32,8 @@ import { getCoverUrlForShare } from "@/lib/covers";
 import { CoverImg } from "@/components/CoverImg";
 import { CoverPlaceholder } from "@/components/CoverPlaceholder";
 import { toBlob } from "html-to-image";
-import { detectUiLang, t, isNlUi, tPay } from "@/lib/i18n";
+import { t, isNlUi, tPay } from "@/lib/i18n";
+import { useUiLang } from "@/components/UiLangProvider";
 import { canAddBook, demoRemaining, isProUser, seedDemoBooks } from "@/lib/demo";
 import { trackEvent } from "@/lib/analytics";
 
@@ -58,12 +59,7 @@ function googleCoverUrl(title: string, authors: string, isbn: string, nl: boolea
 function LibraryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [lang, setLang] = useState<ReturnType<typeof detectUiLang>>(() => {
-    // Default to "en" for SSR to match detectUiLang() which always returns "en"
-    // This prevents hydration mismatch
-    if (typeof window === "undefined") return "en";
-    return detectUiLang();
-  });
+  const { lang } = useUiLang();
   const nl = lang === "nl";
   
   const [books, setBooks] = useState<Book[]>([]);
@@ -104,7 +100,7 @@ function LibraryPageContent() {
         const toastFlag = localStorage.getItem("shelfie_toast");
         if (toastFlag === "backup_restored") {
           localStorage.removeItem("shelfie_toast");
-          showToast("Backup restored successfully", 3000);
+          showToast(t({ nl: "Backup succesvol teruggezet", en: "Backup restored successfully" }, lang), 3000);
         }
       } catch {
         // Ignore storage errors
@@ -240,8 +236,7 @@ function LibraryPageContent() {
       // The canAddBook() function already handles pro users correctly
       
       // Show success message
-      const currentLang = detectUiLang();
-      showToast(t({ nl: "✨ Pro versie geactiveerd! Alle boeken blijven behouden.", en: "✨ Pro version activated! All books are preserved." }, currentLang), 4000);
+      showToast(t({ nl: "✨ Pro versie geactiveerd! Alle boeken blijven behouden.", en: "✨ Pro version activated! All books are preserved." }, lang), 4000);
 
       // URL opschonen zodat refresh niet blijft triggeren
       url.searchParams.delete("paid");
@@ -250,7 +245,7 @@ function LibraryPageContent() {
       // Force re-render to update UI (hide demo limit notices, etc.)
       window.dispatchEvent(new Event("storage"));
     }
-  }, [showToast]);
+  }, [showToast, lang]);
 
   // Handle showDemoLimit query parameter
   useEffect(() => {
@@ -315,11 +310,6 @@ function LibraryPageContent() {
       cancelled = true;
     };
   }, [searchParams, router]);
-
-  // Update lang on client mount to ensure correct language detection
-  useEffect(() => {
-    setLang(detectUiLang());
-  }, []);
 
   // Listen for mood changes to force re-render and apply CSS variables immediately
   useEffect(() => {

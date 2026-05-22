@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { loadBooks, loadShelves, normalizeStatus, setActiveShelfId, type Book, type Shelf, type BookStatus, type BookFormat } from "@/lib/storage";
-import { detectUiLang, t, isNlUi } from "@/lib/i18n";
+import { t, isNlUi } from "@/lib/i18n";
+import { useUiLang } from "@/components/UiLangProvider";
 import { getMood, type Mood as DocumentMood } from "@/components/MoodProvider";
 
 function statusPillStyle(status: BookStatus, mood: DocumentMood): React.CSSProperties {
@@ -87,7 +88,7 @@ export default function StatsPage() {
   const [shelves, setShelves] = useState<Shelf[]>([]);
   const [currentMood, setCurrentMood] = useState<DocumentMood>("default");
   const [isMounted, setIsMounted] = useState(false);
-  const lang = detectUiLang();
+  const { lang } = useUiLang();
   const nl = isNlUi();
   const isCalm = currentMood === "calm";
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { detectUiLang } from "@/lib/i18n";
+import { clearChunkReloadAttempts } from "@/lib/chunk-reload";
+import { detectUiLang, UI_LANG_STORAGE_KEY } from "@/lib/i18n";
 
 const STORAGE_KEY = "se:mood";
 const DEFAULT_MOOD = "aesthetic";
@@ -48,6 +49,18 @@ function applyUiSettings() {
 
 export default function UiBoot() {
   useEffect(() => {
+    clearChunkReloadAttempts();
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("_se")) {
+        url.searchParams.delete("_se");
+        const next = url.pathname + url.search + url.hash;
+        window.history.replaceState({}, "", next);
+      }
+    } catch {
+      // ignore
+    }
+
     // Apply initial settings on mount
     applyUiSettings();
     
@@ -69,16 +82,22 @@ export default function UiBoot() {
     window.addEventListener("moodchange", handleMoodChange as EventListener);
     
     // Also listen for storage events (sync across tabs)
+    function handleLangChange() {
+      applyUiSettings();
+    }
+
     function handleStorageChange(e: StorageEvent) {
-      if (e.key === STORAGE_KEY) {
+      if (e.key === STORAGE_KEY || e.key === UI_LANG_STORAGE_KEY) {
         applyUiSettings();
       }
     }
     
+    window.addEventListener("uilangchange", handleLangChange);
     window.addEventListener("storage", handleStorageChange);
     
     return () => {
       window.removeEventListener("moodchange", handleMoodChange as EventListener);
+      window.removeEventListener("uilangchange", handleLangChange);
       window.removeEventListener("storage", handleStorageChange);
     };
   }, []);

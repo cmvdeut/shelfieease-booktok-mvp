@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
 import { loadBooks, loadShelves, type Book, type Shelf, type BookStatus, type BookFormat } from "@/lib/storage";
-import { detectUiLang, t } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { useUiLang } from "@/components/UiLangProvider";
 import { getMood, type Mood as DocumentMood } from "@/components/MoodProvider";
 
 function statusColor(status: BookStatus, isCalm: boolean): string {
@@ -27,7 +28,7 @@ export default function StatisticsPage() {
   const [shelves, setShelves] = useState<Shelf[]>([]);
   const [currentMood, setCurrentMood] = useState<DocumentMood>("default");
   const [isMounted, setIsMounted] = useState(false);
-  const lang = detectUiLang();
+  const { lang } = useUiLang();
   const isCalm = currentMood === "calm";
 
   useEffect(() => {

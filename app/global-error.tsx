@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  clearChunkReloadAttempts,
+  isChunkLoadError,
+  tryRecoverFromChunkError,
+} from "@/lib/chunk-reload";
 
 export default function GlobalError({
   error,
@@ -11,7 +16,13 @@ export default function GlobalError({
 }) {
   const [lastError, setLastError] = useState<string | null>(null);
 
+  const chunkError = isChunkLoadError(error.message);
+
   useEffect(() => {
+    if (chunkError) {
+      tryRecoverFromChunkError();
+      return;
+    }
     try {
       const stored = sessionStorage.getItem("__last_client_error");
       if (stored) {
@@ -20,7 +31,7 @@ export default function GlobalError({
     } catch {
       // ignore
     }
-  }, []);
+  }, [chunkError, error.message]);
 
   const errorStack = error.stack || "";
   const truncatedStack = errorStack.length > 4000 
@@ -34,7 +45,10 @@ export default function GlobalError({
     } catch {
       // ignore
     }
-    location.reload();
+    clearChunkReloadAttempts();
+    const url = new URL(location.href);
+    url.searchParams.set("_se", String(Date.now()));
+    location.replace(url.toString());
   };
 
   return (
@@ -51,7 +65,17 @@ export default function GlobalError({
             lineHeight: "1.6",
           }}
         >
-          <h1 style={{ color: "#ff4444", marginTop: 0 }}>Application Error</h1>
+          <h1 style={{ color: "#ff4444", marginTop: 0 }}>
+            {chunkError ? "Update nodig" : "Application Error"}
+          </h1>
+
+          {chunkError && (
+            <p style={{ marginBottom: 16, lineHeight: 1.5, maxWidth: 520 }}>
+              De site is zojuist bijgewerkt, maar je browser gebruikt nog oude
+              bestanden. Klik op &quot;Cache legen + herladen&quot; of open de
+              site in een privévenster.
+            </p>
+          )}
 
           {error.name && (
             <div style={{ marginBottom: "16px" }}>

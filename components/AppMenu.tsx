@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { detectUiLang, t } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { useUiLang } from "@/components/UiLangProvider";
 import { createBackup, restoreBackupFromFile, downloadJson, getBackupFilename } from "@/lib/backup";
 import { loadBooks, loadShelves, getActiveShelfId } from "@/lib/storage";
 import { shareShelfAsPdf } from "@/lib/pdf";
@@ -16,7 +17,7 @@ export function AppMenu() {
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
-  const lang = detectUiLang();
+  const { lang, setLang } = useUiLang();
 
   const showToast = useCallback((message: string, duration: number = 3000) => {
     setToast(message);
@@ -65,7 +66,7 @@ export function AppMenu() {
       const filename = getBackupFilename();
       downloadJson(filename, backup);
       setIsOpen(false);
-      showToast("Backup file downloaded");
+      showToast(t({ nl: "Backup gedownload", en: "Backup file downloaded" }, lang));
     } catch (error) {
       console.error("Error creating backup:", error);
       showToast(t({ nl: "Fout bij maken van backup", en: "Error creating backup" }, lang));
@@ -136,11 +137,11 @@ export function AppMenu() {
           const errorMessage = error instanceof Error ? error.message : String(error);
           
           if (errorMessage.includes("Invalid backup") || errorMessage.includes("Invalid JSON") || errorMessage.includes("Invalid backup file format")) {
-            showToast("Invalid backup file");
+            showToast(t({ nl: "Ongeldig backupbestand", en: "Invalid backup file" }, lang));
           } else if (errorMessage.includes("storage space") || errorMessage.includes("QuotaExceeded")) {
-            showToast("Not enough storage space");
+            showToast(t({ nl: "Niet genoeg opslagruimte", en: "Not enough storage space" }, lang));
           } else {
-            showToast("Error restoring backup");
+            showToast(t({ nl: "Fout bij terugzetten backup", en: "Error restoring backup" }, lang));
           }
           console.error("Error restoring backup:", error);
         }
@@ -178,7 +179,7 @@ export function AppMenu() {
       } else {
         // Share all shelves
         booksToShare = books;
-        shelfTitle = "All Shelves";
+        shelfTitle = t({ nl: "Alle shelves", en: "All Shelves" }, lang);
       }
 
       if (booksToShare.length === 0) {
@@ -192,7 +193,7 @@ export function AppMenu() {
       });
 
       setIsOpen(false);
-      showToast("Shelf PDF downloaded");
+      showToast(t({ nl: "PDF gedownload", en: "Shelf PDF downloaded" }, lang));
     } catch (error) {
       console.error("Error sharing PDF:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -352,6 +353,66 @@ export function AppMenu() {
               zIndex: MENU_Z_INDEX + 1,
             }}
           >
+            <div
+              style={{
+                padding: "8px 10px 10px",
+                borderBottom: "1px solid var(--border)",
+                marginBottom: 4,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  color: "var(--muted2)",
+                  marginBottom: 8,
+                }}
+              >
+                {t({ nl: "Instellingen", en: "Settings" }, lang)}
+              </div>
+              <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 6 }}>
+                {t({ nl: "Taal", en: "Language" }, lang)}
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => setLang("nl")}
+                  style={{
+                    flex: 1,
+                    padding: "8px 10px",
+                    borderRadius: 10,
+                    border: `1px solid ${lang === "nl" ? "var(--accent1)" : "var(--border)"}`,
+                    background: lang === "nl" ? "color-mix(in srgb, var(--accent1) 18%, transparent)" : "transparent",
+                    color: "var(--text)",
+                    fontSize: 13,
+                    fontWeight: lang === "nl" ? 700 : 500,
+                    cursor: "pointer",
+                  }}
+                >
+                  NL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLang("en")}
+                  style={{
+                    flex: 1,
+                    padding: "8px 10px",
+                    borderRadius: 10,
+                    border: `1px solid ${lang === "en" ? "var(--accent1)" : "var(--border)"}`,
+                    background: lang === "en" ? "color-mix(in srgb, var(--accent1) 18%, transparent)" : "transparent",
+                    color: "var(--text)",
+                    fontSize: 13,
+                    fontWeight: lang === "en" ? 700 : 500,
+                    cursor: "pointer",
+                  }}
+                >
+                  EN
+                </button>
+              </div>
+            </div>
+
             {menuItems.map((item, index) => {
               const content = (
                 <div
