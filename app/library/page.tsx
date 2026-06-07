@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import React, { useEffect, useMemo, useState, useRef, useCallback, Suspense } from "react";
+import { flushSync } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import {
@@ -29,9 +30,9 @@ import { getMood, type Mood as DocumentMood } from "@/components/MoodProvider";
 
 import { lookupByIsbn, isBadCoverUrl, searchBooksByTitleOrAuthor } from "@/lib/lookup";
 import { getCoverUrlForShare } from "@/lib/covers";
+import { preloadCoverDataUrl, captureElementToBlob, renderBookShareCardCanvas, isLikelyBlankShareBlob } from "@/lib/share-capture";
 import { CoverImg } from "@/components/CoverImg";
 import { CoverPlaceholder } from "@/components/CoverPlaceholder";
-import { toBlob } from "html-to-image";
 import { t, isNlUi, tPay } from "@/lib/i18n";
 import { useUiLang } from "@/components/UiLangProvider";
 import { canAddBook, demoRemaining, isProUser, seedDemoBooks } from "@/lib/demo";
@@ -56,6 +57,18 @@ function googleCoverUrl(title: string, authors: string, isbn: string, nl: boolea
   return `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=isch`;
 }
 
+function shelfHeaderOverlayBackground(mood: DocumentMood, hasCovers: boolean): string {
+  if (mood === "calm") return "var(--panel)";
+  if (mood === "bold") {
+    return hasCovers
+      ? "linear-gradient(135deg, rgba(255,138,0,0.15), rgba(255,138,0,0.08) 45%, rgba(0,0,0,0.85) 70%)"
+      : "var(--bg2)";
+  }
+  return hasCovers
+    ? "linear-gradient(135deg, rgba(109,94,252,0.35), rgba(255,73,240,0.20) 45%, rgba(0,0,0,0.7) 70%)"
+    : "linear-gradient(135deg, rgba(109,94,252,0.20), rgba(255,73,240,0.12) 45%, rgba(0,0,0,0.0) 70%), var(--bg2)";
+}
+
 function LibraryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -66,12 +79,7 @@ function LibraryPageContent() {
   const [shelves, setShelves] = useState<Shelf[]>([]);
   const [activeShelfId, setActiveShelfIdState] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [currentMood, setCurrentMood] = useState<DocumentMood>(() => {
-    if (typeof window !== "undefined") {
-      return getMood();
-    }
-    return "default";
-  });
+  const [currentMood, setCurrentMood] = useState<DocumentMood>("default");
   const [pendingIsbn, setPendingIsbn] = useState<string | null>(null);
   const [pendingData, setPendingData] = useState<{ title?: string; authors?: string[]; coverUrl?: string } | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -139,12 +147,12 @@ function LibraryPageContent() {
   const [shareBookIsbns, setShareBookIsbns] = useState<string[]>([]);
   const [shareBookCount, setShareBookCount] = useState<1 | 2>(1);
   const [shareMood, setShareMood] = useState<"aesthetic" | "bold" | "calm">("aesthetic");
+  const [shareDisplayShelf, setShareDisplayShelf] = useState<Shelf | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareBlob, setShareBlob] = useState<Blob | null>(null);
+  const [sharePreviewUrl, setSharePreviewUrl] = useState<string | null>(null);
   const [shareFilename, setShareFilename] = useState("");
   const [shareCaption, setShareCaption] = useState("");
-  const [copyImageStatus, setCopyImageStatus] = useState<"idle" | "copied" | "failed">("idle");
-  const [copyCaptionStatus, setCopyCaptionStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [searchQuery, setSearchQuery] = useState("");
   const [duplicateWarning, setDuplicateWarning] = useState<{ isbn: string; existingShelf: Shelf | null } | null>(null);
   const [showDemoLimitModal, setShowDemoLimitModal] = useState(false);
@@ -179,16 +187,15 @@ function LibraryPageContent() {
     delete: t({ nl: "Verwijderen", en: "Delete" }, lang),
     moveToShelf: t({ nl: "Verplaats naar shelf", en: "Move to shelf" }, lang),
     changeStatus: t({ nl: "Status wijzigen", en: "Change status" }, lang),
-    shareModalTitle: t({ nl: "Deel shelfie", en: "Share shelfie" }, lang),
-    shareModalTip: t({ nl: "Tip: Op mobiel krijg je de deel-knop van je telefoon.", en: "Tip: On mobile you'll get the native share sheet." }, lang),
-    downloadPng: t({ nl: "Download PNG", en: "Download PNG" }, lang),
-    copyImage: t({ nl: "Kopieer afbeelding", en: "Copy image" }, lang),
-    copied: t({ nl: "Gekopieerd!", en: "Copied!" }, lang),
-    copyFailed: t({ nl: "Kopiëren mislukt", en: "Copy failed" }, lang),
-    copyCaption: t({ nl: "Kopieer tekst", en: "Copy caption" }, lang),
-    copiedCaption: t({ nl: "Tekst gekopieerd!", en: "Copied caption!" }, lang),
-    openTikTok: t({ nl: "Open TikTok (web)", en: "Open TikTok (web)" }, lang),
-    openSystemShare: t({ nl: "Open deelmenu", en: "Open system share" }, lang),
+    shareModalTitle: t({ nl: "Deel je boek", en: "Share your book" }, lang),
+    shareModalTip: t(
+      {
+        nl: "Kies TikTok, Instagram, WhatsApp of een andere app.",
+        en: "Pick TikTok, Instagram, WhatsApp, or another app.",
+      },
+      lang
+    ),
+    shareButton: t({ nl: "Delen", en: "Share" }, lang),
     close: t({ nl: "Sluiten", en: "Close" }, lang),
     finished: t({ nl: "Finished", en: "Finished" }, lang),
     addBook: t({ nl: "Boek toevoegen", en: "Add book" }, lang),
@@ -219,6 +226,12 @@ function LibraryPageContent() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const actionMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const shareCardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (sharePreviewUrl) URL.revokeObjectURL(sharePreviewUrl);
+    };
+  }, [sharePreviewUrl]);
 
 
   // Handle Stripe return: /library?paid=1
@@ -313,9 +326,10 @@ function LibraryPageContent() {
 
   // Listen for mood changes to force re-render and apply CSS variables immediately
   useEffect(() => {
+    setCurrentMood(getMood());
+
     const handleMoodChange = () => {
-      const newMood = getMood();
-      setCurrentMood(newMood);
+      setCurrentMood(getMood());
     };
     
     // Listen for custom moodchange event
@@ -984,27 +998,31 @@ function LibraryPageContent() {
     if (selectedBook) setActionMenuBookId(null);
     try {
       // Capture current mood at generation time
-      const currentMood = typeof document !== "undefined" ? (document.documentElement.dataset.mood || "default") : "default";
-      const capturedMood: "aesthetic" | "bold" | "calm" = currentMood === "bold" ? "bold" : currentMood === "calm" ? "calm" : "aesthetic";
-      setShareMood(capturedMood);
-      
-      const shelfForTitle = activeShelf ?? { emoji: "📚", name: copy.allShelves };
-      const title = scope === "all" 
-        ? copy.allShelves 
+      const capturedMood: "aesthetic" | "bold" | "calm" =
+        currentMood === "bold" ? "bold" : currentMood === "calm" ? "calm" : "aesthetic";
+
+      const cardShelf: Shelf = selectedBook
+        ? shelves.find((s) => s.id === selectedBook.shelfId) ?? {
+            id: "share",
+            name: selectedBook.title,
+            emoji: "📖",
+            createdAt: Date.now(),
+          }
+        : scope === "all"
+          ? { id: "all", name: copy.allShelves, emoji: "📚", createdAt: Date.now() }
+          : activeShelf ?? { id: "all", name: copy.allShelves, emoji: "📚", createdAt: Date.now() };
+
+      const shelfForTitle = cardShelf;
+      const title = scope === "all" && !selectedBook
+        ? copy.allShelves
         : `${shelfForTitle.emoji || "📚"} ${shelfForTitle.name}`;
-      const isMobile =
-        typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-      // Use same-origin proxy for covers so the share card image can load (avoids CORS with html-to-image).
       const origin = typeof window !== "undefined" ? window.location.origin : "";
-      const proxyUrl = (raw: string) =>
-        origin ? `${origin}/api/cover?url=${encodeURIComponent(raw)}` : "";
 
+      // Preload covers as data URLs so html-to-image captures them reliably (no CORS / fade-in).
       const picked: string[] = [];
       const pickedTitles: string[] = [];
       const pickedAuthors: string[][] = [];
       const pickedIsbns: string[] = [];
-      const seen = new Set<string>();
 
       for (const b of availableBooks.slice(0, count)) {
         if (picked.length >= count) break;
@@ -1013,37 +1031,40 @@ function LibraryPageContent() {
         const bookAuthors = b.authors || [];
         const bookIsbn = b.isbn13 || "";
         const coverUrl = getCoverUrlForShare(b);
+        const dataUrl =
+          coverUrl && origin ? await preloadCoverDataUrl(coverUrl, origin) : "";
 
-        if (coverUrl && !seen.has(coverUrl) && origin) {
-          seen.add(coverUrl);
-          picked.push(proxyUrl(coverUrl));
-          pickedTitles.push(bookTitle);
-          pickedAuthors.push(bookAuthors);
-          pickedIsbns.push(bookIsbn);
-        } else {
-          picked.push("");
-          pickedTitles.push(bookTitle);
-          pickedAuthors.push(bookAuthors);
-          pickedIsbns.push(bookIsbn);
-        }
+        picked.push(dataUrl);
+        pickedTitles.push(bookTitle);
+        pickedAuthors.push(bookAuthors);
+        pickedIsbns.push(bookIsbn);
       }
 
-      // Update the hidden ShareCard contents (covers, titles, authors, and ISBNs) before capture.
-      setShareCoverUrls(picked);
-      setShareBookTitles(pickedTitles);
-      setShareBookAuthors(pickedAuthors);
-      setShareBookIsbns(pickedIsbns);
-      setShareBookCount(count as 1 | 2);
-      await new Promise<void>((r) => requestAnimationFrame(() => r()));
-      // Give proxy cover images time to load before capturing
-      await new Promise<void>((r) => setTimeout(r, 700));
-
-      const blob = await toBlob(shareCardRef.current, {
-        cacheBust: true,
-        pixelRatio: 2,
+      // Update ShareCard DOM synchronously before capture.
+      flushSync(() => {
+        setShareMood(capturedMood);
+        setShareDisplayShelf(cardShelf);
+        setShareCoverUrls(picked);
+        setShareBookTitles(pickedTitles);
+        setShareBookAuthors(pickedAuthors);
+        setShareBookIsbns(pickedIsbns);
+        setShareBookCount(count as 1 | 2);
       });
 
-      if (!blob) {
+      let blob: Blob | null = null;
+      if (shareCardRef.current) {
+        blob = await captureElementToBlob(shareCardRef.current);
+      }
+
+      if (isLikelyBlankShareBlob(blob) && count === 1) {
+        blob = await renderBookShareCardCanvas({
+          shelfLabel: title,
+          bookTitle: pickedTitles[0] || "Unknown",
+          coverDataUrl: picked[0] || "",
+        });
+      }
+
+      if (isLikelyBlankShareBlob(blob)) {
         showToast(t({ nl: "Fout bij genereren van afbeelding", en: "Error generating image" }, lang));
         return;
       }
@@ -1072,27 +1093,12 @@ function LibraryPageContent() {
       setShareBlob(blob);
       setShareFilename(filename);
       setShareCaption(caption);
-      setCopyImageStatus("idle");
-      setCopyCaptionStatus("idle");
+      setSharePreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(blob);
+      });
 
-      if (isMobile && navigator.share) {
-        const file = new File([blob], filename, { type: "image/png" });
-        if ((navigator as any).canShare?.({ files: [file] })) {
-          try {
-            trackEvent("share_shelfie_clicked", { method: "mobile_share" });
-            await navigator.share({
-              title,
-              text: caption,
-              files: [file],
-            });
-            return;
-          } catch {
-            // If user cancels or share fails, open modal for download/copy.
-          }
-        }
-      }
-
-      // Desktop (or fallback): show options modal
+      // Always show modal with preview so user sees cover + text before sharing
       setShareModalOpen(true);
     } catch (error) {
       const msg =
@@ -1126,6 +1132,44 @@ function LibraryPageContent() {
     URL.revokeObjectURL(url);
   }
 
+  async function shareShelfieImage() {
+    if (!shareBlob) return;
+
+    const file = new File([shareBlob], shareFilename || "shelfie.png", { type: "image/png" });
+    const canShareFiles =
+      typeof navigator !== "undefined" &&
+      typeof navigator.share === "function" &&
+      ((navigator as Navigator & { canShare?: (data: ShareData) => boolean }).canShare?.({ files: [file] }) ??
+        true);
+
+    if (canShareFiles) {
+      try {
+        trackEvent("share_shelfie_clicked", { method: "native_share" });
+        await navigator.share({
+          title: "ShelfieEase",
+          text: shareCaption || undefined,
+          files: [file],
+        });
+        setShareModalOpen(false);
+        return;
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+      }
+    }
+
+    trackEvent("share_shelfie_clicked", { method: "download_fallback" });
+    downloadImage(shareBlob, shareFilename || "shelfie.png");
+    showToast(
+      t(
+        {
+          nl: "Afbeelding gedownload — upload in je app.",
+          en: "Image downloaded — upload in your app.",
+        },
+        lang
+      )
+    );
+  }
+
   // activeShelf is now defined earlier as useMemo (see line 529)
 
   // Get first few covers for blurred background
@@ -1137,6 +1181,11 @@ function LibraryPageContent() {
       .slice(0, 3)
       .map((b) => toHttps(b.coverUrl || ""));
   }, [activeBooks]);
+
+  const shelfHeaderOverlay = useMemo(
+    () => shelfHeaderOverlayBackground(currentMood, shelfCovers.length > 0),
+    [currentMood, shelfCovers.length]
+  );
 
   return (
     <main style={page}>
@@ -1161,20 +1210,7 @@ function LibraryPageContent() {
           style={{
             position: "absolute",
             inset: 0,
-            background:
-              typeof document !== "undefined" && document.documentElement.dataset.mood === "calm"
-                ? "var(--panel)" // Calm mood: no gradients, just plain panel color
-                : typeof document !== "undefined" && document.documentElement.dataset.mood === "bold"
-                ? shelfCovers.length > 0
-                  ? "linear-gradient(135deg, rgba(255,138,0,0.15), rgba(255,138,0,0.08) 45%, rgba(0,0,0,0.85) 70%)"
-                  : "var(--bg2)"
-                : typeof document !== "undefined" && document.documentElement.dataset.mood === "default"
-                ? shelfCovers.length > 0
-                  ? "linear-gradient(135deg, rgba(109,94,252,0.35), rgba(255,73,240,0.20) 45%, rgba(0,0,0,0.7) 70%)"
-                  : "linear-gradient(135deg, rgba(109,94,252,0.20), rgba(255,73,240,0.12) 45%, rgba(0,0,0,0.0) 70%), var(--bg2)"
-                : shelfCovers.length > 0
-                ? "linear-gradient(135deg, rgba(109,94,252,0.35), rgba(255,73,240,0.20) 45%, rgba(0,0,0,0.7) 70%)"
-                : "linear-gradient(135deg, rgba(109,94,252,0.22), rgba(255,73,240,0.10) 45%, rgba(0,0,0,0) 70%), #121218",
+            background: shelfHeaderOverlay,
             zIndex: 0,
           }}
         />
@@ -1199,9 +1235,7 @@ function LibraryPageContent() {
               <div style={{
                 ...dropdown,
                 backdropFilter: "blur(16px)",
-                background: typeof document !== "undefined" && document.documentElement.dataset.mood === "default"
-                  ? "rgba(20, 19, 29, 0.95)"
-                  : "var(--panelSolid)",
+                background: currentMood === "default" ? "rgba(20, 19, 29, 0.95)" : "var(--panelSolid)",
               }}>
                 {shelves.map((shelf) => {
                   const shelfBookCount = books.filter((b) => b.shelfId === shelf.id).length;
@@ -1330,42 +1364,51 @@ function LibraryPageContent() {
         </div>
       </div>
 
-      {/* Hidden Share Card for rendering - show when a shelf is selected OR scope is "all" so Share shelfie always has a ref */}
-      {(activeShelf || scope === "all") && (() => {
-        // Use captured mood from state, fallback to current mood if not set
-        const currentMood = shareMood || (typeof document !== "undefined" ? (document.documentElement.dataset.mood || "default") : "default");
-        // Preserve the mood: bold -> bold, calm -> aesthetic (calm style), default/aesthetic -> aesthetic
-        const shareVariant: "aesthetic" | "bold" = currentMood === "bold" ? "bold" : "aesthetic";
-        const finalMood: "aesthetic" | "bold" | "calm" = currentMood === "calm" ? "calm" : currentMood === "bold" ? "bold" : "aesthetic";
-        // Create a virtual shelf for "All shelves" mode; otherwise use selected shelf
-        const displayShelf: Shelf = scope === "all"
-          ? { id: "all", name: copy.allShelves, emoji: "📚", createdAt: Date.now() }
-          : activeShelf ?? { id: "all", name: copy.allShelves, emoji: "📚", createdAt: Date.now() };
-        
-        return (
-          <div style={{ position: "fixed", left: "-10000px", top: 0, opacity: 0, pointerEvents: "none" }}>
-            <ShareCard
-              ref={shareCardRef}
-              mode="shelfie"
-              shelf={displayShelf}
-              coverUrls={shareCoverUrls}
-              bookTitles={shareBookTitles}
-              bookAuthors={shareBookAuthors}
-              bookIsbns={shareBookIsbns}
-              bookCount={shareBookCount}
-              variant={shareVariant}
-              mood={finalMood}
-              stats={stats}
-            />
-          </div>
-        );
-      })()}
+      {/* Off-screen ShareCard for DOM capture (no visibility:hidden — breaks html-to-image) */}
+      <div
+        style={{
+          position: "fixed",
+          left: "-12000px",
+          top: 0,
+          width: 1080,
+          pointerEvents: "none",
+        }}
+      >
+        <ShareCard
+          ref={shareCardRef}
+          mode="shelfie"
+          shelf={
+            shareDisplayShelf ?? {
+              id: "all",
+              name: copy.allShelves,
+              emoji: "📚",
+              createdAt: Date.now(),
+            }
+          }
+          coverUrls={shareCoverUrls}
+          bookTitles={shareBookTitles}
+          bookAuthors={shareBookAuthors}
+          bookIsbns={shareBookIsbns}
+          bookCount={shareBookCount}
+          variant={
+            shareMood === "bold" ? "bold" : "aesthetic"
+          }
+          mood={
+            shareMood === "calm" ? "calm" : shareMood === "bold" ? "bold" : "aesthetic"
+          }
+          stats={stats}
+        />
+      </div>
 
       {shareModalOpen && (
         <div
           style={modalOverlay}
           onClick={() => {
             setShareModalOpen(false);
+            setSharePreviewUrl((prev) => {
+              if (prev) URL.revokeObjectURL(prev);
+              return null;
+            });
           }}
         >
           <div style={modal} onClick={(e) => e.stopPropagation()}>
@@ -1375,113 +1418,44 @@ function LibraryPageContent() {
               {copy.shareModalTip}
             </p>
 
+            {sharePreviewUrl && (
+              <img
+                src={sharePreviewUrl}
+                alt={copy.shareModalTitle}
+                style={{
+                  width: "100%",
+                  maxHeight: 360,
+                  objectFit: "contain",
+                  borderRadius: 12,
+                  marginBottom: 12,
+                  border: "1px solid var(--border)",
+                  background: "#111",
+                }}
+              />
+            )}
+
             <div style={{ display: "grid", gap: 10 }}>
               <button
                 style={btnPrimary}
-                onClick={() => {
-                  if (!shareBlob || !shareFilename) return;
-                  trackEvent("share_shelfie_clicked", { method: "download" });
-                  downloadImage(shareBlob, shareFilename);
-                }}
+                disabled={!shareBlob}
+                onClick={() => void shareShelfieImage()}
               >
-                {copy.downloadPng}
-              </button>
-
-              <button
-                style={btnGhost}
-                disabled={
-                  !shareBlob ||
-                  !(navigator as any)?.clipboard?.write ||
-                  typeof (window as any)?.ClipboardItem === "undefined"
-                }
-                onClick={async () => {
-                  if (!shareBlob) return;
-                  try {
-                    const ClipboardItemCtor = (window as any).ClipboardItem;
-                    await (navigator as any).clipboard.write([
-                      new ClipboardItemCtor({ "image/png": shareBlob }),
-                    ]);
-                    setCopyImageStatus("copied");
-                    window.setTimeout(() => setCopyImageStatus("idle"), 1500);
-                  } catch {
-                    setCopyImageStatus("failed");
-                  }
-                }}
-                title={
-                  (navigator as any)?.clipboard?.write && typeof (window as any)?.ClipboardItem !== "undefined"
-                    ? "Copy image to clipboard"
-                    : "Copy not supported in this browser"
-                }
-              >
-                {copyImageStatus === "copied"
-                  ? copy.copied
-                  : copyImageStatus === "failed"
-                    ? copy.copyFailed
-                    : copy.copyImage}
-              </button>
-
-              <button
-                style={btnGhost}
-                disabled={!shareCaption || !(navigator as any)?.clipboard?.writeText}
-                onClick={async () => {
-                  if (!shareCaption) return;
-                  try {
-                    await (navigator as any).clipboard.writeText(shareCaption);
-                    setCopyCaptionStatus("copied");
-                    window.setTimeout(() => setCopyCaptionStatus("idle"), 1500);
-                  } catch {
-                    setCopyCaptionStatus("failed");
-                  }
-                }}
-                title={(navigator as any)?.clipboard?.writeText ? "Copy caption" : "Copy caption not supported"}
-              >
-                {copyCaptionStatus === "copied"
-                  ? copy.copiedCaption
-                  : copyCaptionStatus === "failed"
-                    ? t({ nl: "Kopiëren tekst mislukt", en: "Copy caption failed" }, lang)
-                    : copy.copyCaption}
+                {copy.shareButton}
               </button>
 
               <button
                 style={btnGhost}
                 onClick={() => {
-                  const url = "https://www.tiktok.com/upload?lang=en";
-                  const w = window.open(url, "_blank", "noopener,noreferrer");
-                  if (!w) window.open("https://www.tiktok.com/", "_blank", "noopener,noreferrer");
+                  setShareModalOpen(false);
+                  setSharePreviewUrl((prev) => {
+                    if (prev) URL.revokeObjectURL(prev);
+                    return null;
+                  });
                 }}
               >
-                {copy.openTikTok}
-              </button>
-
-              <button
-                style={btnGhost}
-                disabled={!shareBlob || !navigator.share}
-                onClick={async () => {
-                  if (!shareBlob) return;
-                  if (!navigator.share) return;
-                  trackEvent("share_shelfie_clicked", { method: "native_share" });
-                  const file = new File([shareBlob], shareFilename || "shelf.png", { type: "image/png" });
-                  if ((navigator as any).canShare?.({ files: [file] })) {
-                    try {
-                      await navigator.share({
-                        title: "ShelfieEase",
-                        text: shareCaption || "Sharing my Shelfie",
-                        files: [file],
-                      });
-                    } catch {
-                      // ignore
-                    }
-                  }
-                }}
-                title="Open system share (optional)"
-              >
-                {copy.openSystemShare}
-              </button>
-
-              <button style={btnGhost} onClick={() => setShareModalOpen(false)}>
                 {copy.close}
               </button>
-        </div>
+            </div>
           </div>
         </div>
       )}
@@ -2040,7 +2014,7 @@ function LibraryPageContent() {
                 {copy.cancel}
               </button>
               <button
-                style={{ ...btnPrimary, background: "var(--danger)", color: typeof document !== "undefined" && document.documentElement.dataset.mood === "calm" ? "#4A3825" : "#fff" }}
+                style={{ ...btnPrimary, background: "var(--danger)", color: currentMood === "calm" ? "#4A3825" : "#fff" }}
                 onClick={() => handleDeleteBook(showDeleteConfirm)}
               >
                 {copy.delete}
@@ -2619,7 +2593,7 @@ function LibraryPageContent() {
 
                 {(() => {
                   const nl = isNlUi();
-                  const isCalm = typeof document !== "undefined" && document.documentElement.dataset.mood === "calm";
+                  const isCalm = currentMood === "calm";
                   
                   const miniLinkBtn: React.CSSProperties = {
                     padding: "8px 10px",
@@ -2662,7 +2636,7 @@ function LibraryPageContent() {
                             // Use normalizeStatus to ensure consistent display
                             const s = normalizeStatus(b.status);
                             const label = s === "Finished" ? copy.read : s === "Reading" ? copy.reading : copy.tbr;
-                            return <span style={badgeFor(s)}>{label}</span>;
+                            return <span style={badgeFor(s, currentMood)}>{label}</span>;
                           })()}
                         </div>
               </div>
@@ -3024,6 +2998,7 @@ const ShareCard = React.forwardRef<
         {src && !showPlaceholder ? (
           <>
             <CoverImg
+              instant
               src={src}
               alt="Book cover"
               style={{
@@ -3810,10 +3785,8 @@ const isbn: React.CSSProperties = {
   color: "var(--muted)",
 };
 
-function badgeFor(status: string): React.CSSProperties {
-  // Subtle pill-style label - not clickable
-  // Mood-aware colors (same as stats page)
-  const isCalm = typeof document !== "undefined" && document.documentElement.dataset.mood === "calm";
+function badgeFor(status: string, mood: DocumentMood): React.CSSProperties {
+  const isCalm = mood === "calm";
   
   let background = "";
   if (status === "TBR") {

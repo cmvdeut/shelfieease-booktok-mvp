@@ -8,6 +8,7 @@ import { UiLangProvider } from "@/components/UiLangProvider";
 import { MoodSwitcher } from "@/components/MoodSwitcher";
 import { AppMenu } from "@/components/AppMenu";
 import UiBoot from "@/components/UiBoot";
+import { TikTokOAuthCallback } from "@/components/TikTokOAuthCallback";
 import {
   buildJsonLdGraph,
   DEFAULT_DESCRIPTION,
@@ -268,6 +269,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         }}
       >
         <UiBoot />
+        <TikTokOAuthCallback />
         <UiLangProvider>
           <MoodProvider>
             <ClientErrorTrap />

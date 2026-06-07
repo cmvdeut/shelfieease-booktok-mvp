@@ -2,13 +2,15 @@
 
 import React, { useEffect, useState } from "react";
 
-export function CoverImg(props: React.ImgHTMLAttributes<HTMLImageElement>) {
-  const { src, onError, style, ...rest } = props;
-  const [ok, setOk] = useState(false);
+export function CoverImg(
+  props: React.ImgHTMLAttributes<HTMLImageElement> & { instant?: boolean }
+) {
+  const { src, onError, style, instant, ...rest } = props;
+  const [ok, setOk] = useState(Boolean(instant));
 
   useEffect(() => {
-    setOk(false);
-  }, [src]);
+    setOk(Boolean(instant));
+  }, [src, instant]);
 
   if (!src) return null;
 
@@ -23,8 +25,8 @@ export function CoverImg(props: React.ImgHTMLAttributes<HTMLImageElement>) {
       src={src}
       style={{
         ...(style || {}),
-        opacity: ok ? 1 : 0,
-        transition: "opacity 160ms ease",
+        opacity: instant || ok ? 1 : 0,
+        transition: instant ? "none" : "opacity 160ms ease",
       }}
       onLoad={(e) => {
         const img = e.currentTarget;

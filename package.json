@@ -18,7 +18,10 @@
     "social:worker:once": "cross-env DATABASE_URL=file:./prisma/social.db tsx scripts/social-worker.ts --once",
     "social:setup": "npm run db:push && npm run social:seed",
     "social:sync-pilars": "node scripts/sync-pilars-to-public.js",
-    "social:export-sheet": "node scripts/export-social-sheet.js"
+    "social:export-sheet": "node scripts/export-social-sheet.js",
+    "post:blotato": "npx tsx scripts/post-blotato.ts",
+    "tiktok:auth": "node scripts/tiktok-auth.js",
+    "tiktok:stats": "node scripts/fetch-tiktok-stats.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
