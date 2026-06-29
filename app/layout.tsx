@@ -2,6 +2,7 @@ import "./globals.css";
 
 import Script from "next/script";
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { ClientErrorTrap } from "@/components/ClientErrorTrap";
 import { MoodProvider } from "@/components/MoodProvider";
 import { UiLangProvider } from "@/components/UiLangProvider";
@@ -289,6 +290,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             `
           }}
         />
+        <Analytics />
       </body>
     </html>
   );
