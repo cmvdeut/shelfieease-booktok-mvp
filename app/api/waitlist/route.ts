@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
+import { addContactToBrevo } from "@/lib/brevo";
 
 const redis =
   process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
@@ -17,17 +18,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid email" }, { status: 400 });
   }
 
-  if (!redis) {
+  if (redis) {
+    await redis.sadd("waitlist:emails", email);
+    await redis.hset(`waitlist:meta:${email}`, {
+      addedAt: new Date().toISOString(),
+      source: "upgrade-wall",
+    });
+  } else {
     // Graceful degradation: log and accept without storing
     console.warn("Waitlist: Redis not configured, email not stored:", email);
-    return NextResponse.json({ ok: true });
   }
 
-  await redis.sadd("waitlist:emails", email);
-  await redis.hset(`waitlist:meta:${email}`, {
-    addedAt: new Date().toISOString(),
-    source: "upgrade-wall",
-  });
+  // Best-effort sync to Brevo so captured emails feed real marketing tooling,
+  // not just the internal Redis set.
+  await addContactToBrevo(email, "upgrade-wall");
 
   return NextResponse.json({ ok: true });
 }

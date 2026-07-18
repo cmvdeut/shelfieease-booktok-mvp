@@ -9,64 +9,39 @@ import { useUiLang } from "@/components/UiLangProvider";
 import { isProUser } from "@/lib/demo";
 import { trackEvent } from "@/lib/analytics";
 
-// Headlines per mood with NL/EN
-const headlines = {
-  default: {
-    nl: "Scan je boekenkast. Nooit meer twijfelen of je het al hebt.",
-    en: "Scan your bookshelf. Never wonder if you already own it.",
-  },
-  bold: {
-    nl: "Scan je boekenkast. Nooit meer twijfelen of je het al hebt.",
-    en: "Scan your bookshelf. Never wonder if you already own it.",
-  },
-  calm: {
-    nl: "Scan je boekenkast. Nooit meer twijfelen of je het al hebt.",
-    en: "Scan your bookshelf. Never wonder if you already own it.",
-  },
+// Headline copy doesn't currently vary by mode — kept as a single dict.
+const headline = {
+  nl: "Scan je boekenkast. Nooit meer twijfelen of je het al hebt.",
+  en: "Scan your bookshelf. Never wonder if you already own it.",
 };
 
-// Subheadlines per mood with NL/EN
-const subheadlines = {
-  default: {
-    nl: "Voorkom dubbele aankopen, zet je TBR op orde en deel een shelfie voor BookTok. Geen download. Geen account. Gratis tot 10 boeken.",
-    en: "Avoid duplicate buys, organize your TBR in minutes, and share a shelfie made for BookTok. No download. No sign-up. Free up to 10 books.",
-  },
-  bold: {
-    nl: "Voorkom dubbele aankopen, zet je TBR op orde en deel een shelfie voor BookTok. Geen download. Geen account. Gratis tot 10 boeken.",
-    en: "Avoid duplicate buys, organize your TBR in minutes, and share a shelfie made for BookTok. No download. No sign-up. Free up to 10 books.",
-  },
-  calm: {
-    nl: "Voorkom dubbele aankopen, zet je TBR op orde en deel een shelfie voor BookTok. Geen download. Geen account. Gratis tot 10 boeken.",
-    en: "Avoid duplicate buys, organize your TBR in minutes, and share a shelfie made for BookTok. No download. No sign-up. Free up to 10 books.",
-  },
+const subheadline = {
+  nl: "Voorkom dubbele aankopen, zet je TBR op orde en deel een shelfie voor BookTok. Geen download. Geen account. Gratis tot 10 boeken.",
+  en: "Avoid duplicate buys, organize your TBR in minutes, and share a shelfie made for BookTok. No download. No sign-up. Free up to 10 books.",
 };
 
-// Helper function to get headline based on mood and language
-function getHeadlineByMood(mood: Mood | null, lang: UiLang): string {
-  const effectiveMood = mood || "default";
-  const dict = headlines[effectiveMood] || headlines.default;
-  return t(dict, lang);
+function getHeadlineByMood(_mood: Mood | null, lang: UiLang): string {
+  return t(headline, lang);
 }
 
-// Helper function to get subheadline based on mood and language
-function getSubHeadlineByMood(mood: Mood | null, lang: UiLang): string {
-  const effectiveMood = mood || "default";
-  const dict = subheadlines[effectiveMood] || subheadlines.default;
-  return t(dict, lang);
+function getSubHeadlineByMood(_mood: Mood | null, lang: UiLang): string {
+  return t(subheadline, lang);
 }
 
 function HomePageInner() {
   const searchParams = useSearchParams();
   const utmSource = searchParams.get("utm_source")?.toLowerCase() ?? "";
 
-  // Always start with "default" to match server render and avoid hydration mismatch
-  const [currentMood, setCurrentMood] = useState<Mood>("default");
+  // Always start with "light" to match server render and avoid hydration mismatch
+  const [currentMood, setCurrentMood] = useState<Mood>("light");
   const [isMounted, setIsMounted] = useState(false);
   // Initialize isPro immediately on client to ensure demo notice is always visible
   const [isPro, setIsPro] = useState(() => {
     if (typeof window === "undefined") return false;
     return isProUser();
   });
+  const [footerEmail, setFooterEmail] = useState("");
+  const [footerEmailStatus, setFooterEmailStatus] = useState<"idle" | "loading" | "done">("idle");
 
   const { lang } = useUiLang();
 
@@ -116,6 +91,23 @@ function HomePageInner() {
       clearInterval(intervalId);
     };
   }, [currentMood, isMounted, isPro]);
+
+  async function handleFooterEmailSubmit() {
+    if (!footerEmail.trim() || footerEmailStatus === "loading") return;
+    setFooterEmailStatus("loading");
+    try {
+      await fetch("/api/email-capture", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: footerEmail.trim(), source: "homepage-footer" }),
+      });
+      trackEvent("email_capture_submit", { source: "homepage-footer" });
+    } catch {
+      // Silently fail — don't block the user over this
+    }
+    setFooterEmailStatus("done");
+  }
+
   return (
     <main style={{ minHeight: "100dvh", background: "var(--bg)", color: "var(--text)" }} data-ui-lang={lang}>
       {/* Background glow - mood-aware via CSS vars */}
@@ -156,9 +148,9 @@ function HomePageInner() {
       <div style={{ position: "relative", maxWidth: 448, margin: "0 auto", padding: "28px 24px 36px" }}>
         {/* Header */}
         <header style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-          <img 
-            src="/brand/v2/logo-mark.png" 
-            alt="ShelfieEase" 
+          <img
+            src="/brand/v3/logo-mark.svg"
+            alt="ShelfieEase"
             style={{ 
               height: "100px",
               width: "fit-content",
@@ -170,7 +162,7 @@ function HomePageInner() {
           />
 
           <div>
-            <h1 style={{ fontSize: "clamp(1.875rem, 2.5rem, 2.25rem)", fontWeight: 800, letterSpacing: "-0.025em", lineHeight: 1 }}>
+            <h1 style={{ fontFamily: "var(--font-display), Georgia, serif", fontSize: "clamp(1.875rem, 2.5rem, 2.25rem)", fontWeight: 700, letterSpacing: "-0.01em", lineHeight: 1 }}>
               ShelfieEase
             </h1>
             <p style={{ marginTop: 4, fontSize: 14, color: "var(--muted)", lineHeight: 1.2 }}>
@@ -219,15 +211,16 @@ function HomePageInner() {
               </p>
             </div>
 
-            {/* 9:16 shelfie card mockup */}
+            {/* 9:16 shelfie card mockup — previews the real ShareCard design
+                (app/library/page.tsx), so homepage and shared cards match. */}
             <div style={{
               flexShrink: 0,
               width: 108,
               height: 192,
               borderRadius: 14,
-              background: "linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(109,94,252,0.2)",
+              background: "linear-gradient(160deg, #FBF3EA 0%, #F7E3E8 50%, #F1D9D0 100%)",
+              border: "1px solid rgba(122,46,66,0.14)",
+              boxShadow: "0 8px 32px rgba(74,30,43,0.24)",
               display: "flex",
               flexDirection: "column",
               padding: "10px 8px 8px",
@@ -235,20 +228,22 @@ function HomePageInner() {
               overflow: "hidden",
               position: "relative",
             }}>
-              {/* Glow */}
-              <div style={{
-                position: "absolute", top: -20, right: -20,
-                width: 80, height: 80, borderRadius: "50%",
-                background: "radial-gradient(circle, rgba(109,94,252,0.3), transparent)",
-                pointerEvents: "none",
-              }} />
+              {/* Sticker accent */}
+              <svg width="16" height="16" viewBox="0 0 40 40" style={{ position: "absolute", top: 6, right: 8 }}>
+                <path
+                  d="M20 2 L23.5 15.5 L37 20 L23.5 24.5 L20 38 L16.5 24.5 L3 20 L16.5 15.5 Z"
+                  fill="#F4D35E"
+                  stroke="#7A2E42"
+                  strokeWidth="1.5"
+                />
+              </svg>
 
               {/* Card header */}
-              <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.9)", letterSpacing: "0.03em" }}>
+              <div style={{ fontFamily: "var(--font-display), Georgia, serif", fontSize: 10, fontWeight: 700, color: "#4A1E2B", letterSpacing: "0.01em" }}>
                 My Shelf 📚
               </div>
 
-              {/* Book covers */}
+              {/* Book covers — remain the most colorful element on the card */}
               <div style={{ display: "flex", gap: 4, flex: 1 }}>
                 {/* Column 1 */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
@@ -266,10 +261,10 @@ function HomePageInner() {
 
               {/* Card footer */}
               <div style={{
-                fontSize: 7, color: "rgba(255,255,255,0.5)",
+                fontSize: 7, color: "#9C6B7C",
                 textAlign: "center", letterSpacing: "0.04em", fontWeight: 600,
               }}>
-                @shelfieease
+                shelfieease.app
               </div>
             </div>
           </div>
@@ -484,6 +479,58 @@ function HomePageInner() {
         </section>
 
         <footer style={{ marginTop: 48, paddingTop: 24, borderTop: "1px solid var(--border)", textAlign: "center" }}>
+          <div style={{ marginBottom: 24 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 8 }}>
+              {t({ nl: "Blijf op de hoogte van nieuwe features", en: "Get notified about new features" }, lang)}
+            </p>
+            {footerEmailStatus === "done" ? (
+              <p style={{ fontSize: 13, color: "var(--accent1)" }}>
+                {t({ nl: "Bedankt! We houden je op de hoogte. 📚", en: "Thanks! We'll keep you posted. 📚" }, lang)}
+              </p>
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleFooterEmailSubmit();
+                }}
+                style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}
+              >
+                <input
+                  type="email"
+                  required
+                  value={footerEmail}
+                  onChange={(e) => setFooterEmail(e.target.value)}
+                  placeholder={t({ nl: "jouw@email.nl", en: "your@email.com" }, lang)}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: "var(--radiusButton, 20px)",
+                    border: "1px solid var(--border)",
+                    background: "var(--panel)",
+                    color: "var(--text)",
+                    fontSize: 13,
+                    minWidth: 180,
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={footerEmailStatus === "loading"}
+                  style={{
+                    padding: "10px 18px",
+                    borderRadius: "var(--radiusButton, 20px)",
+                    border: "1px solid var(--border)",
+                    background: "var(--btnPrimaryBg)",
+                    color: "var(--btnPrimaryText, var(--text))",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  {footerEmailStatus === "loading" ? "…" : t({ nl: "Aanmelden", en: "Sign up" }, lang)}
+                </button>
+              </form>
+            )}
+          </div>
+
           <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 16 }}>
             <a
               href="https://www.tiktok.com/@shelfieease"
@@ -527,8 +574,14 @@ function HomePageInner() {
             <Link href="/booktok-shelf-tracker" style={{ color: "var(--muted2)", textDecoration: "none" }}>
               {t({ nl: "BookTok tracker", en: "BookTok tracker" }, lang)}
             </Link>
+            <Link href="/reading-tracker" style={{ color: "var(--muted2)", textDecoration: "none" }}>
+              {t({ nl: "Reading tracker", en: "Reading tracker" }, lang)}
+            </Link>
             <Link href="/goodreads-alternative" style={{ color: "var(--muted2)", textDecoration: "none" }}>
               {t({ nl: "Goodreads-alternatief", en: "Goodreads alternative" }, lang)}
+            </Link>
+            <Link href="/storygraph-alternative" style={{ color: "var(--muted2)", textDecoration: "none" }}>
+              {t({ nl: "StoryGraph-alternatief", en: "StoryGraph alternative" }, lang)}
             </Link>
             <Link href="/isbn-book-scanner" style={{ color: "var(--muted2)", textDecoration: "none" }}>
               {t({ nl: "ISBN-scanner", en: "ISBN scanner" }, lang)}
