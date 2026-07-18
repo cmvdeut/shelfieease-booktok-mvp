@@ -1,12 +1,13 @@
-# UITGESCHAKELD (mei 2026) — gebruik Social Hub (docs/SOCIAL-HUB.md) of handmatig posten.
-# Zie docs/MANUAL-SOCIAL-POSTING.md en scheduled-posts.json als planningskalender.
-#
-# Deze workflow draait niet meer op een schema. Alleen nog startbaar via GitHub UI
-# en doet dan niets (if: false).
+# Publiceert due posts uit scheduled-posts.json via de Blotato API, elke 15 minuten.
+# Vervangt de oude directe TikTok/Instagram-publishers (uitgeschakeld mei 2026, zie
+# docs/SOCIAL-HUB.md voor de geschiedenis) — dit is nu het primaire publish-pad.
+# npm run social:worker blijft als lokale/handmatige fallback beschikbaar.
 
-name: Publish Scheduled Social Media Posts (disabled)
+name: Publish Scheduled Social Media Posts
 
 on:
+  schedule:
+    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 concurrency:
@@ -18,11 +19,30 @@ permissions:
 
 jobs:
   publish:
-    if: false
     runs-on: ubuntu-latest
     steps:
-      - name: Disabled
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish due posts via Blotato
+        env:
+          BLOTATO_API_KEY: ${{ secrets.BLOTATO_API_KEY }}
+          BLOTATO_TIKTOK_USERNAME: ${{ secrets.BLOTATO_TIKTOK_USERNAME }}
+          BLOTATO_INSTAGRAM_USERNAME: ${{ secrets.BLOTATO_INSTAGRAM_USERNAME }}
+        run: npx tsx scripts/publish-scheduled-blotato.ts
+
+      - name: Commit updated schedule + log
         run: |
-          echo "Automatisch posten is uitgeschakeld."
-          echo "Gebruik docs/SOCIAL-HUB.md (lokaal) of scheduled-posts.json handmatig."
-          exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scheduled-posts.json social-posts-log.md
+          git diff --cached --quiet || git commit -m "Auto-publish scheduled posts via Blotato [skip ci]"
+          git push
