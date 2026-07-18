@@ -11,13 +11,13 @@ import { trackEvent } from "@/lib/analytics";
 
 // Headline copy doesn't currently vary by mode — kept as a single dict.
 const headline = {
-  nl: "Scan je boekenkast. Nooit meer twijfelen of je het al hebt.",
-  en: "Scan your bookshelf. Never wonder if you already own it.",
+  nl: "Geen reading-app met een feed. Een tool voor je fysieke plank.",
+  en: "Not a reading app with a feed. A tool for your physical shelf.",
 };
 
 const subheadline = {
-  nl: "Voorkom dubbele aankopen, zet je TBR op orde en deel een shelfie voor BookTok. Geen download. Geen account. Gratis tot 10 boeken.",
-  en: "Avoid duplicate buys, organize your TBR in minutes, and share a shelfie made for BookTok. No download. No sign-up. Free up to 10 books.",
+  nl: "Scan je boeken, zie wat je al hebt, en deel in seconden een shelfie of wat je aan het lezen bent — klaar voor BookTok. Geen feed. Geen account. Geen download. Gratis tot 10 boeken.",
+  en: "Scan your books, know what you own, and share a shelfie or what you're reading in seconds — ready for BookTok. No feed. No account. No download. Free up to 10 books.",
 };
 
 function getHeadlineByMood(_mood: Mood | null, lang: UiLang): string {
