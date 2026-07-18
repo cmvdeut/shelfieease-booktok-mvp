@@ -3,23 +3,30 @@
 import { useEffect, useRef } from "react";
 import { getActiveShelfId, loadShelves } from "@/lib/storage";
 
-// Shelf mood type (from storage)
-type ShelfMood = "aesthetic" | "bold" | "calm";
-// Document mood type (for dataset.mood)
-export type Mood = "default" | "bold" | "calm";
+// Shelf mood type (from storage) — legacy 3-value type kept for old stored shelves
+type ShelfMood = "aesthetic" | "bold" | "calm" | "light" | "dark";
+// Document mood type (for dataset.mood) — "Modern Bookish Romance" has two modes
+export type Mood = "light" | "dark";
 
-const DEFAULT_SHELF_MOOD: ShelfMood = "aesthetic";
-const DEFAULT_MOOD: Mood = "default";
+const DEFAULT_SHELF_MOOD: ShelfMood = "light";
+const DEFAULT_MOOD: Mood = "light";
 const STORAGE_KEY = "se:mood";
+
+// Maps old 3-mood values (from before the "Modern Bookish Romance" redesign)
+// to the new 2-mode system, so existing users' localStorage doesn't break.
+function normalizeLegacyMood(value: string): Mood | null {
+  if (value === "light" || value === "dark") return value;
+  if (value === "default" || value === "aesthetic" || value === "bold") return "dark";
+  if (value === "calm") return "light";
+  return null;
+}
 
 function getMoodFromStorage(): Mood | null {
   if (typeof window === "undefined") return null;
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "default" || stored === "bold" || stored === "calm") {
-      return stored as Mood;
-    }
-    return null;
+    if (!stored) return null;
+    return normalizeLegacyMood(stored);
   } catch {
     return null;
   }
@@ -47,13 +54,7 @@ function getMoodFromActiveShelf(): Mood {
     if (!activeShelf) return DEFAULT_MOOD;
 
     const shelfMood = activeShelf.mood || DEFAULT_SHELF_MOOD;
-    // Validate shelf mood is one of the allowed values
-    if (shelfMood === "aesthetic" || shelfMood === "bold" || shelfMood === "calm") {
-      // Map shelf mood to document mood (shelf uses "aesthetic", document uses "default")
-      return shelfMood === "aesthetic" ? "default" : shelfMood;
-    }
-
-    return DEFAULT_MOOD;
+    return normalizeLegacyMood(shelfMood) ?? DEFAULT_MOOD;
   } catch {
     return DEFAULT_MOOD;
   }
@@ -120,7 +121,7 @@ export function MoodProvider({ children }: { children: React.ReactNode }) {
         // Check and update if needed (but only if no stored mood exists)
         if (!currentStoredMood) {
           const currentMood = getMoodFromActiveShelf();
-          const currentDocumentMood = document.documentElement.dataset.mood || "default";
+          const currentDocumentMood = document.documentElement.dataset.mood || DEFAULT_MOOD;
           
           if (currentDocumentMood !== currentMood) {
             applyMood(currentMood);

@@ -58,15 +58,10 @@ function googleCoverUrl(title: string, authors: string, isbn: string, nl: boolea
 }
 
 function shelfHeaderOverlayBackground(mood: DocumentMood, hasCovers: boolean): string {
-  if (mood === "calm") return "var(--panel)";
-  if (mood === "bold") {
-    return hasCovers
-      ? "linear-gradient(135deg, rgba(255,138,0,0.15), rgba(255,138,0,0.08) 45%, rgba(0,0,0,0.85) 70%)"
-      : "var(--bg2)";
-  }
+  if (mood === "light") return "var(--panel)";
   return hasCovers
-    ? "linear-gradient(135deg, rgba(109,94,252,0.35), rgba(255,73,240,0.20) 45%, rgba(0,0,0,0.7) 70%)"
-    : "linear-gradient(135deg, rgba(109,94,252,0.20), rgba(255,73,240,0.12) 45%, rgba(0,0,0,0.0) 70%), var(--bg2)";
+    ? "linear-gradient(135deg, rgba(231,183,196,0.30), rgba(201,166,217,0.18) 45%, rgba(36,23,38,0.75) 70%)"
+    : "linear-gradient(135deg, rgba(231,183,196,0.16), rgba(201,166,217,0.10) 45%, rgba(36,23,38,0.0) 70%), var(--bg2)";
 }
 
 function LibraryPageContent() {
@@ -79,7 +74,7 @@ function LibraryPageContent() {
   const [shelves, setShelves] = useState<Shelf[]>([]);
   const [activeShelfId, setActiveShelfIdState] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [currentMood, setCurrentMood] = useState<DocumentMood>("default");
+  const [currentMood, setCurrentMood] = useState<DocumentMood>("light");
   const [pendingIsbn, setPendingIsbn] = useState<string | null>(null);
   const [pendingData, setPendingData] = useState<{ title?: string; authors?: string[]; coverUrl?: string } | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -146,7 +141,6 @@ function LibraryPageContent() {
   const [shareBookAuthors, setShareBookAuthors] = useState<string[][]>([]);
   const [shareBookIsbns, setShareBookIsbns] = useState<string[]>([]);
   const [shareBookCount, setShareBookCount] = useState<1 | 2>(1);
-  const [shareMood, setShareMood] = useState<"aesthetic" | "bold" | "calm">("aesthetic");
   const [shareDisplayShelf, setShareDisplayShelf] = useState<Shelf | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareBlob, setShareBlob] = useState<Blob | null>(null);
@@ -681,7 +675,7 @@ function LibraryPageContent() {
     const emojiTrimmed = newShelfEmoji.trim() || "📚";
     // Use current mood for new shelf in add modal
     const currentMood = getMood();
-    const shelfMood: Mood = currentMood === "default" ? "aesthetic" : currentMood;
+    const shelfMood: Mood = currentMood === "light" ? "calm" : "aesthetic";
     const shelf = createShelf(nameTrimmed, emojiTrimmed, shelfMood);
     const updatedShelves = loadShelves();
     setShelves(updatedShelves);
@@ -922,6 +916,7 @@ function LibraryPageContent() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ email: waitlistEmail.trim() }),
       });
+      trackEvent("email_capture_submit", { source: "upgrade-wall" });
     } catch {
       // Silently fail — don't block the user over this
     }
@@ -997,10 +992,6 @@ function LibraryPageContent() {
     setSharing(true);
     if (selectedBook) setActionMenuBookId(null);
     try {
-      // Capture current mood at generation time
-      const capturedMood: "aesthetic" | "bold" | "calm" =
-        currentMood === "bold" ? "bold" : currentMood === "calm" ? "calm" : "aesthetic";
-
       const cardShelf: Shelf = selectedBook
         ? shelves.find((s) => s.id === selectedBook.shelfId) ?? {
             id: "share",
@@ -1042,7 +1033,6 @@ function LibraryPageContent() {
 
       // Update ShareCard DOM synchronously before capture.
       flushSync(() => {
-        setShareMood(capturedMood);
         setShareDisplayShelf(cardShelf);
         setShareCoverUrls(picked);
         setShareBookTitles(pickedTitles);
@@ -1235,7 +1225,7 @@ function LibraryPageContent() {
               <div style={{
                 ...dropdown,
                 backdropFilter: "blur(16px)",
-                background: currentMood === "default" ? "rgba(20, 19, 29, 0.95)" : "var(--panelSolid)",
+                background: currentMood === "dark" ? "rgba(42, 25, 48, 0.95)" : "var(--panelSolid)",
               }}>
                 {shelves.map((shelf) => {
                   const shelfBookCount = books.filter((b) => b.shelfId === shelf.id).length;
@@ -1390,12 +1380,6 @@ function LibraryPageContent() {
           bookAuthors={shareBookAuthors}
           bookIsbns={shareBookIsbns}
           bookCount={shareBookCount}
-          variant={
-            shareMood === "bold" ? "bold" : "aesthetic"
-          }
-          mood={
-            shareMood === "calm" ? "calm" : shareMood === "bold" ? "bold" : "aesthetic"
-          }
           stats={stats}
         />
       </div>
@@ -1471,7 +1455,7 @@ function LibraryPageContent() {
             setSuggestedEmoji(null);
             // Reset mood to current mood for next time
             const currentMood = getMood();
-            setNewShelfMood(currentMood === "default" ? "aesthetic" : currentMood);
+            setNewShelfMood(currentMood === "light" ? "calm" : "aesthetic");
           }}
         >
           <div style={modal} onClick={(e) => e.stopPropagation()}>
@@ -1562,7 +1546,7 @@ function LibraryPageContent() {
                     setSuggestedEmoji(null);
                     // Reset mood to current mood for next time
                     const currentMood = getMood();
-                    setNewShelfMood(currentMood === "default" ? "aesthetic" : currentMood);
+                    setNewShelfMood(currentMood === "light" ? "calm" : "aesthetic");
                   }}
                 >
                   {copy.cancel}
@@ -2014,7 +1998,7 @@ function LibraryPageContent() {
                 {copy.cancel}
               </button>
               <button
-                style={{ ...btnPrimary, background: "var(--danger)", color: currentMood === "calm" ? "#4A3825" : "#fff" }}
+                style={{ ...btnPrimary, background: "var(--danger)", color: currentMood === "light" ? "#4A1E2B" : "#fff" }}
                 onClick={() => handleDeleteBook(showDeleteConfirm)}
               >
                 {copy.delete}
@@ -2593,8 +2577,8 @@ function LibraryPageContent() {
 
                 {(() => {
                   const nl = isNlUi();
-                  const isCalm = currentMood === "calm";
-                  
+                  const isCalm = currentMood === "light";
+
                   const miniLinkBtn: React.CSSProperties = {
                     padding: "8px 10px",
                     borderRadius: 12,
@@ -2793,7 +2777,10 @@ function toHttps(url: string) {
   return url.startsWith("http://") ? url.replace("http://", "https://") : url;
 }
 
-type ShareCardVariant = "aesthetic" | "bold";
+// "Modern Bookish Romance" share card — one cohesive design (no bold/aesthetic
+// variants). Warm cream/blush/berry palette with hand-drawn-style decorative
+// stickers (stars/hearts/bookmark) concentrated here, since this is the asset
+// that actually gets posted to TikTok/Instagram.
 type ShareCardTokens = {
   cardBg: string;
   cardShadow: string;
@@ -2808,80 +2795,91 @@ type ShareCardTokens = {
   statLabelSize: number;
 };
 
-function getShareCardTokens(variant: ShareCardVariant): ShareCardTokens {
-  if (variant === "bold") {
-    return {
-      cardBg:
-        "radial-gradient(1100px 900px at 18% 12%, rgba(255,73,240,0.30), rgba(255,73,240,0) 55%), radial-gradient(1100px 900px at 88% 18%, rgba(109,94,252,0.36), rgba(109,94,252,0) 60%), linear-gradient(135deg, rgba(109,94,252,0.30), rgba(255,73,240,0.18) 45%, rgba(0,0,0,0.97) 78%), #06060a",
-      cardShadow:
-        "0 28px 96px rgba(0,0,0,0.75), 0 0 0 2px rgba(255,255,255,0.07) inset, 0 0 36px rgba(255,73,240,0.06)",
-      titleSize: 88,
-      titleShadow: "0 20px 46px rgba(0,0,0,0.70)",
-      tileBorder: "2px solid rgba(255,255,255,0.18)",
-      tileShadow: "0 20px 58px rgba(0,0,0,0.62)",
-      tileFilter: "contrast(1.10) saturate(1.10)",
-      pillBg: "rgba(255,255,255,0.09)",
-      pillBorder: "2px solid rgba(255,255,255,0.14)",
-      statNumberSize: 30,
-      statLabelSize: 14,
-    };
-  }
-
+function getShareCardTokens(): ShareCardTokens {
   return {
     cardBg:
-      "radial-gradient(1100px 900px at 18% 12%, rgba(255,73,240,0.24), rgba(255,73,240,0) 55%), radial-gradient(1100px 900px at 88% 18%, rgba(109,94,252,0.30), rgba(109,94,252,0) 60%), linear-gradient(135deg, rgba(109,94,252,0.20), rgba(255,73,240,0.12) 45%, rgba(0,0,0,0.92) 78%), #090910",
+      "radial-gradient(1100px 900px at 18% 10%, rgba(231,183,196,0.55), rgba(231,183,196,0) 55%), radial-gradient(1100px 900px at 88% 16%, rgba(244,211,94,0.30), rgba(244,211,94,0) 60%), linear-gradient(160deg, #FBF3EA 0%, #F7E3E8 45%, #F1D9D0 100%)",
     cardShadow:
-      "0 24px 88px rgba(0,0,0,0.68), 0 0 0 1px rgba(255,255,255,0.06) inset, 0 0 70px rgba(255,73,240,0.10)",
-    titleSize: 78,
-    titleShadow: "0 18px 40px rgba(0,0,0,0.58)",
-    tileBorder: "1px solid rgba(255,255,255,0.14)",
-    tileShadow: "0 18px 50px rgba(0,0,0,0.55)",
+      "0 24px 88px rgba(74,30,43,0.22), 0 0 0 1px rgba(122,46,66,0.06) inset",
+    titleSize: 74,
+    titleShadow: "0 4px 18px rgba(74,30,43,0.18)",
+    tileBorder: "1px solid rgba(122,46,66,0.14)",
+    tileShadow: "0 18px 50px rgba(74,30,43,0.20)",
     tileFilter: "none",
-    pillBg: "rgba(255,255,255,0.06)",
-    pillBorder: "1px solid rgba(255,255,255,0.12)",
+    pillBg: "rgba(255,253,249,0.85)",
+    pillBorder: "1px solid rgba(122,46,66,0.14)",
     statNumberSize: 26,
     statLabelSize: 14,
   };
 }
 
-function ShareCardPreview({ variant }: { variant: ShareCardVariant }) {
-  const tokens = getShareCardTokens(variant);
-  const isBold = variant === "bold";
+// Small hand-drawn-style decorative stickers — the 30% "romantic-playful"
+// budget concentrates here rather than being scattered through the whole app.
+function StarSticker({ style }: { style?: React.CSSProperties }) {
+  return (
+    <svg width="40" height="40" viewBox="0 0 40 40" style={{ position: "absolute", ...style }}>
+      <path
+        d="M20 2 L23.5 15.5 L37 20 L23.5 24.5 L20 38 L16.5 24.5 L3 20 L16.5 15.5 Z"
+        fill="#F4D35E"
+        stroke="#7A2E42"
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function HeartSticker({ style }: { style?: React.CSSProperties }) {
+  return (
+    <svg width="34" height="34" viewBox="0 0 34 34" style={{ position: "absolute", ...style }}>
+      <path
+        d="M17 30 C6 22 2 15.5 2 10.5 C2 6 5.5 3 9.5 3 C12.5 3 15 4.8 17 8 C19 4.8 21.5 3 24.5 3 C28.5 3 32 6 32 10.5 C32 15.5 28 22 17 30 Z"
+        fill="#E7B7C4"
+        stroke="#7A2E42"
+        strokeWidth="1"
+      />
+    </svg>
+  );
+}
+
+function BookmarkSticker({ style }: { style?: React.CSSProperties }) {
+  return (
+    <svg width="28" height="46" viewBox="0 0 28 46" style={{ position: "absolute", ...style }}>
+      <path d="M2 2 H26 V44 L14 34 L2 44 Z" fill="#C9A6D9" stroke="#7A2E42" strokeWidth="1" />
+    </svg>
+  );
+}
+
+function ShareCardPreview() {
+  const tokens = getShareCardTokens();
 
   return (
     <div
       aria-label="Share card preview"
-      title={variant === "bold" ? "Bold preview" : "Aesthetic preview"}
       style={{
         width: 140,
         height: 250,
         borderRadius: 14,
         overflow: "hidden",
-  position: "relative",
+        position: "relative",
         background: tokens.cardBg,
-        boxShadow: "0 14px 36px rgba(0,0,0,0.55)",
-        border: isBold ? "2px solid rgba(255,255,255,0.10)" : "1px solid rgba(255,255,255,0.08)",
+        boxShadow: "0 14px 36px rgba(74,30,43,0.30)",
+        border: "1px solid rgba(122,46,66,0.14)",
         flex: "0 0 auto",
       }}
     >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0) 45%, rgba(0,0,0,0.58) 100%)",
-          pointerEvents: "none",
-        }}
-      />
+      <StarSticker style={{ top: 8, right: 10, width: 18, height: 18 }} />
+      <HeartSticker style={{ bottom: 44, left: 8, width: 16, height: 16 }} />
 
       <div style={{ position: "relative", padding: 10, display: "grid", gap: 10 }}>
         <div
           style={{
-            color: "#fff",
-            fontWeight: 950,
-            fontSize: isBold ? 13 : 12,
+            color: "#4A1E2B",
+            fontFamily: "var(--font-display), Georgia, serif",
+            fontWeight: 700,
+            fontSize: 13,
             lineHeight: 1.05,
             textShadow: tokens.titleShadow,
-            letterSpacing: isBold ? -0.4 : -0.3,
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -2891,21 +2889,18 @@ function ShareCardPreview({ variant }: { variant: ShareCardVariant }) {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 6 }}>
-          {Array.from({ length: 4 }).map((_, i) => {
-            const isCalm = typeof document !== "undefined" && document.documentElement.dataset.mood === "calm";
-            return (
-              <div
-                key={i}
-                style={{
-                  aspectRatio: "2 / 3",
-                  borderRadius: 10,
-                  border: tokens.tileBorder,
-                  boxShadow: "0 8px 18px rgba(0,0,0,0.45)",
-                  background: isCalm ? "#E8D9C3" : "rgba(255,255,255,0.06)",
-                }}
-              />
-            );
-          })}
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              style={{
+                aspectRatio: "2 / 3",
+                borderRadius: 10,
+                border: tokens.tileBorder,
+                boxShadow: "0 8px 18px rgba(74,30,43,0.18)",
+                background: "rgba(122,46,66,0.08)",
+              }}
+            />
+          ))}
         </div>
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -2920,12 +2915,12 @@ function ShareCardPreview({ variant }: { variant: ShareCardVariant }) {
                 borderRadius: 999,
                 background: tokens.pillBg,
                 border: tokens.pillBorder,
-                color: "rgba(255,255,255,0.85)",
-                fontWeight: 900,
+                color: "#4A1E2B",
+                fontWeight: 700,
                 fontSize: 10,
               }}
             >
-              <span style={{ fontWeight: 980, fontSize: isBold ? 12 : 11, lineHeight: 1 }}>0</span>
+              <span style={{ fontWeight: 800, fontSize: 11, lineHeight: 1 }}>0</span>
               <span>{label}</span>
             </div>
           ))}
@@ -2945,19 +2940,15 @@ const ShareCard = React.forwardRef<
     bookAuthors?: string[][];
     bookIsbns?: string[];
     bookCount?: 1 | 2;
-    variant: ShareCardVariant;
-    mood?: "aesthetic" | "bold" | "calm";
     stats: { total: number; tbr: number; reading: number; read: number };
   }
->(({ mode: modeProp, shelf, coverUrls, bookTitles = [], bookAuthors = [], bookIsbns = [], bookCount = 2, variant, mood = "aesthetic", stats }, ref) => {
+>(({ mode: modeProp, shelf, coverUrls, bookTitles = [], bookAuthors = [], bookIsbns = [], bookCount = 2, stats }, ref) => {
   const mode = modeProp ?? "share";
   const width = 1080;
   const height = 1400; // Reduced from 1920 to make cards less tall
 
   const cardRadius = 24;
-  const isBold = variant === "bold";
-  const isCalm = mood === "calm";
-  const tokens = getShareCardTokens(variant);
+  const tokens = getShareCardTokens();
 
   // Track cover URLs that failed to load so we render placeholder instead of broken img (avoids html-to-image rejecting with Event)
   const [failedCoverUrls, setFailedCoverUrls] = useState<Set<string>>(() => new Set());
@@ -2973,14 +2964,11 @@ const ShareCard = React.forwardRef<
 
   const CoverTile = ({ src, index, title, authors, isbn }: { src: string | null; index: number; title?: string; authors?: string[]; isbn?: string }) => {
     const tilt = bookCount === 1 ? 0 : 0.22;
-    
-    // Use mood-aware background for placeholder tiles
-    const tileBackground = isCalm
-      ? "linear-gradient(135deg, rgba(156, 107, 47, 0.12), rgba(156, 107, 47, 0.06)), #0f0f14"
-      : "radial-gradient(700px 500px at 15% 15%, rgba(255,73,240,0.22), rgba(255,73,240,0) 55%), radial-gradient(700px 500px at 85% 20%, rgba(109,94,252,0.26), rgba(109,94,252,0) 60%), linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0)), #0f0f14";
+    const tileBackground =
+      "radial-gradient(700px 500px at 15% 15%, rgba(231,183,196,0.30), rgba(231,183,196,0) 55%), radial-gradient(700px 500px at 85% 20%, rgba(244,211,94,0.20), rgba(244,211,94,0) 60%), #FFFDF9";
 
     const showPlaceholder = src && failedCoverUrls.has(src);
-    
+
     return (
       <div
         style={{
@@ -2992,7 +2980,7 @@ const ShareCard = React.forwardRef<
           border: tokens.tileBorder,
           boxShadow: tokens.tileShadow,
           background: tileBackground,
-          transform: isBold ? "none" : index % 2 === 0 ? `rotate(-${tilt}deg)` : `rotate(${tilt}deg)`,
+          transform: index % 2 === 0 ? `rotate(-${tilt}deg)` : `rotate(${tilt}deg)`,
         }}
       >
         {src && !showPlaceholder ? (
@@ -3035,7 +3023,8 @@ const ShareCard = React.forwardRef<
                 <div
                   style={{
                     fontSize: 26,
-                    fontWeight: 950,
+                    fontFamily: "var(--font-display), Georgia, serif",
+                    fontWeight: 700,
                     color: "#fff",
                     lineHeight: 1.2,
                     textAlign: "center",
@@ -3043,7 +3032,7 @@ const ShareCard = React.forwardRef<
                     WebkitLineClamp: 3,
                     WebkitBoxOrient: "vertical" as any,
                     overflow: "hidden",
-                    textShadow: "0 2px 10px rgba(0,0,0,0.9)",
+                    textShadow: "0 2px 10px rgba(74,30,43,0.9)",
                   }}
                 >
                   {title}
@@ -3058,7 +3047,7 @@ const ShareCard = React.forwardRef<
                 position: "absolute",
                 inset: 0,
                 background:
-                  "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0) 35%, rgba(0,0,0,0.20) 100%)",
+                  "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0) 35%, rgba(74,30,43,0.20) 100%)",
                 pointerEvents: "none",
               }}
             />
@@ -3070,14 +3059,15 @@ const ShareCard = React.forwardRef<
                   left: 0,
                   right: 0,
                   padding: "20px 16px 16px",
-                  background: "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.88) 100%)",
+                  background: "linear-gradient(180deg, rgba(74,30,43,0) 0%, rgba(74,30,43,0.75) 100%)",
                   pointerEvents: "none",
                 }}
               >
                 <div
                   style={{
                     fontSize: 26,
-                    fontWeight: 950,
+                    fontFamily: "var(--font-display), Georgia, serif",
+                    fontWeight: 700,
                     color: "#fff",
                     lineHeight: 1.2,
                     textAlign: "center",
@@ -3085,7 +3075,7 @@ const ShareCard = React.forwardRef<
                     WebkitLineClamp: 3,
                     WebkitBoxOrient: "vertical" as any,
                     overflow: "hidden",
-                    textShadow: "0 2px 10px rgba(0,0,0,0.9)",
+                    textShadow: "0 2px 10px rgba(74,30,43,0.9)",
                   }}
                 >
                   {title}
@@ -3094,7 +3084,7 @@ const ShareCard = React.forwardRef<
             )}
           </>
         ) : (
-          <CoverPlaceholder title={title || "Unknown"} authors={authors} isbn={isbn} mood={mood} />
+          <CoverPlaceholder title={title || "Unknown"} authors={authors} isbn={isbn} mood="light" />
         )}
       </div>
     );
@@ -3114,27 +3104,22 @@ const ShareCard = React.forwardRef<
         flexDirection: "column",
         padding: "60px 72px",
         boxSizing: "border-box",
-        fontFamily: "system-ui, -apple-system, sans-serif",
+        fontFamily: "var(--font-body), system-ui, -apple-system, sans-serif",
         boxShadow: tokens.cardShadow,
       }}
     >
-      <div
-        style={{
-  position: "absolute",
-  inset: 0,
-          background: "linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0) 35%, rgba(0,0,0,0.55) 100%)",
-          pointerEvents: "none",
-        }}
-      />
+      <StarSticker style={{ top: 44, right: 56, width: 44, height: 44 }} />
+      <HeartSticker style={{ top: 120, left: 48, width: 32, height: 32, transform: "rotate(-12deg)" }} />
+      <BookmarkSticker style={{ bottom: 220, right: 40, width: 30, height: 50, transform: "rotate(8deg)" }} />
 
       <div style={{ position: "relative", zIndex: 2, marginBottom: 24, textAlign: "center" }}>
         <div
           style={{
             fontSize: tokens.titleSize,
-            fontWeight: 980,
-            color: "#fff",
-            lineHeight: 1.02,
-            letterSpacing: isBold ? -0.9 : -0.6,
+            fontFamily: "var(--font-display), Georgia, serif",
+            fontWeight: 700,
+            color: "#4A1E2B",
+            lineHeight: 1.05,
             textShadow: tokens.titleShadow,
             padding: "0 10px",
             display: "-webkit-box",
@@ -3180,10 +3165,10 @@ const ShareCard = React.forwardRef<
       >
         {(
           [
-            { label: "Total", value: stats.total, glow: "rgba(255,255,255,0.10)" },
-            { label: "TBR", value: stats.tbr, glow: "rgba(109,94,252,0.18)" },
-            { label: "Reading", value: stats.reading, glow: "rgba(255,226,163,0.16)" },
-            { label: "Read", value: stats.read, glow: "rgba(191,247,239,0.14)" },
+            { label: "Total", value: stats.total, glow: "rgba(122,46,66,0.12)" },
+            { label: "TBR", value: stats.tbr, glow: "rgba(201,166,217,0.22)" },
+            { label: "Reading", value: stats.reading, glow: "rgba(244,211,94,0.22)" },
+            { label: "Read", value: stats.read, glow: "rgba(231,183,196,0.22)" },
           ] as const
         ).map((s) => (
           <div
@@ -3199,10 +3184,10 @@ const ShareCard = React.forwardRef<
               boxShadow: `0 14px 40px ${s.glow}`,
             }}
           >
-            <div style={{ fontSize: tokens.statNumberSize, fontWeight: 980, color: "#fff", lineHeight: 1 }}>
+            <div style={{ fontSize: tokens.statNumberSize, fontWeight: 800, color: "#4A1E2B", lineHeight: 1 }}>
               {s.value}
             </div>
-            <div style={{ fontSize: tokens.statLabelSize, color: "rgba(255,255,255,0.80)", fontWeight: 900 }}>
+            <div style={{ fontSize: tokens.statLabelSize, color: "#7A4456", fontWeight: 700 }}>
               {s.label}
             </div>
           </div>
@@ -3218,13 +3203,27 @@ const ShareCard = React.forwardRef<
   justifyContent: "space-between",
   alignItems: "center",
           fontSize: 14,
-          color: "rgba(255,255,255,0.35)",
-          fontWeight: 850,
-          letterSpacing: 0.8,
+          color: "#9C6B7C",
+          fontWeight: 700,
+          letterSpacing: 0.4,
         }}
       >
-        {mode === "share" ? <div style={{ opacity: isBold ? 0.55 : 0.45, fontWeight: 900 }}>#BookTok #TBR</div> : <div />}
-        <div style={{ opacity: 0.7, fontWeight: 950 }}>{mode === "shelfie" ? "ShelfieEase · shelfieease.app" : "ShelfieEase · shelfieease.app"}</div>
+        {mode === "share" ? <div style={{ opacity: 0.85, fontWeight: 700 }}>#BookTok #TBR</div> : <div />}
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "8px 16px",
+            borderRadius: 999,
+            background: "#7A2E42",
+            color: "#FFF8F2",
+            fontWeight: 700,
+            fontSize: 15,
+          }}
+        >
+          📚 shelfieease.app/shared-shelf
+        </div>
       </div>
     </div>
   );
@@ -3786,7 +3785,7 @@ const isbn: React.CSSProperties = {
 };
 
 function badgeFor(status: string, mood: DocumentMood): React.CSSProperties {
-  const isCalm = mood === "calm";
+  const isCalm = mood === "light";
   
   let background = "";
   if (status === "TBR") {

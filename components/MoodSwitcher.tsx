@@ -5,13 +5,12 @@ import { getMood, setMood, type Mood } from "./MoodProvider";
 import { getActiveShelfId, loadShelves, saveShelves } from "@/lib/storage";
 
 const MOODS: Array<{ value: Mood; label: string; emoji: string }> = [
-  { value: "default", label: "Aesthetic", emoji: "✨" },
-  { value: "bold", label: "Bold", emoji: "🔥" },
-  { value: "calm", label: "Calm", emoji: "🌙" },
+  { value: "light", label: "Bookish Romance", emoji: "🌸" },
+  { value: "dark", label: "Dark Plum", emoji: "🌙" },
 ];
 
 export function MoodSwitcher() {
-  const [currentMood, setCurrentMood] = useState<Mood>("default"); // Start with default for SSR
+  const [currentMood, setCurrentMood] = useState<Mood>("light"); // Start with default for SSR
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -68,8 +67,10 @@ export function MoodSwitcher() {
     // Save to localStorage (primary source of truth)
     setMood(mood);
     
-    // Also update the active shelf's mood for consistency
-    const shelfMood = mood === "default" ? "aesthetic" : mood;
+    // Also update the active shelf's mood for consistency (stored using the
+    // legacy 3-value shelf schema — "calm" is the closest existing value to
+    // "light", "aesthetic" is the closest to "dark").
+    const shelfMood = mood === "light" ? "calm" : "aesthetic";
     const activeShelfId = getActiveShelfId();
     if (activeShelfId) {
       const shelves = loadShelves();
@@ -134,7 +135,7 @@ export function MoodSwitcher() {
             minWidth: 160,
             borderRadius: 16,
             border: "1px solid var(--border)",
-            background: typeof document !== "undefined" && document.documentElement.dataset.mood === "default" ? "var(--panelSolid)" : "var(--panel)",
+            background: typeof document !== "undefined" && document.documentElement.dataset.mood === "light" ? "var(--panelSolid)" : "var(--panel)",
             backdropFilter: "blur(16px)",
             boxShadow: "0 12px 40px var(--shadow)",
             padding: 8,

@@ -2,6 +2,7 @@ import "./globals.css";
 
 import Script from "next/script";
 import type { Metadata } from "next";
+import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
 import { ClientErrorTrap } from "@/components/ClientErrorTrap";
 import { MoodProvider } from "@/components/MoodProvider";
 import { UiLangProvider } from "@/components/UiLangProvider";
@@ -44,6 +45,20 @@ export const metadata: Metadata = {
   },
 };
 
+const fontDisplay = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const fontBody = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-body",
+  display: "swap",
+});
+
 export const viewport = {
   width: "device-width",
   initialScale: 1,
@@ -54,9 +69,9 @@ export const viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="nl" suppressHydrationWarning>
+    <html lang="nl" suppressHydrationWarning className={`${fontDisplay.variable} ${fontBody.variable}`}>
       <head>
-        <meta name="theme-color" content="#6B4EFF" />
+        <meta name="theme-color" content="#7A2E42" />
         <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM product summary" />
         <link rel="alternate" type="text/plain" href="/llms-full.txt" title="LLM full product context" />
         <script
@@ -67,136 +82,87 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <style dangerouslySetInnerHTML={{
           __html: `
-:root {
-  /* Default (Aesthetic) */
-  --bg: #0B0B10;
-  --bg2: #12111A;
-  --panel: rgba(18,17,26,0.72);
-  --panel2: rgba(18,17,26,0.72);
-  --panelSolid: #14131D;
+/* "Modern Bookish Romance" — 70% clean/modern, 30% romantic-playful.
+   Two modes: light (default) and dark (navy/plum, never pure black). */
+
+:root, [data-mood="light"] {
+  --bg: #FBF3EA;
+  --bg2: #F7E9DE;
+  --panel: #FDF6EE;
+  --panel2: #FDF6EE;
+  --panelSolid: #FFFDF9;
+  --border: #E8D6C4;
+  --borderStrong: #DCC0A5;
+
+  --text: #4A1E2B;
+  --muted: #7A4456;
+  --muted2: #9C6B7C;
+
+  --accent1: #7A2E42;
+  --accent2: #E7B7C4;
+  --accentTertiary: #F4D35E;
+  --accentSoft: rgba(122,46,66,0.12);
+  --accentSoft2: rgba(231,183,196,0.28);
+  --decorAccent: #C9A6D9;
+
+  --btnPrimaryBg: linear-gradient(90deg,#7A2E42,#9C4A5F);
+  --btnPrimaryText: #FFF8F2;
+  --btnGhostBg: rgba(122,46,66,0.06);
+  --btnGhostBorder: #E8D6C4;
+  --radiusButton: 20px;
+
+  --shadow: rgba(74,30,43,0.14);
+  --glow: rgba(231,183,196,0.25);
+  --glow2: rgba(244,211,94,0.18);
+
+  --danger: #C0435A;
+  --dangerSoft: rgba(192,67,90,0.12);
+}
+
+[data-mood="dark"] {
+  --bg: #241726;
+  --bg2: #2E1B32;
+  --panel: rgba(46,27,50,0.72);
+  --panel2: rgba(46,27,50,0.72);
+  --panelSolid: #2A1930;
   --border: rgba(255,255,255,0.10);
   --borderStrong: rgba(255,255,255,0.16);
-  --text: #FFFFFF;
-  --muted: rgba(255,255,255,0.72);
-  --muted2: rgba(255,255,255,0.55);
-  --accent1: #6D5EFC;
-  --accent2: #FF49F0;
-  --accentSoft: rgba(109,94,252,0.22);
-  --accentSoft2: rgba(255,73,240,0.14);
-  --btnPrimaryBg: linear-gradient(90deg,#6D5EFC,#FF49F0);
-  --btnPrimaryText: #FFFFFF;
+
+  --text: #F7ECEF;
+  --muted: rgba(247,236,239,0.75);
+  --muted2: rgba(247,236,239,0.55);
+
+  --accent1: #E7B7C4;
+  --accent2: #F4D35E;
+  --accentTertiary: #C9A6D9;
+  --accentSoft: rgba(231,183,196,0.18);
+  --accentSoft2: rgba(244,211,94,0.12);
+  --decorAccent: #C9A6D9;
+
+  --btnPrimaryBg: linear-gradient(90deg,#E7B7C4,#C9A6D9);
+  --btnPrimaryText: #241726;
   --btnGhostBg: rgba(255,255,255,0.06);
-  --btnGhostBorder: rgba(255,255,255,0.12);
+  --btnGhostBorder: rgba(255,255,255,0.14);
+  --radiusButton: 20px;
+
   --shadow: rgba(0,0,0,0.55);
-  --glow: rgba(255,73,240,0.18);
-  --glow2: rgba(109,94,252,0.22);
-  --danger: #FF6B6B;
-  --dangerSoft: rgba(255,107,107,0.12);
+  --glow: rgba(231,183,196,0.16);
+  --glow2: rgba(201,166,217,0.16);
+
+  --danger: #FF8FA0;
+  --dangerSoft: rgba(255,143,160,0.14);
 }
 
-[data-mood="default"] {
-  --bg: #0B0B10;
-  --bg2: #12111A;
-  --panel: rgba(18,17,26,0.72);
-  --panel2: rgba(18,17,26,0.72);
-  --panelSolid: #14131D;
-  --border: rgba(255,255,255,0.10);
-  --borderStrong: rgba(255,255,255,0.16);
-  --text: #FFFFFF;
-  --muted: rgba(255,255,255,0.72);
-  --muted2: rgba(255,255,255,0.55);
-  --accent1: #6D5EFC;
-  --accent2: #FF49F0;
-  --accentSoft: rgba(109,94,252,0.22);
-  --accentSoft2: rgba(255,73,240,0.14);
-  --btnPrimaryBg: linear-gradient(90deg,#6D5EFC,#FF49F0);
-  --btnPrimaryText: #FFFFFF;
-  --btnGhostBg: rgba(255,255,255,0.06);
-  --btnGhostBorder: rgba(255,255,255,0.12);
-  --shadow: rgba(0,0,0,0.55);
-  --glow: rgba(255,73,240,0.18);
-  --glow2: rgba(109,94,252,0.22);
-  --danger: #FF6B6B;
-  --dangerSoft: rgba(255,107,107,0.12);
-}
-
-[data-mood="bold"] {
-  --bg: #0B0B0D;                 /* Background */
-  --bg2: #141418;                /* Background 2 */
-
-  --panel: #111113;               /* Card background */
-  --panel2: #111113;              /* Card background 2 */
-  --panelSolid: #111113;          /* Solid panel */
-
-  --border: rgba(255,255,255,0.20);  /* Borders */
-  --borderStrong: rgba(255,255,255,0.30);  /* Strong borders */
-
-  --text: #FFFFFF;                /* Primary text */
-  --muted: #CFCFD4;              /* Secondary text */
-  --muted2: #8B8B92;             /* Muted text */
-
-  --accent1: #FF8A00;            /* Primary accent (oranje) */
-  --accent2: #FF8A00;            /* Primary accent 2 (oranje) */
-  --accentSoft: rgba(255,138,0,0.15);  /* Soft accent */
-  --accentSoft2: rgba(255,138,0,0.10);  /* Soft accent 2 */
-
-  --btnPrimaryBg: linear-gradient(90deg,#FF8A00,#FF8A00);
-  --btnPrimaryText: #FFFFFF;
-  --btnGhostBg: rgba(255,255,255,0.06);
-  --btnGhostBorder: rgba(255,255,255,0.12);
-
-  --shadow: rgba(0,0,0,0.90);    /* Deep shadows */
-  --glow: transparent;            /* No glow */
-  --glow2: transparent;          /* No glow 2 */
-
-  --danger: #FF6B6B;
-  --dangerSoft: rgba(255,107,107,0.12);
-}
-
-[data-mood="calm"] {
-  --bg: #F4EADB;                 /* Background */
-  --bg2: #EFE3D1;                /* Background 2 */
-
-  --panel: #F7F0E4;              /* Card background */
-  --panel2: #F7F0E4;             /* Card background 2 */
-  --panelSolid: #F7F0E4;          /* Solid panel */
-
-  --border: #D8C6A8;  /* Borders */
-  --borderStrong: #D8C6A8;  /* Strong borders */
-
-  --text: #4A3825;               /* Primary text */
-  --muted: #6B553A;              /* Secondary text */
-  --muted2: #6B553A;             /* Muted text */
-
-  --accent1: #9C6B2F;            /* Primary accent */
-  --accent2: #9C6B2F;            /* Primary accent 2 */
-  --accentSoft: rgba(156, 107, 47, 0.15);  /* Soft accent */
-  --accentSoft2: rgba(156, 107, 47, 0.10);  /* Soft accent 2 */
-
-  --btnPrimaryBg: linear-gradient(90deg,#9C6B2F,#9C6B2F);
-  --btnPrimaryText: #4A3825;
-  --btnGhostBg: rgba(58, 42, 26, 0.06);
-  --btnGhostBorder: #D8C6A8;
-
-  --shadow: rgba(58, 42, 26, 0.12);      /* Subtle shadows */
-  --glow: transparent;            /* No glow */
-  --glow2: transparent;          /* No glow 2 */
-
-  --danger: #C85A5A;
-  --dangerSoft: rgba(200, 90, 90, 0.12);
-}
-
-[data-mood="calm"] * {
+[data-mood="light"] * {
   text-shadow: none !important;
 }
 
-/* Calm mood: Senior-Ease / rust / vertrouwen / warm */
-[data-mood="calm"] body {
-  background: var(--bg); /* Effen achtergrondkleur, geen gradient */
+[data-mood="light"] body {
+  background: var(--bg);
 }
 
-[data-mood="calm"] body::before {
-  display: none; /* Geen overlay of texture in Calm */
+[data-mood="light"] body::before {
+  display: none;
 }
           `
         }} />
@@ -263,7 +229,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         style={{
           margin: 0,
-          fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+          fontFamily: "var(--font-body), system-ui, -apple-system, sans-serif",
           background: "var(--bg)",
           color: "var(--text)"
         }}

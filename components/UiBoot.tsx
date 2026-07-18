@@ -5,16 +5,22 @@ import { clearChunkReloadAttempts } from "@/lib/chunk-reload";
 import { detectUiLang, UI_LANG_STORAGE_KEY } from "@/lib/i18n";
 
 const STORAGE_KEY = "se:mood";
-const DEFAULT_MOOD = "aesthetic";
+const DEFAULT_MOOD = "light";
+
+// Maps old 3-mood values (from before the "Modern Bookish Romance" redesign)
+// to the new 2-mode system, so existing users' localStorage doesn't break.
+function normalizeLegacyMood(value: string): "light" | "dark" {
+  if (value === "light" || value === "dark") return value;
+  if (value === "calm") return "light";
+  return "dark"; // "default" / "aesthetic" / "bold"
+}
 
 function getMoodFromStorage(): string {
   if (typeof window === "undefined") return DEFAULT_MOOD;
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "default" || stored === "bold" || stored === "calm" || stored === "aesthetic") {
-      return stored;
-    }
-    return DEFAULT_MOOD;
+    if (!stored) return DEFAULT_MOOD;
+    return normalizeLegacyMood(stored);
   } catch {
     return DEFAULT_MOOD;
   }
@@ -32,12 +38,9 @@ function saveMoodToStorage(mood: string) {
 function applyUiSettings() {
   if (typeof document === "undefined") return;
   
-  // Get mood from localStorage (default to "aesthetic" if nothing)
-  const storedMood = getMoodFromStorage();
-  
-  // Map "aesthetic" to "default" for dataset.mood (dataset only accepts "default", "bold", "calm")
-  const datasetMood = storedMood === "aesthetic" ? "default" : storedMood;
-  
+  // Get mood from localStorage (default to "light" if nothing)
+  const datasetMood = getMoodFromStorage();
+
   // Get UI language
   const lang = detectUiLang();
   
@@ -70,11 +73,10 @@ export default function UiBoot() {
       
       // Save to localStorage
       saveMoodToStorage(newMood);
-      
-      // Update dataset (map "aesthetic" to "default")
+
+      // Update dataset
       if (typeof document !== "undefined") {
-        const datasetMood = newMood === "aesthetic" ? "default" : newMood;
-        document.documentElement.dataset.mood = datasetMood;
+        document.documentElement.dataset.mood = normalizeLegacyMood(newMood);
       }
     }
     

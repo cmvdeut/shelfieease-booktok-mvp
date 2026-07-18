@@ -9,7 +9,7 @@ import { useUiLang } from "@/components/UiLangProvider";
 import { getMood, type Mood as DocumentMood } from "@/components/MoodProvider";
 
 function statusPillStyle(status: BookStatus, mood: DocumentMood): React.CSSProperties {
-  const isCalm = mood === "calm";
+  const isCalm = mood === "light";
   
   if (status === "TBR") {
     return {
@@ -86,11 +86,11 @@ export default function StatsPage() {
   const router = useRouter();
   const [books, setBooks] = useState<Book[]>([]);
   const [shelves, setShelves] = useState<Shelf[]>([]);
-  const [currentMood, setCurrentMood] = useState<DocumentMood>("default");
+  const [currentMood, setCurrentMood] = useState<DocumentMood>("light");
   const [isMounted, setIsMounted] = useState(false);
   const { lang } = useUiLang();
   const nl = isNlUi();
-  const isCalm = currentMood === "calm";
+  const isCalm = currentMood === "light";
 
   useEffect(() => {
     setIsMounted(true);

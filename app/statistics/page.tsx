@@ -26,10 +26,10 @@ function statusLabel(status: BookStatus, lang: "nl" | "en"): string {
 export default function StatisticsPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [shelves, setShelves] = useState<Shelf[]>([]);
-  const [currentMood, setCurrentMood] = useState<DocumentMood>("default");
+  const [currentMood, setCurrentMood] = useState<DocumentMood>("light");
   const [isMounted, setIsMounted] = useState(false);
   const { lang } = useUiLang();
-  const isCalm = currentMood === "calm";
+  const isCalm = currentMood === "light";
 
   useEffect(() => {
     setIsMounted(true);

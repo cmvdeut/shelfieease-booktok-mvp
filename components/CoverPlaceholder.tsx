@@ -6,31 +6,32 @@ type CoverPlaceholderProps = {
   title: string;
   authors?: string[];
   isbn?: string;
-  mood?: "aesthetic" | "bold" | "calm";
+  mood?: "light" | "dark";
   style?: React.CSSProperties;
 };
 
 export function CoverPlaceholder({ title, authors = [], isbn, mood, style }: CoverPlaceholderProps) {
   // Use provided mood or detect from document
-  const isCalm = mood === "calm" || (typeof document !== "undefined" && document.documentElement.dataset.mood === "calm");
-  
+  const isLight = mood === "light" || (typeof document !== "undefined" && document.documentElement.dataset.mood === "light");
+  const isCalm = isLight;
+
   const containerStyle: React.CSSProperties = {
     width: "100%",
     height: "100%",
     aspectRatio: "2 / 3",
     minHeight: 260,
     borderRadius: 18,
-    background: isCalm
-      ? "linear-gradient(135deg, rgba(156, 107, 47, 0.12), rgba(156, 107, 47, 0.06))"
-      : "linear-gradient(135deg, rgba(109,94,252,0.15), rgba(255,73,240,0.10))",
+    background: isLight
+      ? "linear-gradient(135deg, rgba(122, 46, 66, 0.10), rgba(231, 183, 196, 0.14))"
+      : "linear-gradient(135deg, rgba(231,183,196,0.14), rgba(201,166,217,0.10))",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     padding: 12,
     boxSizing: "border-box",
-    border: isCalm
-      ? "1px solid rgba(216, 198, 168, 0.3)"
+    border: isLight
+      ? "1px solid rgba(232, 214, 196, 0.6)"
       : "1px solid rgba(255,255,255,0.12)",
     ...style,
   };
