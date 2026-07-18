@@ -405,3 +405,207 @@ try the free demo → link in bio! shelfieease.app
 | Status | In TikTok inbox |
 
 ---
+
+## 2026-07-18 17:18 UTC — Instagram (mislukt)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-07-18 17:18 UTC |
+| Platform | Instagram |
+| Gepland voor | 2026-06-01 18:00 CET |
+| Video | public/videos/pilar-double-buy.mp4 |
+| Caption | POV: duplicaat op je plank gevonden 😭📚 |
+| Status | Mislukt — Post publiceren mislukt: 422 — {"message":"Instagram allows a maximum of 5 hashtags per post."} |
+
+---
+
+## 2026-07-18 17:18 UTC — Instagram (mislukt)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-07-18 17:18 UTC |
+| Platform | Instagram |
+| Gepland voor | 2026-06-02 18:00 CET |
+| Video | undefined |
+| Caption | Carrousel: book hoarder zonder het te zeggen |
+| Status | Mislukt — The "path" argument must be of type string. Received undefined |
+
+---
+
+## 2026-07-18 17:18 UTC — Instagram (mislukt)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-07-18 17:18 UTC |
+| Platform | Instagram |
+| Gepland voor | 2026-06-04 12:00 CET |
+| Video | undefined |
+| Caption | Story poll: onafgemaakte series |
+| Status | Mislukt — The "path" argument must be of type string. Received undefined |
+
+---
+
+## 2026-07-18 17:18 UTC — Instagram (mislukt)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-07-18 17:18 UTC |
+| Platform | Instagram |
+| Gepland voor | 2026-06-06 18:00 CET |
+| Video | public/videos/pilar-sharing.mp4 |
+| Caption | Je shelfie card in 60 seconden 📚✨ |
+| Status | Mislukt — Post publiceren mislukt: 422 — {"message":"Instagram allows a maximum of 5 hashtags per post."} |
+
+---
+
+## 2026-07-18 17:18 UTC — Instagram (mislukt)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-07-18 17:18 UTC |
+| Platform | Instagram |
+| Gepland voor | 2026-06-08 18:00 CET |
+| Video | public/videos/pilar-visual-light.mp4 |
+| Caption | Emoji-planken in ShelfieEase 📚✨ |
+| Status | Mislukt — Post publiceren mislukt: 422 — {"message":"Instagram allows a maximum of 5 hashtags per post."} |
+
+---
+
+## 2026-07-18 17:18 UTC — Instagram (mislukt)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-07-18 17:18 UTC |
+| Platform | Instagram |
+| Gepland voor | 2026-06-10 10:00 CET |
+| Video | public/videos/pilar-scattered-reading.mp4 |
+| Caption | Ik onthoud wel welke boeken ik heb 😭 |
+| Status | Mislukt — Post publiceren mislukt: 422 — {"message":"Instagram allows a maximum of 5 hashtags per post."} |
+
+---
+
+## 2026-07-18 17:18 UTC — Instagram (mislukt)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-07-18 17:18 UTC |
+| Platform | Instagram |
+| Gepland voor | 2026-06-12 18:00 CET |
+| Video | undefined |
+| Caption | Story: TBR-persoonlijkheid poll |
+| Status | Mislukt — The "path" argument must be of type string. Received undefined |
+
+---
+
+## 2026-07-18 17:18 UTC — Instagram (mislukt)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-07-18 17:18 UTC |
+| Platform | Instagram |
+| Gepland voor | 2026-06-14 18:00 CET |
+| Video | public/videos/pilar-calm-relief.mp4 |
+| Caption | TBR → Lezen → Gelezen = satisfying 📚 |
+| Status | Mislukt — Post publiceren mislukt: 422 — {"message":"Instagram allows a maximum of 5 hashtags per post."} |
+
+---
+
+## 2026-07-18 17:18 UTC — Instagram (mislukt)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-07-18 17:18 UTC |
+| Platform | Instagram |
+| Gepland voor | 2026-06-15 18:00 CET |
+| Video | undefined |
+| Caption | Carrousel: zomer-TBR picks |
+| Status | Mislukt — The "path" argument must be of type string. Received undefined |
+
+---
+
+## 2026-07-18 17:18 UTC — Instagram (mislukt)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-07-18 17:18 UTC |
+| Platform | Instagram |
+| Gepland voor | 2026-06-17 12:00 CET |
+| Video | public/videos/pilar-one-system.mp4 |
+| Caption | Zomerplank in 3 stappen ☀️ |
+| Status | Mislukt — Post publiceren mislukt: 422 — {"message":"Instagram allows a maximum of 5 hashtags per post."} |
+
+---
+
+## 2026-07-18 17:18 UTC — Instagram (mislukt)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-07-18 17:18 UTC |
+| Platform | Instagram |
+| Gepland voor | 2026-06-19 18:00 CET |
+| Video | undefined |
+| Caption | Story serie: ShelfieEase juni-challenge |
+| Status | Mislukt — The "path" argument must be of type string. Received undefined |
+
+---
+
+## 2026-07-18 17:18 UTC — Instagram (mislukt)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-07-18 17:18 UTC |
+| Platform | Instagram |
+| Gepland voor | 2026-06-21 18:00 CET |
+| Video | public/videos/pilar-cluster-stress.mp4 |
+| Caption | Zomer-TBR die om genade smeert ☀️📚 |
+| Status | Mislukt — Post publiceren mislukt: 422 — {"message":"Instagram allows a maximum of 5 hashtags per post."} |
+
+---
+
+## 2026-07-18 17:18 UTC — Instagram (mislukt)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-07-18 17:18 UTC |
+| Platform | Instagram |
+| Gepland voor | 2026-06-23 18:00 CET |
+| Video | public/videos/pilar-stop-overorganizing.mp4 |
+| Caption | DNF is geen falen — het is een grens 📚 |
+| Status | Mislukt — Post publiceren mislukt: 422 — {"message":"Instagram allows a maximum of 5 hashtags per post."} |
+
+---
+
+## 2026-07-18 17:18 UTC — Instagram (mislukt)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-07-18 17:18 UTC |
+| Platform | Instagram |
+| Gepland voor | 2026-06-25 12:00 CET |
+| Video | undefined |
+| Caption | Carrousel: 5 stadia book hangover |
+| Status | Mislukt — The "path" argument must be of type string. Received undefined |
+
+---
+
+## 2026-07-18 17:19 UTC — Instagram (mislukt)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-07-18 17:19 UTC |
+| Platform | Instagram |
+| Gepland voor | 2026-06-27 18:00 CET |
+| Video | public/videos/pilar-identity.mp4 |
+| Caption | Alles wat ShelfieEase doet — 60 sec 📚 |
+| Status | Mislukt — Post publiceren mislukt: 422 — {"message":"Instagram allows a maximum of 5 hashtags per post."} |
+
+---
+
+## 2026-07-18 17:19 UTC — Instagram (mislukt)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-07-18 17:19 UTC |
+| Platform | Instagram |
+| Gepland voor | 2026-06-28 18:00 CET |
+| Video | undefined |
+| Caption | Story: 2026 leesdoel check-in |
+| Status | Mislukt — The "path" argument must be of type string. Received undefined |
+
+---
+
+## 2026-07-18 17:19 UTC — Instagram (mislukt)
+| Field | Value |
+|-------|-------|
+| Datum | 2026-07-18 17:19 UTC |
+| Platform | Instagram |
+| Gepland voor | 2026-06-30 18:00 CET |
+| Video | undefined |
+| Caption | Carrousel: juni reading wrap |
+| Status | Mislukt — The "path" argument must be of type string. Received undefined |
+
+---
