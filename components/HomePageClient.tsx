@@ -149,11 +149,13 @@ function HomePageInner() {
         {/* Header */}
         <header style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
           <img
-            src="/brand/v3/logo-mark.svg"
+            src="/brand/v2/logo-mark.png?v=3"
             alt="ShelfieEase"
+            width={100}
+            height={100}
             style={{ 
-              height: "100px",
-              width: "fit-content",
+              height: 100,
+              width: 100,
               objectFit: "contain",
               position: "relative",
               zIndex: 1,
