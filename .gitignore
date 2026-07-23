@@ -34,6 +34,10 @@ yarn-error.log*
 .env*
 !.env.example
 
+# secrets / social credentials (contain live API tokens — never commit)
+.claude/social-creds.json
+**/social-creds.json
+
 # vercel
 .vercel
 
