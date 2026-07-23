@@ -30,6 +30,15 @@ try {
 
 const BLOTATO_API = "https://backend.blotato.com/v2";
 const ROOT_DIR = process.cwd();
+
+// Platforms waarvoor automatisch publiceren (via deze workflow) is UITGESCHAKELD.
+// TikTok uit sinds 2026-07-23: @shelfieease zit in soft-suppression (For You = 0%).
+// Zolang dat speelt posten we NIET automatisch/via API naar TikTok — post native in
+// de app. Geblokkeerde posts blijven "pending" en hervatten zodra je dit weer leegmaakt.
+// Let op: dit raakt alleen de queue van DEZE repo (ShelfieEase). Posts die direct in de
+// Blotato-kalender staan gepland moet je in de Blotato-UI annuleren. SeniorEase draait
+// in een aparte repo en wordt hier niet geraakt.
+const DISABLED_PLATFORMS = new Set<string>(["tiktok"]);
 const SCHEDULE_PATH = path.join(ROOT_DIR, "scheduled-posts.json");
 const LOG_PATH = path.join(ROOT_DIR, "social-posts-log.md");
 
@@ -47,7 +56,7 @@ interface ScheduledPost {
   calendar_day: number;
   scheduled_time_unix: number;
   scheduled_label: string;
-  video_file: string;
+  video_file?: string;
   caption_preview: string;
   caption: string;
   status?: "pending" | "published" | "failed";
@@ -147,6 +156,21 @@ async function uploadMedia(apiKey: string, videoPath: string): Promise<string> {
   return publicUrl as string;
 }
 
+/**
+ * Instagram weigert posts met meer dan 5 hashtags (HTTP 422), en de brand-regel is
+ * sowieso max 5 hashtags op elk platform. Houdt de eerste `max` hashtags aan en
+ * verwijdert de rest, en ruimt de achtergebleven witruimte op.
+ */
+function capHashtags(text: string, max = 5): string {
+  let count = 0;
+  return text
+    .replace(/#[\p{L}\p{N}_]+/gu, (tag) => (++count <= max ? tag : ""))
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trimEnd();
+}
+
 async function publishNow(
   apiKey: string,
   accountId: string,
@@ -175,7 +199,7 @@ async function publishNow(
     post: {
       accountId,
       content: {
-        text: post.caption,
+        text: capHashtags(post.caption, 5),
         mediaUrls: [mediaUrl],
         platform: post.platform,
       },
@@ -217,10 +241,23 @@ async function main() {
     return;
   }
 
-  console.log(`\n📅 Blotato publiceren — ${due.length} due post(s)\n`);
+  const blocked = due.filter((p) => DISABLED_PLATFORMS.has(p.platform));
+  if (blocked.length > 0) {
+    console.log(
+      `⏸️  ${blocked.length} post(s) overgeslagen — platform uitgeschakeld: ${[...DISABLED_PLATFORMS].join(", ")} (blijven pending).`
+    );
+  }
+  const active = due.filter((p) => !DISABLED_PLATFORMS.has(p.platform));
+
+  if (active.length === 0) {
+    console.log("ℹ️  Geen publiceerbare due posts (alle due posts staan op een uitgeschakeld platform).");
+    return;
+  }
+
+  console.log(`\n📅 Blotato publiceren — ${active.length} due post(s)\n`);
   console.log("🔍 Account IDs ophalen...");
 
-  const platforms = [...new Set(due.map((p) => p.platform))];
+  const platforms = [...new Set(active.map((p) => p.platform))];
   const accountIds = new Map<string, string>();
   for (const platform of platforms) {
     accountIds.set(platform, await getAccountId(apiKey, platform));
@@ -230,11 +267,17 @@ async function main() {
   let published = 0;
   let failed = 0;
 
-  for (const post of due) {
+  for (const post of active) {
     console.log(`\n→ ${post.platform.toUpperCase()} | ${post.scheduled_label}`);
     console.log(`  Caption: ${post.caption_preview}`);
 
     try {
+      if (!post.video_file) {
+        throw new Error(
+          "Geen video_file opgegeven — carrousel/afbeelding-posts worden (nog) niet ondersteund door dit script."
+        );
+      }
+
       let mediaUrl: string;
       if (uploadCache.has(post.video_file)) {
         mediaUrl = uploadCache.get(post.video_file)!;
