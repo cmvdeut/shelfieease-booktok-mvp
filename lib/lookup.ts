@@ -516,38 +516,40 @@ async function googleMetadataByIsbn(
 ): Promise<LookupResult> {
   let items = await searchGoogleBooks(isbn13, "isbn");
   if (items.length === 0 && isbn10) items = await searchGoogleBooks(isbn10, "isbn");
+  // SeniorEase also retries bare query when isbn: misses
+  if (items.length === 0) items = await searchGoogleBooks(isbn13, "raw");
 
   const item =
     pickGoogleVolumeForIsbn(items, isbn13) ||
-    (isbn10 ? pickGoogleVolumeForIsbn(items, isbn10) : undefined);
+    (isbn10 ? pickGoogleVolumeForIsbn(items, isbn10) : undefined) ||
+    items[0];
   if (!item?.volumeInfo) return emptyLookup();
 
-  const volumeId = item.id;
-  const vi = item.volumeInfo;
-  const thumb = vi.imageLinks?.thumbnail || vi.imageLinks?.smallThumbnail || "";
+  // Only trust title/authors from an ISBN-matching volume (or sole result)
+  const exact =
+    pickGoogleVolumeForIsbn(items, isbn13) ||
+    (isbn10 ? pickGoogleVolumeForIsbn(items, isbn10) : undefined);
+  const vi = (exact || item).volumeInfo!;
+  const volumeId = (exact || item).id;
+  const links = vi.imageLinks;
+  // Prefer larger sizes like SeniorEase CoverFetchDialog
+  const thumb =
+    links?.large ||
+    links?.medium ||
+    links?.small ||
+    links?.thumbnail ||
+    links?.smallThumbnail ||
+    "";
   const canonicalById = volumeId
     ? `https://books.google.com/books/content?id=${encodeURIComponent(volumeId)}&printsec=frontcover&img=1&zoom=1&source=gbs_api`
     : "";
   const gCover = thumb ? normalizeGoogleCoverUrl(thumb) : canonicalById;
 
   return {
-    title: (vi.title || "").trim(),
-    authors: vi.authors || [],
+    title: exact || items.length === 1 ? (vi.title || "").trim() : "",
+    authors: exact || items.length === 1 ? vi.authors || [] : [],
     coverUrl: gCover && !isBadCoverUrl(gCover) ? gCover : "",
     synopsis: "",
-  };
-}
-
-/**
- * Prefer Google ISBN-matched title/authors; keep EasyCB cover/synopsis when better.
- */
-function preferIsbnGoogleMeta(into: LookupResult, google: LookupResult): LookupResult {
-  if (!google.title.trim() && google.authors.length === 0) return into;
-  return {
-    title: google.title.trim() || into.title,
-    authors: google.authors.length > 0 ? google.authors : into.authors,
-    coverUrl: into.coverUrl || google.coverUrl,
-    synopsis: (into.synopsis || "").trim() || (google.synopsis || "").trim(),
   };
 }
 
@@ -858,36 +860,15 @@ export async function lookupByIsbn(isbn13: string): Promise<LookupResult> {
 
   let result: LookupResult = emptyLookup();
 
-  // --- 0) EasyCB for NL/BE: cover + synopsis (title/author can be wrong) ---
-  if (likelyNlBe) {
-    result = mergeLookup(result, await easyCbMetadataByIsbn(clean));
-  }
-
-  // --- 1) Google ISBN match: authoritative title/authors when available ---
+  // SeniorEase-library pattern: Google ISBN first (title/author/cover), then Open Library.
+  // EasyCB is useful for NL covers + synopsis but often wrong on title/author
+  // (original foreign title + translator).
   const google = await googleMetadataByIsbn(clean, isbn10);
-  if (google.title.trim() || google.authors.length > 0) {
-    result = preferIsbnGoogleMeta(result, google);
-  } else if (!result.title.trim() || result.authors.length === 0) {
-    // Fallback: raw Google query when isbn: index misses
-    let items = await searchGoogleBooks(clean, "raw");
-    const item = pickGoogleVolumeForIsbn(items, clean) || pickGoogleVolumeForIsbn(items, isbn10 || "");
-    if (item?.volumeInfo) {
-      const vi = item.volumeInfo;
-      result = preferIsbnGoogleMeta(result, {
-        title: vi.title || "",
-        authors: vi.authors || [],
-        coverUrl: "",
-        synopsis: "",
-      });
-    }
+  if (google.title.trim() || google.authors.length > 0 || google.coverUrl) {
+    result = mergeLookup(result, google);
   }
 
-  // --- 2) EasyCB for non-NL if still missing title/authors ---
-  if (!likelyNlBe && (!result.title.trim() || result.authors.length === 0)) {
-    result = mergeLookup(result, await easyCbMetadataByIsbn(clean));
-  }
-
-  // --- 3) Open Library metadata if still missing ---
+  // Open Library books API (same fallback as SeniorEase AddItemDialog)
   if (!result.title.trim() || result.authors.length === 0) {
     result = await enrichFromOpenLibrary(clean, result);
     if ((!result.title.trim() || result.authors.length === 0) && isbn10) {
@@ -895,19 +876,21 @@ export async function lookupByIsbn(isbn13: string): Promise<LookupResult> {
     }
   }
 
-  // --- 4) Cover waterfall (OL/IA → Google vid → Bol → OL title) ---
+  // EasyCB: NL/BE cover + synopsis only — never override a good Google/OL title/author
+  if (likelyNlBe || !(result.synopsis || "").trim() || !result.coverUrl) {
+    const cb = await easyCbMetadataByIsbn(clean);
+    result = {
+      title: result.title.trim() || cb.title,
+      authors: result.authors.length > 0 ? result.authors : cb.authors,
+      coverUrl: result.coverUrl || cb.coverUrl,
+      synopsis: (result.synopsis || "").trim() || (cb.synopsis || "").trim(),
+    };
+  }
+
+  // Cover waterfall when still missing (Google title search, Bol, OL, …)
   if (!result.coverUrl) {
     const cover = await resolveCoverUrl(clean, isbn10, result.title, result.authors);
     if (cover) result = { ...result, coverUrl: cover };
-  }
-
-  // --- 5) Synopsis from EasyCB for non-NL titles that still lack it ---
-  if (!likelyNlBe && !(result.synopsis || "").trim() && result.title.trim()) {
-    const cb = await easyCbMetadataByIsbn(clean);
-    result = mergeLookup(result, cb);
-    if (!result.coverUrl && cb.coverUrl) {
-      result = { ...result, coverUrl: cb.coverUrl };
-    }
   }
 
   return finalizeLookup(result);
