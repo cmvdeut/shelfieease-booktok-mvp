@@ -3,6 +3,7 @@ import "./globals.css";
 import Script from "next/script";
 import type { Metadata } from "next";
 import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { ClientErrorTrap } from "@/components/ClientErrorTrap";
 import { MoodProvider } from "@/components/MoodProvider";
 import { UiLangProvider } from "@/components/UiLangProvider";
@@ -244,6 +245,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </MoodProvider>
         </UiLangProvider>
         <MoodSwitcher />
+        <Analytics />
         <Script async src="https://plausible.io/js/pa-M1U-She7jLRkpuv6GfaOJ.js" />
         <script dangerouslySetInnerHTML={{ __html: `window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()` }} />
         <script
