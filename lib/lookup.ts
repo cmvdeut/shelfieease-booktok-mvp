@@ -616,6 +616,15 @@ function proxyCoverUrl(absoluteUrl: string): string {
   return `/api/cover?url=${encodeURIComponent(absoluteUrl)}`;
 }
 
+/** Rewrite stored absolute cover URLs to same-origin proxy (safe for UI). */
+export function toDisplayCoverUrl(url?: string | null): string {
+  const u = (url || "").trim();
+  if (!u || isBadCoverUrl(u)) return "";
+  if (u.startsWith("/api/cover")) return u;
+  if (/^https?:\/\//i.test(u)) return proxyCoverUrl(u);
+  return u;
+}
+
 /**
  * Google "vid=ISBN…" covers: many ISBNs return a shared tiny placeholder (~9103 bytes).
  * Only accept responses that look like a real cover.
@@ -705,6 +714,35 @@ async function openLibraryCoverByTitleAuthor(title: string, authors: string[]): 
   }
 }
 
+/** Google Volumes by title+author — critical when ISBN lookup has no imageLinks. */
+async function googleCoverByTitleAuthor(title: string, authors: string[]): Promise<string> {
+  const t = title.trim();
+  if (t.length < 2) return "";
+  const author = (authors[0] || "").trim();
+  const q = author ? `intitle:${t} inauthor:${author}` : `intitle:${t}`;
+  try {
+    const results = await searchBooksByTitleOrAuthor(q, 5);
+    const needle = t.toLowerCase();
+    const ranked = [...results].sort((a, b) => {
+      const aTitle = a.title.toLowerCase();
+      const bTitle = b.title.toLowerCase();
+      const aScore =
+        (aTitle === needle ? 3 : aTitle.includes(needle) ? 1 : 0) + (a.coverUrl ? 2 : 0);
+      const bScore =
+        (bTitle === needle ? 3 : bTitle.includes(needle) ? 1 : 0) + (b.coverUrl ? 2 : 0);
+      return bScore - aScore;
+    });
+    for (const hit of ranked) {
+      if (hit.coverUrl && !isBadCoverUrl(hit.coverUrl)) {
+        return hit.coverUrl.startsWith("/api/") ? hit.coverUrl : proxyCoverUrl(hit.coverUrl);
+      }
+    }
+    return "";
+  } catch {
+    return "";
+  }
+}
+
 /** Fill cover from every free source we trust, in order. */
 async function resolveCoverUrl(
   isbn: string,
@@ -717,6 +755,8 @@ async function resolveCoverUrl(
     () => (isbn10 ? openLibraryCoverByIsbn(isbn10) : Promise.resolve("")),
     () => googleCoverByIsbnVid(isbn),
     () => (isbn10 ? googleCoverByIsbnVid(isbn10) : Promise.resolve("")),
+    // Google by title before Bol — Bol is often blocked from cloud IPs (Vercel)
+    () => googleCoverByTitleAuthor(title, authors),
     () => bolCoverByIsbn(isbn),
     () => openLibraryCoverByTitleAuthor(title, authors),
   ];
@@ -739,6 +779,10 @@ function lookupIsComplete(result: LookupResult): boolean {
 function finalizeLookup(result: LookupResult): LookupResult {
   let coverUrl = result.coverUrl || "";
   if (isBadCoverUrl(coverUrl)) coverUrl = "";
+  // Always same-origin proxy for external images (hotlink / referrer blocks in browsers)
+  if (coverUrl && /^https?:\/\//i.test(coverUrl)) {
+    coverUrl = proxyCoverUrl(coverUrl);
+  }
   return {
     title: result.title,
     authors: result.authors,

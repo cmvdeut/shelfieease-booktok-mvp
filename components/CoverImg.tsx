@@ -3,16 +3,22 @@
 import React, { useEffect, useState } from "react";
 
 export function CoverImg(
-  props: React.ImgHTMLAttributes<HTMLImageElement> & { instant?: boolean }
+  props: React.ImgHTMLAttributes<HTMLImageElement> & {
+    instant?: boolean;
+    /** When the image fails, hide it so a sibling placeholder can show through. */
+    hideOnError?: boolean;
+  }
 ) {
-  const { src, onError, style, instant, ...rest } = props;
+  const { src, onError, style, instant, hideOnError = true, ...rest } = props;
   const [ok, setOk] = useState(Boolean(instant));
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    setFailed(false);
     setOk(Boolean(instant) || String(src || "").toLowerCase().startsWith("/api/cover"));
   }, [src, instant]);
 
-  if (!src) return null;
+  if (!src || failed) return null;
 
   const lower = String(src).toLowerCase();
   // Only reject known Google "image not available" placeholders — not our /api/cover routes
@@ -43,6 +49,7 @@ export function CoverImg(
 
         if (bad) {
           setOk(false);
+          if (hideOnError) setFailed(true);
           onError?.(e as any);
           return;
         }
@@ -50,6 +57,7 @@ export function CoverImg(
       }}
       onError={(e) => {
         setOk(false);
+        if (hideOnError) setFailed(true);
         onError?.(e as any);
       }}
       alt={props.alt || "cover"}

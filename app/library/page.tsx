@@ -28,7 +28,7 @@ import {
 
 import { getMood, type Mood as DocumentMood } from "@/components/MoodProvider";
 
-import { lookupByIsbn, isBadCoverUrl, searchBooksByTitleOrAuthor } from "@/lib/lookup";
+import { lookupByIsbn, isBadCoverUrl, searchBooksByTitleOrAuthor, toDisplayCoverUrl } from "@/lib/lookup";
 import { getCoverUrlForShare } from "@/lib/covers";
 import { preloadCoverDataUrl, captureElementToBlob, renderBookShareCardCanvas, isLikelyBlankShareBlob } from "@/lib/share-capture";
 import { CoverImg } from "@/components/CoverImg";
@@ -405,6 +405,7 @@ function LibraryPageContent() {
     };
     
     // Fix OpenLibrary URLs -> force default=false (prevents placeholder)
+    // and proxy absolute covers so browsers don't get hotlink-blocked empties.
     const fixOpenLibraryUrl = (b: Book) => {
       const url = (b.coverUrl || "").trim();
       if (!url) return b;
@@ -415,10 +416,12 @@ function LibraryPageContent() {
       }
       
       // Fix OpenLibrary URLs -> force default=false (prevents placeholder)
-      if (url.includes("covers.openlibrary.org") && !url.includes("default=false")) {
-        const fixed = url + (url.includes("?") ? "&" : "?") + "default=false";
-        return { ...b, coverUrl: fixed };
+      let nextUrl = url;
+      if (nextUrl.includes("covers.openlibrary.org") && !nextUrl.includes("default=false")) {
+        nextUrl = nextUrl + (nextUrl.includes("?") ? "&" : "?") + "default=false";
       }
+      nextUrl = toDisplayCoverUrl(nextUrl);
+      if (nextUrl !== url) return { ...b, coverUrl: nextUrl };
       return b;
     };
     
@@ -478,26 +481,44 @@ function LibraryPageContent() {
     }
   }, []);
 
-  // Backfill missing covers/synopsis (parallel, capped — don't block the shelf)
+  // Backfill missing covers/synopsis (parallel batches until done or cap)
   useEffect(() => {
     if (typeof window === "undefined") return;
     let cancelled = false;
 
     async function backfillMeta() {
       const current = loadBooks();
+      let attempted: Set<string> = new Set();
+      try {
+        const raw = sessionStorage.getItem("se:coverBackfillAttempted:v2");
+        if (raw) attempted = new Set(JSON.parse(raw) as string[]);
+      } catch {
+        attempted = new Set();
+      }
+
       const needs = current.filter(
         (b) =>
           Boolean(b.isbn13) &&
+          !attempted.has(b.isbn13) &&
           (!b.coverUrl || !String(b.coverUrl).trim() || !b.synopsis?.trim())
       );
       if (needs.length === 0) return;
 
+      // Prefer books missing covers first; process up to 24 per page load
+      const queue = [...needs]
+        .sort((a, b) => {
+          const aCover = a.coverUrl && String(a.coverUrl).trim() ? 1 : 0;
+          const bCover = b.coverUrl && String(b.coverUrl).trim() ? 1 : 0;
+          return aCover - bCover;
+        })
+        .slice(0, 24);
+
       const next = [...current];
       let changed = false;
-      const queue = needs.slice(0, 6);
 
       async function fillOne(book: (typeof queue)[number]) {
         if (cancelled) return;
+        attempted.add(book.isbn13);
         try {
           const res = await fetch(
             `/api/lookup?isbn=${encodeURIComponent(book.isbn13)}&_=${Date.now()}`,
@@ -511,10 +532,14 @@ function LibraryPageContent() {
           const idx = next.findIndex((b) => b.id === book.id);
           if (idx < 0) return;
 
+          const incomingCover =
+            data.coverUrl && !isBadCoverUrl(data.coverUrl)
+              ? toDisplayCoverUrl(data.coverUrl)
+              : "";
           const coverUrl =
-            !next[idx].coverUrl && data.coverUrl && !isBadCoverUrl(data.coverUrl)
-              ? data.coverUrl
-              : next[idx].coverUrl;
+            !next[idx].coverUrl || !String(next[idx].coverUrl).trim()
+              ? incomingCover || next[idx].coverUrl
+              : toDisplayCoverUrl(next[idx].coverUrl);
           const synopsis =
             !(next[idx].synopsis || "").trim() && (data.synopsis || "").trim()
               ? data.synopsis!.trim()
@@ -529,7 +554,6 @@ function LibraryPageContent() {
         }
       }
 
-      // 3 at a time
       for (let i = 0; i < queue.length; i += 3) {
         if (cancelled) return;
         await Promise.all(queue.slice(i, i + 3).map(fillOne));
@@ -538,6 +562,15 @@ function LibraryPageContent() {
           setBooks([...next]);
           changed = false;
         }
+      }
+
+      try {
+        sessionStorage.setItem(
+          "se:coverBackfillAttempted:v2",
+          JSON.stringify([...attempted].slice(-200))
+        );
+      } catch {
+        // ignore
       }
     }
 
@@ -3556,21 +3589,35 @@ function LibraryPageContent() {
                           position: "relative",
                         }}
                       >
+                        <CoverPlaceholder
+                          title={b.title}
+                          authors={b.authors}
+                          isbn={b.isbn13}
+                          mood={currentMood}
+                          style={{
+                            minHeight: 0,
+                            height: "100%",
+                            width: "100%",
+                            borderRadius: 0,
+                            padding: 8,
+                            position: "absolute",
+                            inset: 0,
+                          }}
+                        />
                         {b.coverUrl && !isBadCoverUrl(b.coverUrl) ? (
                           <CoverImg
-                            src={b.coverUrl}
+                            src={toDisplayCoverUrl(b.coverUrl)}
                             alt={b.title}
-                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              display: "block",
+                              position: "relative",
+                              zIndex: 1,
+                            }}
                           />
-                        ) : (
-                          <CoverPlaceholder
-                            title={b.title}
-                            authors={b.authors}
-                            isbn={b.isbn13}
-                            mood={currentMood}
-                            style={{ minHeight: 0, height: "100%", width: "100%", borderRadius: 0, padding: 8 }}
-                          />
-                        )}
+                        ) : null}
                         {(b.format || "physical") === "ebook" && (
                           <span
                             style={{
