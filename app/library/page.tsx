@@ -491,21 +491,22 @@ function LibraryPageContent() {
 
       try {
         const current = loadBooks();
-        const missing = current.filter((b) => {
+        const queue = current.filter((b) => {
           if (!b.isbn13) return false;
+          // forceAll: refresh title/author/cover for every ISBN (fixes EasyCB translator bugs)
+          if (opts?.forceAll) return true;
           const hasCover = Boolean(
             b.coverUrl && String(b.coverUrl).trim() && !isBadCoverUrl(b.coverUrl)
           );
           return !hasCover;
         });
-        if (missing.length === 0) {
+        if (queue.length === 0) {
           if (opts?.forceAll) {
-            showToast(t({ nl: "Alle covers staan al", en: "All covers already set" }, lang));
+            showToast(t({ nl: "Geen boeken om te verversen", en: "No books to refresh" }, lang));
           }
           return;
         }
 
-        const queue = missing;
         let working = [...current];
         let filled = 0;
 
@@ -520,10 +521,21 @@ function LibraryPageContent() {
                   { cache: "no-store" }
                 );
                 if (!res.ok) return null;
-                const data = (await res.json()) as { coverUrl?: string; synopsis?: string };
+                const data = (await res.json()) as {
+                  coverUrl?: string;
+                  synopsis?: string;
+                  title?: string;
+                  authors?: string[];
+                };
                 const cover = toDisplayCoverUrl(data.coverUrl || "");
                 const synopsis = (data.synopsis || "").trim();
-                return { id: book.id, cover, synopsis };
+                return {
+                  id: book.id,
+                  cover,
+                  synopsis,
+                  title: (data.title || "").trim(),
+                  authors: Array.isArray(data.authors) ? data.authors : [],
+                };
               } catch {
                 return null;
               }
@@ -542,9 +554,22 @@ function LibraryPageContent() {
               !(prev.synopsis || "").trim() && result.synopsis
                 ? result.synopsis
                 : prev.synopsis;
-            if (nextCover !== prev.coverUrl || nextSynopsis !== prev.synopsis) {
+            // ISBN lookup is source of truth for title/author (fixes EasyCB translator/original-title bugs)
+            const nextTitle = result.title?.trim() || prev.title;
+            const nextAuthors =
+              Array.isArray(result.authors) && result.authors.length > 0
+                ? result.authors
+                : prev.authors;
+            if (
+              nextCover !== prev.coverUrl ||
+              nextSynopsis !== prev.synopsis ||
+              nextTitle !== prev.title ||
+              JSON.stringify(nextAuthors) !== JSON.stringify(prev.authors || [])
+            ) {
               working[idx] = {
                 ...prev,
+                title: nextTitle,
+                authors: nextAuthors,
                 coverUrl: nextCover,
                 synopsis: nextSynopsis,
                 updatedAt: Date.now(),
@@ -564,8 +589,8 @@ function LibraryPageContent() {
           showToast(
             t(
               {
-                nl: filled > 0 ? `${filled} covers opgehaald` : "Geen nieuwe covers gevonden",
-                en: filled > 0 ? `Fetched ${filled} covers` : "No new covers found",
+                nl: filled > 0 ? `${filled} covers bijgewerkt · metadata ververst` : "Metadata ververst",
+                en: filled > 0 ? `Updated ${filled} covers · metadata refreshed` : "Metadata refreshed",
               },
               lang
             )

@@ -438,6 +438,10 @@ async function probeEasyCbCoverFile(isbn: string): Promise<string> {
 /**
  * Centraal Boekhuis / TitelBank via EasyCB — strong for NL/BE trade titles.
  * Title, author, synopsis; cover via same-origin proxy (hotlinking blocked).
+ *
+ * Caveat: EasyCB's simplified `title`/`author` sometimes expose the *original*
+ * foreign title + translator (ONIX B06) instead of the Dutch edition author.
+ * Callers should prefer Google ISBN-matched title/authors when available.
  */
 async function easyCbMetadataByIsbn(isbn: string): Promise<LookupResult> {
   if (!isbn) return emptyLookup();
@@ -454,18 +458,41 @@ async function easyCbMetadataByIsbn(isbn: string): Promise<LookupResult> {
 
     const text = await res.text();
     const fields: Record<string, string> = {};
+    const contributorRoles: string[] = [];
+    let titleType = "";
     for (const line of text.split(/\r?\n/)) {
       const idx = line.indexOf(":");
       if (idx <= 0) continue;
       const key = line.slice(0, idx).trim();
       const value = line.slice(idx + 1).trim();
       if (key && !(key in fields)) fields[key] = value;
+      if (key === "DescriptiveDetail.Contributor.ContributorRole" && value) {
+        contributorRoles.push(value.toUpperCase());
+      }
+      if (key === "DescriptiveDetail.TitleDetail.TitleType" && !titleType) {
+        titleType = value;
+      }
       // Stop at raw ONIX dump; simplified fields are above mutationlog
-      if (key === "mutationlog") break;
+      if (key === "mutationlog") {
+        // keep scanning ONIX below for roles/title type
+      }
     }
 
-    const title = (fields.title || "").trim();
-    const author = (fields.author || "").trim();
+    let title = (fields.title || "").trim();
+    let author = (fields.author || "").trim();
+
+    // TitleType 03 = title of original work (often foreign). Don't trust as edition title.
+    if (titleType === "03") {
+      title = "";
+    }
+
+    // If ONIX only lists translators (B06) and no authors (A01), ignore simplified author.
+    const hasAuthorRole = contributorRoles.some((r) => r === "A01" || r.startsWith("A0"));
+    const hasTranslatorRole = contributorRoles.some((r) => r === "B06");
+    if (hasTranslatorRole && !hasAuthorRole) {
+      author = "";
+    }
+
     const authors = author ? [author] : [];
     const synopsis = normalizeSynopsis(fields.synopsis || "");
     let coverFile = pickEasyCbCoverFile(text);
@@ -480,6 +507,48 @@ async function easyCbMetadataByIsbn(isbn: string): Promise<LookupResult> {
   } catch {
     return emptyLookup();
   }
+}
+
+/** Google Books volume metadata for an exact ISBN (title/authors/cover). */
+async function googleMetadataByIsbn(
+  isbn13: string,
+  isbn10: string | null
+): Promise<LookupResult> {
+  let items = await searchGoogleBooks(isbn13, "isbn");
+  if (items.length === 0 && isbn10) items = await searchGoogleBooks(isbn10, "isbn");
+
+  const item =
+    pickGoogleVolumeForIsbn(items, isbn13) ||
+    (isbn10 ? pickGoogleVolumeForIsbn(items, isbn10) : undefined);
+  if (!item?.volumeInfo) return emptyLookup();
+
+  const volumeId = item.id;
+  const vi = item.volumeInfo;
+  const thumb = vi.imageLinks?.thumbnail || vi.imageLinks?.smallThumbnail || "";
+  const canonicalById = volumeId
+    ? `https://books.google.com/books/content?id=${encodeURIComponent(volumeId)}&printsec=frontcover&img=1&zoom=1&source=gbs_api`
+    : "";
+  const gCover = thumb ? normalizeGoogleCoverUrl(thumb) : canonicalById;
+
+  return {
+    title: (vi.title || "").trim(),
+    authors: vi.authors || [],
+    coverUrl: gCover && !isBadCoverUrl(gCover) ? gCover : "",
+    synopsis: "",
+  };
+}
+
+/**
+ * Prefer Google ISBN-matched title/authors; keep EasyCB cover/synopsis when better.
+ */
+function preferIsbnGoogleMeta(into: LookupResult, google: LookupResult): LookupResult {
+  if (!google.title.trim() && google.authors.length === 0) return into;
+  return {
+    title: google.title.trim() || into.title,
+    authors: google.authors.length > 0 ? google.authors : into.authors,
+    coverUrl: into.coverUrl || google.coverUrl,
+    synopsis: (into.synopsis || "").trim() || (google.synopsis || "").trim(),
+  };
 }
 
 /**
@@ -767,15 +836,6 @@ async function resolveCoverUrl(
   return "";
 }
 
-function lookupIsComplete(result: LookupResult): boolean {
-  return Boolean(
-    result.title.trim() &&
-      result.authors.length > 0 &&
-      result.coverUrl &&
-      (result.synopsis || "").trim()
-  );
-}
-
 function finalizeLookup(result: LookupResult): LookupResult {
   let coverUrl = result.coverUrl || "";
   if (isBadCoverUrl(coverUrl)) coverUrl = "";
@@ -798,32 +858,26 @@ export async function lookupByIsbn(isbn13: string): Promise<LookupResult> {
 
   let result: LookupResult = emptyLookup();
 
-  // --- 0) Meta: EasyCB for NL/BE (and try for others if needed later) ---
+  // --- 0) EasyCB for NL/BE: cover + synopsis (title/author can be wrong) ---
   if (likelyNlBe) {
     result = mergeLookup(result, await easyCbMetadataByIsbn(clean));
-    if (lookupIsComplete(result)) return finalizeLookup(result);
   }
 
-  // --- 1) Google volumes only when API key exists AND meta still missing ---
-  const needGoogleMeta = !result.title.trim() || result.authors.length === 0;
-  if (needGoogleMeta) {
-    let items = await searchGoogleBooks(clean, "isbn");
-    if (items.length === 0 && isbn10) items = await searchGoogleBooks(isbn10, "isbn");
-    if (items.length === 0) items = await searchGoogleBooks(clean, "raw");
-
+  // --- 1) Google ISBN match: authoritative title/authors when available ---
+  const google = await googleMetadataByIsbn(clean, isbn10);
+  if (google.title.trim() || google.authors.length > 0) {
+    result = preferIsbnGoogleMeta(result, google);
+  } else if (!result.title.trim() || result.authors.length === 0) {
+    // Fallback: raw Google query when isbn: index misses
+    let items = await searchGoogleBooks(clean, "raw");
     const item = pickGoogleVolumeForIsbn(items, clean) || pickGoogleVolumeForIsbn(items, isbn10 || "");
-    if (item) {
-      const volumeId = item.id;
+    if (item?.volumeInfo) {
       const vi = item.volumeInfo;
-      const thumb = vi?.imageLinks?.thumbnail || vi?.imageLinks?.smallThumbnail || "";
-      const canonicalById = volumeId
-        ? `https://books.google.com/books/content?id=${encodeURIComponent(volumeId)}&printsec=frontcover&img=1&zoom=1&source=gbs_api`
-        : "";
-      const gCover = thumb ? normalizeGoogleCoverUrl(thumb) : canonicalById;
-      result = mergeLookup(result, {
-        title: vi?.title || "",
-        authors: vi?.authors || [],
-        coverUrl: gCover,
+      result = preferIsbnGoogleMeta(result, {
+        title: vi.title || "",
+        authors: vi.authors || [],
+        coverUrl: "",
+        synopsis: "",
       });
     }
   }
