@@ -8,7 +8,9 @@ import { MoodProvider } from "@/components/MoodProvider";
 import { UiLangProvider } from "@/components/UiLangProvider";
 import { MoodSwitcher } from "@/components/MoodSwitcher";
 import { AppMenu } from "@/components/AppMenu";
+import { BottomNav } from "@/components/BottomNav";
 import UiBoot from "@/components/UiBoot";
+import { Suspense } from "react";
 import { TikTokOAuthCallback } from "@/components/TikTokOAuthCallback";
 import {
   buildJsonLdGraph,
@@ -117,6 +119,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   --danger: #C0435A;
   --dangerSoft: rgba(192,67,90,0.12);
+
+  /* Stitch design system */
+  --sage: #B4C4AE;
+  --surface: #fff8f2;
+  --deepBurgundy: #5d172c;
 }
 
 [data-mood="dark"] {
@@ -151,6 +158,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   --danger: #FF8FA0;
   --dangerSoft: rgba(255,143,160,0.14);
+
+  --sage: #B4C4AE;
+  --surface: #2A1930;
+  --deepBurgundy: #E7B7C4;
 }
 
 [data-mood="light"] * {
@@ -240,7 +251,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <MoodProvider>
             <ClientErrorTrap />
             <AppMenu />
-            {children}
+            <div style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom))" }}>
+              {children}
+            </div>
+            <Suspense fallback={null}>
+              <BottomNav />
+            </Suspense>
           </MoodProvider>
         </UiLangProvider>
         <MoodSwitcher />

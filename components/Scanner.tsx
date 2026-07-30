@@ -9,15 +9,12 @@ export type ScannerProps = {
   onClose?: () => void;
 };
 
+const SCANNER_REGION_ID = "shelfieease-qr-region";
+
 export function Scanner({ onDetected, onClose }: ScannerProps) {
   const router = useRouter();
-  // Use useRef instead of useMemo to avoid hydration mismatch
-  // Generate ID only once on client mount
-  const regionIdRef = useRef<string | null>(null);
-  if (typeof window !== "undefined" && !regionIdRef.current) {
-    regionIdRef.current = `qr-region-${Math.random().toString(16).slice(2)}`;
-  }
-  const regionId = regionIdRef.current || "qr-region-placeholder";
+  // Stable id for SSR + client (no Math.random / window checks during render)
+  const regionId = SCANNER_REGION_ID;
 
   const qrRef = useRef<import("html5-qrcode").Html5Qrcode | null>(null);
   const startingRef = useRef(false);
@@ -60,7 +57,6 @@ export function Scanner({ onDetected, onClose }: ScannerProps) {
       if (startingRef.current) return;
       if (qrRef.current) return;
       if (typeof window === "undefined") return;
-      if (!regionIdRef.current) return; // Wait for ID to be generated
 
       // Use containerRef instead of getElementById for better timing
       // Wait until containerRef is available
@@ -93,9 +89,7 @@ export function Scanner({ onDetected, onClose }: ScannerProps) {
         const mod = await import("html5-qrcode");
         const { Html5Qrcode, Html5QrcodeSupportedFormats } = mod;
 
-        // Use the actual element ID
-        const actualRegionId = regionIdRef.current;
-        const qr = new Html5Qrcode(actualRegionId, {
+        const qr = new Html5Qrcode(regionId, {
           formatsToSupport: [
             Html5QrcodeSupportedFormats.EAN_13,
             Html5QrcodeSupportedFormats.EAN_8,
@@ -196,12 +190,12 @@ export function Scanner({ onDetected, onClose }: ScannerProps) {
       }
     }
 
-    // Start met delay om zeker te zijn dat DOM gereed is en regionId is gegenereerd
+    // Start met delay om zeker te zijn dat DOM gereed is
     const timeoutId = setTimeout(() => {
-      if (mountedRef.current && regionIdRef.current) {
+      if (mountedRef.current) {
         void start();
       }
-    }, 300); // Increased delay for better reliability
+    }, 300);
 
     return () => {
       clearTimeout(timeoutId);
@@ -209,7 +203,7 @@ export function Scanner({ onDetected, onClose }: ScannerProps) {
       void stopAndClear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onDetected]); // regionId is now stable via ref, no need in deps
+  }, [onDetected]);
 
   const mobileHeight = "min(600px, calc(100dvh - 180px))";
 

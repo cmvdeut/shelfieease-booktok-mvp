@@ -110,15 +110,17 @@ export async function renderBookShareCardCanvas(params: {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas not supported");
 
+  // "Modern Bookish Romance" palette — warm cream/blush gradient, matching
+  // the primary ShareCard design in app/library/page.tsx.
   const bg = ctx.createLinearGradient(0, 0, width, height);
-  bg.addColorStop(0, "#1a1630");
-  bg.addColorStop(0.5, "#12101f");
-  bg.addColorStop(1, "#090812");
+  bg.addColorStop(0, "#FBF3EA");
+  bg.addColorStop(0.5, "#F7E3E8");
+  bg.addColorStop(1, "#F1D9D0");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, width, height);
 
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "900 64px system-ui, -apple-system, Segoe UI, sans-serif";
+  ctx.fillStyle = "#4A1E2B";
+  ctx.font = "700 64px Georgia, 'Playfair Display', serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
   wrapText(ctx, params.shelfLabel, width / 2, 72, width - 144, 74);
@@ -129,7 +131,7 @@ export async function renderBookShareCardCanvas(params: {
   const coverY = 220;
 
   roundRectPath(ctx, coverX, coverY, coverW, coverH, 18);
-  ctx.fillStyle = "#1f1f28";
+  ctx.fillStyle = "#FFFDF9";
   ctx.fill();
 
   if (params.coverDataUrl) {
@@ -141,24 +143,24 @@ export async function renderBookShareCardCanvas(params: {
       ctx.drawImage(img, coverX, coverY, coverW, coverH);
       ctx.restore();
     } catch {
-      // keep grey tile
+      // keep cream tile
     }
   }
 
   const grad = ctx.createLinearGradient(0, coverY + coverH - 220, 0, coverY + coverH);
-  grad.addColorStop(0, "rgba(0,0,0,0)");
-  grad.addColorStop(1, "rgba(0,0,0,0.88)");
+  grad.addColorStop(0, "rgba(74,30,43,0)");
+  grad.addColorStop(1, "rgba(74,30,43,0.82)");
   ctx.fillStyle = grad;
   ctx.fillRect(coverX, coverY + coverH - 220, coverW, 220);
 
   ctx.fillStyle = "#ffffff";
-  ctx.font = "900 40px system-ui, -apple-system, Segoe UI, sans-serif";
+  ctx.font = "700 40px Georgia, 'Playfair Display', serif";
   ctx.textAlign = "center";
   wrapText(ctx, params.bookTitle, width / 2, coverY + coverH - 170, coverW - 32, 46);
 
-  ctx.fillStyle = "rgba(255,255,255,0.55)";
-  ctx.font = "800 28px system-ui, sans-serif";
-  ctx.fillText("ShelfieEase · shelfieease.app", width / 2, height - 72);
+  ctx.fillStyle = "#7A2E42";
+  ctx.font = "700 28px system-ui, sans-serif";
+  ctx.fillText("📚 shelfieease.app/shared-shelf", width / 2, height - 72);
 
   return await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(

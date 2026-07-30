@@ -556,7 +556,7 @@ export function AppMenu() {
                   borderRadius: 12,
                   border: "1px solid var(--danger)",
                   background: "var(--danger)",
-                  color: typeof document !== "undefined" && document.documentElement.dataset.mood === "calm" ? "#4A3825" : "#fff",
+                  color: typeof document !== "undefined" && document.documentElement.dataset.mood === "light" ? "#4A1E2B" : "#fff",
                   fontSize: 14,
                   fontWeight: 600,
                   cursor: "pointer",

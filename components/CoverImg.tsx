@@ -9,15 +9,21 @@ export function CoverImg(
   const [ok, setOk] = useState(Boolean(instant));
 
   useEffect(() => {
-    setOk(Boolean(instant));
+    setOk(Boolean(instant) || String(src || "").toLowerCase().startsWith("/api/cover"));
   }, [src, instant]);
 
   if (!src) return null;
 
   const lower = String(src).toLowerCase();
-  if (lower.includes("image_not_available") || (lower.includes("image") && lower.includes("not") && lower.includes("available"))) {
+  // Only reject known Google "image not available" placeholders — not our /api/cover routes
+  if (
+    lower.includes("image_not_available") ||
+    (lower.includes("books.google") && lower.includes("image") && lower.includes("not") && lower.includes("available"))
+  ) {
     return null;
   }
+
+  const preferInstant = Boolean(instant) || lower.startsWith("/api/cover");
 
   return (
     <img
@@ -25,8 +31,8 @@ export function CoverImg(
       src={src}
       style={{
         ...(style || {}),
-        opacity: instant || ok ? 1 : 0,
-        transition: instant ? "none" : "opacity 160ms ease",
+        opacity: preferInstant || ok ? 1 : 0,
+        transition: preferInstant ? "none" : "opacity 160ms ease",
       }}
       onLoad={(e) => {
         const img = e.currentTarget;

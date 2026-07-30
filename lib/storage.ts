@@ -36,6 +36,8 @@ export type Book = {
   title: string;
   authors: string[];
   coverUrl?: string;
+  /** Optional trade catalog blurb (plain text). Not book body / e-reader content. */
+  synopsis?: string;
   status?: BookStatus;
   format?: BookFormat;
   shelfId: string;
@@ -277,6 +279,9 @@ export function loadBooks(): Book[] {
       const coverUrl = typeof item.coverUrl === "string" ? item.coverUrl : undefined;
       if (typeof item.coverUrl !== "string" && typeof item.coverUrl !== "undefined") changed = true;
 
+      const synopsis = typeof item.synopsis === "string" ? item.synopsis : undefined;
+      if (typeof item.synopsis !== "string" && typeof item.synopsis !== "undefined") changed = true;
+
       const status = mapStatus(item.status);
       if (status !== item.status) {
         // Also covers the required Read->Finished mapping
@@ -308,6 +313,7 @@ export function loadBooks(): Book[] {
         title,
         authors,
         coverUrl,
+        synopsis,
         status, // only TBR | Reading | Finished (never "Read")
         format, // "physical" | "ebook", default "physical"
         shelfId,

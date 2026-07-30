@@ -18,12 +18,14 @@ export default function ScanPage() {
   const [manual, setManual] = useState("");
   const [lastScan, setLastScan] = useState<string | null>(null);
   const [hasIsbnParam, setHasIsbnParam] = useState(false);
+  const [showManual, setShowManual] = useState(false);
 
   const manualNormalized = useMemo(() => normalizeIsbn(manual), [manual]);
 
-  useEffect(() => { trackEvent("scan_started"); }, []);
+  useEffect(() => {
+    trackEvent("scan_started");
+  }, []);
 
-  // Handle ISBN query parameter from native scanner
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -33,7 +35,7 @@ export default function ScanPage() {
       const normalized = normalizeIsbn(isbnParam);
       if (normalized) {
         setHasIsbnParam(true);
-        router.replace(`/library?addIsbn=${encodeURIComponent(normalized)}`); // native scanner + web
+        router.replace(`/library?addIsbn=${encodeURIComponent(normalized)}`);
       }
     }
   }, [router]);
@@ -67,159 +69,183 @@ export default function ScanPage() {
   }, [manualNormalized, router]);
 
   return (
-    <div style={{ 
-      minHeight: "100dvh",
-      padding: "16px 16px env(safe-area-inset-bottom, 40px)",
-      paddingTop: "env(safe-area-inset-top, 16px)",
-      background: "var(--bg)", 
-      color: "var(--text)" 
-    }} className="scan-page-container">
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
-        <button
+    <div
+      style={{
+        minHeight: "100dvh",
+        padding: "16px 16px calc(88px + env(safe-area-inset-bottom, 0px))",
+        paddingTop: "env(safe-area-inset-top, 16px)",
+        background: "var(--bg)",
+        color: "var(--text)",
+      }}
+      className="scan-page-container"
+    >
+      <div style={{ marginBottom: 18 }}>
+        <p
           style={{
-            padding: "8px 12px",
-            borderRadius: 8,
-            border: "1px solid var(--border)",
-            background: "var(--panel)",
-            color: "var(--text)",
-            fontSize: 14,
-            fontWeight: 600,
-            cursor: "pointer",
+            margin: 0,
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "var(--muted2)",
           }}
-          onClick={() => router.push("/")}
-          type="button"
         >
-          ← {t({ nl: "Home", en: "Home" }, lang)}
-        </button>
-        <div style={{ fontSize: 14, color: "var(--muted)" }}>{t({ nl: "Scan ISBN", en: "Scan ISBN" }, lang)}</div>
-        <button
+          {t({ nl: "Op je plank", en: "On your shelf" }, lang)}
+        </p>
+        <h1
           style={{
-            padding: "8px 12px",
-            borderRadius: 8,
-            border: "1px solid var(--border)",
-            background: "var(--panel)",
+            margin: "6px 0 0",
+            fontFamily: "var(--font-display), Georgia, serif",
+            fontSize: 30,
+            fontWeight: 700,
             color: "var(--text)",
-            fontSize: 14,
-            fontWeight: 600,
-            cursor: "pointer",
+            lineHeight: 1.15,
           }}
-          onClick={() => router.push("/library")}
-          type="button"
         >
-          {t({ nl: "Mijn shelf", en: "My Shelf" }, lang)}
-        </button>
+          {t({ nl: "Scan je boek", en: "Scan your book" }, lang)}
+        </h1>
+        <p style={{ margin: "8px 0 0", color: "var(--muted)", fontSize: 15, lineHeight: 1.45, maxWidth: 360 }}>
+          {t(
+            {
+              nl: "Richt op de barcode. We checken of hij al op je plank staat.",
+              en: "Point at the barcode. We'll check if it's already on your shelf.",
+            },
+            lang
+          )}
+        </p>
       </div>
 
-      {/* Scanner - only show if no ISBN parameter (to avoid camera permissions) */}
-      {!hasIsbnParam && (
-        <div className="mb-6">
-          <Scanner
-            onDetected={onDetected}
-            onClose={() => router.push("/")}
-          />
+      {hasIsbnParam ? (
+        <div
+          style={{
+            padding: "48px 20px",
+            textAlign: "center",
+            color: "var(--muted)",
+            fontSize: 14,
+            borderRadius: 24,
+            background: "var(--panelSolid)",
+            border: "1px solid var(--border)",
+          }}
+        >
+          {t({ nl: "ISBN wordt verwerkt…", en: "Processing ISBN…" }, lang)}
+        </div>
+      ) : (
+        <div
+          style={{
+            borderRadius: 24,
+            padding: 12,
+            background:
+              "linear-gradient(160deg, color-mix(in srgb, var(--accentSoft2) 40%, var(--panelSolid)), var(--panelSolid))",
+            border: "1px solid color-mix(in srgb, var(--border) 80%, transparent)",
+            boxShadow: "0 16px 36px var(--shadow)",
+            marginBottom: 16,
+          }}
+        >
+          <Scanner onDetected={onDetected} onClose={() => router.push("/library")} />
           {lastScan ? (
-            <div style={{ marginTop: 12, fontSize: 12, color: "var(--muted)" }}>
-              {t({ nl: "Laatste scan: ", en: "Last scan: " }, lang)}<span style={{ fontWeight: 600 }}>{lastScan}</span>
+            <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
+              {t({ nl: "Laatste scan: ", en: "Last scan: " }, lang)}
+              <span style={{ fontWeight: 600 }}>{lastScan}</span>
             </div>
           ) : null}
-          {/* Micro-hint about scanning reliability */}
-          <div style={{ 
-            marginTop: 12, 
-            fontSize: 11, 
-            color: "var(--muted2)", 
-            opacity: 0.65,
-            lineHeight: 1.4,
-            textAlign: "center"
-          }}>
-            {t(
-              {
-                nl: "Sommige gedrukte barcodes kunnen niet betrouwbaar worden gescand. Handmatig ISBN invoeren werkt altijd.",
-                en: "Some printed barcodes can't be scanned reliably. Manual ISBN entry always works.",
-              },
-              lang
-            )}
+        </div>
+      )}
+
+      {!hasIsbnParam && (
+        <div style={{ textAlign: "center", marginBottom: 12 }}>
+          <button
+            type="button"
+            onClick={() => setShowManual((v) => !v)}
+            style={{
+              border: "none",
+              background: "transparent",
+              color: "var(--accent1)",
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: "pointer",
+              padding: 8,
+            }}
+          >
+            {showManual
+              ? t({ nl: "Camera tonen", en: "Show camera" }, lang)
+              : t({ nl: "Liever ISBN typen?", en: "Prefer typing the ISBN?" }, lang)}
+          </button>
+        </div>
+      )}
+
+      {showManual && !hasIsbnParam && (
+        <div
+          style={{
+            borderRadius: 20,
+            border: "1px solid var(--border)",
+            background: "var(--panelSolid)",
+            padding: 16,
+            animation: "seFadeUp 220ms ease",
+          }}
+        >
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: "var(--text)" }}>
+            {t({ nl: "ISBN handmatig", en: "ISBN manually" }, lang)}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              id="manual-isbn-input"
+              name="manual-isbn-input"
+              value={manual}
+              onChange={(e) => setManual(e.target.value)}
+              inputMode="numeric"
+              placeholder={t({ nl: "Bijv. 9789022591260", en: "E.g. 9789022591260" }, lang)}
+              aria-label={t({ nl: "ISBN invoeren", en: "Enter ISBN" }, lang)}
+              style={{
+                width: "100%",
+                borderRadius: 12,
+                border: "1px solid var(--border)",
+                background: "var(--panel2)",
+                padding: "10px 12px",
+                fontSize: 14,
+                color: "var(--text)",
+              }}
+            />
+            <button
+              onClick={submitManual}
+              style={{
+                padding: "10px 16px",
+                borderRadius: "var(--radiusButton)",
+                background: "var(--btnPrimaryBg)",
+                color: "var(--btnPrimaryText)",
+                fontSize: 14,
+                fontWeight: 700,
+                border: 0,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+              type="button"
+            >
+              {t({ nl: "Zoek", en: "Search" }, lang)}
+            </button>
           </div>
         </div>
       )}
 
-      {/* Loading state when ISBN parameter is present */}
-      {hasIsbnParam && (
-        <div style={{ 
-          padding: "40px 20px", 
-          textAlign: "center",
-          color: "var(--text)",
-          fontSize: 14
-        }}>
-          {t({ nl: "ISBN wordt verwerkt...", en: "Processing ISBN..." }, lang)}
-        </div>
-      )}
-
-      {/* Handmatige fallback */}
-      <div style={{
-        borderRadius: 16,
-        border: "1px solid var(--border)",
-        background: "var(--panel)",
-        padding: 16,
-      }}>
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: "var(--text)" }}>{t({ nl: "Of voer ISBN handmatig in", en: "Or enter ISBN manually" }, lang)}</div>
-
-        <div style={{ display: "flex", gap: 8 }}>
-          <input
-            id="manual-isbn-input"
-            name="manual-isbn-input"
-            value={manual}
-            onChange={(e) => setManual(e.target.value)}
-            inputMode="numeric"
-            placeholder={t({ nl: "Bijv. 9789022591260", en: "E.g. 9789022591260" }, lang)}
-            aria-label={t({ nl: "ISBN invoeren", en: "Enter ISBN" }, lang)}
-            style={{
-              width: "100%",
-              borderRadius: 12,
-              border: "1px solid var(--border)",
-              background: "var(--panel2)",
-              padding: "8px 12px",
-              fontSize: 14,
-              color: "var(--text)",
-            }}
-          />
-          <button
-            onClick={submitManual}
-            style={{
-              padding: "8px 12px",
-              borderRadius: 12,
-              background: "linear-gradient(135deg, var(--accent1), var(--accent2))",
-              color: "var(--text)",
-              fontSize: 14,
-              fontWeight: 600,
-              border: 0,
-              cursor: "pointer",
-            }}
-            type="button"
-          >
-            {t({ nl: "Zoek", en: "Search" }, lang)}
-          </button>
-        </div>
-
-        <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)" }}>
-          {t({ nl: "Tip: kopieer ook gerust een ISBN uit de productpagina van een boek.", en: "Tip: feel free to copy an ISBN from a book's product page." }, lang)}
-        </div>
-      </div>
-
-      {/* Demo limit notice */}
       {!isProUser() && (
-        <div style={{ 
-          fontSize: 14, 
-          opacity: 0.7, 
-          marginTop: 24, 
-          textAlign: "center", 
-          padding: "16px", 
-          color: "var(--muted)", 
-          fontWeight: 500 
-        }}>
-          {t({ nl: "Demo-versie · max. 10 boeken", en: "Demo version · max. 10 books" }, lang)}
+        <div
+          style={{
+            fontSize: 13,
+            marginTop: 28,
+            textAlign: "center",
+            color: "var(--muted)",
+            fontWeight: 500,
+          }}
+        >
+          {t({ nl: "Demo · max. 10 boeken", en: "Demo · max. 10 books" }, lang)}
         </div>
       )}
+
+      <style>{`
+        @keyframes seFadeUp {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

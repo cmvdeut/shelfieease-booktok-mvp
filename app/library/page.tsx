@@ -76,7 +76,12 @@ function LibraryPageContent() {
   const [toast, setToast] = useState<string | null>(null);
   const [currentMood, setCurrentMood] = useState<DocumentMood>("light");
   const [pendingIsbn, setPendingIsbn] = useState<string | null>(null);
-  const [pendingData, setPendingData] = useState<{ title?: string; authors?: string[]; coverUrl?: string } | null>(null);
+  const [pendingData, setPendingData] = useState<{
+    title?: string;
+    authors?: string[];
+    coverUrl?: string;
+    synopsis?: string;
+  } | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
   const [targetShelfId, setTargetShelfId] = useState<string | null>(null);
@@ -131,10 +136,14 @@ function LibraryPageContent() {
   const [actionMenuBookId, setActionMenuBookId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [editingBookId, setEditingBookId] = useState<string | null>(null);
+  const [detailEditMode, setDetailEditMode] = useState(false);
+  const [synopsisExpanded, setSynopsisExpanded] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editAuthors, setEditAuthors] = useState("");
   const [editIsbn, setEditIsbn] = useState("");
   const [editCoverUrl, setEditCoverUrl] = useState("");
+  const [editShelfId, setEditShelfId] = useState<string | null>(null);
+  const [showNewShelfInEdit, setShowNewShelfInEdit] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [shareCoverUrls, setShareCoverUrls] = useState<string[]>([]);
   const [shareBookTitles, setShareBookTitles] = useState<string[]>([]);
@@ -214,8 +223,9 @@ function LibraryPageContent() {
     addAnyway: t({ nl: "Toch toevoegen", en: "Add anyway" }, lang),
   }), [lang]);
   const demoSpotsLeft = demoRemaining();
-  const showPreLimitUpgradeBanner = !isProUser() && books.length >= 7 && books.length < 10;
-  const showStickyUpgradeBar = !isProUser() && books.length >= 7;
+  // Soft nudge only when nearly full (1 left); hard wall only when limit reached
+  const showPreLimitUpgradeBanner = !isProUser() && demoSpotsLeft === 1;
+  const showStickyUpgradeBar = !isProUser() && !canAddBook();
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const actionMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -287,7 +297,9 @@ function LibraryPageContent() {
 
     (async () => {
       try {
-        const res = await fetch(`/api/lookup?isbn=${encodeURIComponent(normalizedIsbn)}`);
+        const res = await fetch(`/api/lookup?isbn=${encodeURIComponent(normalizedIsbn)}`, {
+          cache: "no-store",
+        });
         const data = res.ok
           ? ((await res.json()) as Awaited<ReturnType<typeof lookupByIsbn>>)
           : await lookupByIsbn(normalizedIsbn);
@@ -299,6 +311,7 @@ function LibraryPageContent() {
           title: hasTitle ? data.title : "Onbekend",
           authors: data.authors || [],
           coverUrl: data.coverUrl && !isBadCoverUrl(data.coverUrl) ? data.coverUrl : "",
+          synopsis: (data.synopsis || "").trim(),
         });
       } catch (e) {
         if (cancelled) return;
@@ -307,6 +320,7 @@ function LibraryPageContent() {
           title: "Onbekend",
           authors: [],
           coverUrl: "",
+          synopsis: "",
         });
       } finally {
         if (!cancelled) setAddLoading(false);
@@ -462,6 +476,75 @@ function LibraryPageContent() {
     }
   }, []);
 
+  // Backfill missing covers/synopsis (parallel, capped — don't block the shelf)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+
+    async function backfillMeta() {
+      const current = loadBooks();
+      const needs = current.filter(
+        (b) =>
+          Boolean(b.isbn13) &&
+          (!b.coverUrl || !String(b.coverUrl).trim() || !b.synopsis?.trim())
+      );
+      if (needs.length === 0) return;
+
+      const next = [...current];
+      let changed = false;
+      const queue = needs.slice(0, 6);
+
+      async function fillOne(book: (typeof queue)[number]) {
+        if (cancelled) return;
+        try {
+          const res = await fetch(
+            `/api/lookup?isbn=${encodeURIComponent(book.isbn13)}&_=${Date.now()}`,
+            { cache: "no-store" }
+          );
+          if (!res.ok) return;
+          const data = (await res.json()) as {
+            coverUrl?: string;
+            synopsis?: string;
+          };
+          const idx = next.findIndex((b) => b.id === book.id);
+          if (idx < 0) return;
+
+          const coverUrl =
+            !next[idx].coverUrl && data.coverUrl && !isBadCoverUrl(data.coverUrl)
+              ? data.coverUrl
+              : next[idx].coverUrl;
+          const synopsis =
+            !(next[idx].synopsis || "").trim() && (data.synopsis || "").trim()
+              ? data.synopsis!.trim()
+              : next[idx].synopsis;
+
+          if (coverUrl !== next[idx].coverUrl || synopsis !== next[idx].synopsis) {
+            next[idx] = { ...next[idx], coverUrl, synopsis, updatedAt: Date.now() };
+            changed = true;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // 3 at a time
+      for (let i = 0; i < queue.length; i += 3) {
+        if (cancelled) return;
+        await Promise.all(queue.slice(i, i + 3).map(fillOne));
+        if (!cancelled && changed) {
+          saveBooks(next);
+          setBooks([...next]);
+          changed = false;
+        }
+      }
+    }
+
+    void backfillMeta();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -553,6 +636,28 @@ function LibraryPageContent() {
     return computeStats(visibleBooks);
   }, [visibleBooks]);
 
+  const currentlyReading = useMemo(() => {
+    return (
+      books
+        .filter((b) => normalizeStatus(b.status) === "Reading")
+        .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0] ?? null
+    );
+  }, [books]);
+
+  useEffect(() => {
+    if (searchParams?.get("focus") === "reading") {
+      setStatusFilter(new Set<BookStatus>(["Reading"]));
+      setScope("all");
+      // Soft scroll to the reading hero after layout
+      requestAnimationFrame(() => {
+        document.getElementById("nu-aan-het-lezen")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    }
+  }, [searchParams]);
+
   // Derive active shelf for header
   const activeShelf = useMemo(() => {
     if (!activeShelfId) return null;
@@ -583,70 +688,190 @@ function LibraryPageContent() {
     const has = (...words: string[]) => words.some((w) => n.includes(w));
 
     // Romantasy / Fantasy
-    if (has("romantasy", "fantasy", "fae", "fairy", "magic", "mage", "witch", "wizard", "dragon", "court", "kingdom", "throne")) {
-      if (has("dragon")) return "🐉";
-      if (has("court", "kingdom", "throne")) return "🏰";
+    if (
+      has(
+        "romantasy",
+        "fantasy",
+        "fae",
+        "fairy",
+        "magic",
+        "mage",
+        "witch",
+        "wizard",
+        "dragon",
+        "court",
+        "kingdom",
+        "throne",
+        "fantasie",
+        "magie",
+        "heks",
+        "draak",
+        "koninkrijk"
+      )
+    ) {
+      if (has("dragon", "draak")) return "🐉";
+      if (has("court", "kingdom", "throne", "koninkrijk")) return "🏰";
       return "🧙";
     }
 
     // Romance / spicy
-    if (has("romance", "love", "spicy", "smut", "spice", "steam", "steamy", "hot", "trope")) {
+    if (
+      has(
+        "romance",
+        "love",
+        "spicy",
+        "smut",
+        "spice",
+        "steam",
+        "steamy",
+        "hot",
+        "trope",
+        "romantiek",
+        "liefde",
+        "romantisch"
+      )
+    ) {
       if (has("spicy", "smut", "steam", "steamy", "hot")) return "🔥";
       return "💖";
     }
 
     // Thriller / mystery
-    if (has("thriller", "mystery", "crime", "detective", "murder", "case", "noir")) {
+    if (
+      has(
+        "thriller",
+        "mystery",
+        "crime",
+        "detective",
+        "murder",
+        "case",
+        "noir",
+        "spanning",
+        "misdaad",
+        "moord",
+        "raadsel"
+      )
+    ) {
       if (has("detective", "case")) return "🕵️";
-      if (has("murder")) return "🔪";
+      if (has("murder", "moord")) return "🔪";
       return "🧩";
     }
 
     // Horror / dark
-    if (has("horror", "dark", "gothic", "haunted", "vampire", "ghost", "curse", "cursed")) {
-      if (has("dark")) return "🖤";
-      if (has("gothic", "haunted", "ghost")) return "🕯️";
+    if (
+      has(
+        "horror",
+        "dark",
+        "gothic",
+        "haunted",
+        "vampire",
+        "ghost",
+        "curse",
+        "cursed",
+        "duister",
+        "griezel",
+        "spook",
+        "vampier"
+      )
+    ) {
+      if (has("dark", "duister")) return "🖤";
+      if (has("gothic", "haunted", "ghost", "spook")) return "🕯️";
       return "🌙";
     }
 
     // Cozy / comfort / seizoenen
-    if (has("cozy", "comfort", "autumn", "fall", "winter", "summer", "spring")) {
-      if (has("autumn", "fall")) return "🍂";
+    if (
+      has(
+        "cozy",
+        "comfort",
+        "autumn",
+        "fall",
+        "winter",
+        "summer",
+        "spring",
+        "herfst",
+        "zomer",
+        "lente",
+        "gezellig"
+      )
+    ) {
+      if (has("autumn", "fall", "herfst")) return "🍂";
       if (has("winter")) return "❄️";
-      if (has("summer")) return "🌞";
-      if (has("spring")) return "🌷";
+      if (has("summer", "zomer")) return "🌞";
+      if (has("spring", "lente")) return "🌷";
       return "☕";
     }
 
     // Sci-fi / space
-    if (has("sci-fi", "scifi", "space", "alien", "galaxy", "planet", "cyberpunk")) {
+    if (
+      has(
+        "sci-fi",
+        "scifi",
+        "space",
+        "alien",
+        "galaxy",
+        "planet",
+        "cyberpunk",
+        "ruimte",
+        "toekomst"
+      )
+    ) {
       if (has("planet", "galaxy")) return "🪐";
       return "🚀";
     }
 
     // Self-help / growth
-    if (has("self help", "self-help", "growth", "mindset", "habits", "wellbeing", "healing")) return "🌱";
+    if (
+      has(
+        "self help",
+        "self-help",
+        "growth",
+        "mindset",
+        "habits",
+        "wellbeing",
+        "healing",
+        "groei",
+        "zelfhulp"
+      )
+    )
+      return "🌱";
 
     // Manga / comics
-    if (has("manga", "comics", "graphic")) return "💥";
+    if (has("manga", "comics", "graphic", "strip")) return "💥";
 
     // Sad / tears
-    if (has("sad", "cry", "crying", "tears", "tearjerker")) return "😭";
+    if (has("sad", "cry", "crying", "tears", "tearjerker", "tranen", "verdriet")) return "😭";
+
+    // TBR / wishlist / want
+    if (has("tbr", "wishlist", "wanna", "wish", "wil", "verlang")) return "✨";
 
     // Default-ish
     if (n.trim().length >= 3) return "📚";
     return null;
   }
 
-  // Auto-suggest emoji when name changes (only if emoji not touched)
+  const defaultShelfEmojis = ["📚", "✨", "🔥", "💖", "🧙", "🗡️", "🌙", "🧋", "😭", "🕯️", "🏰", "🐉"];
+
+  // Auto-suggest emoji when shelf name changes (main modal + add/edit nested forms)
   useEffect(() => {
-    const s = suggestEmojiFromName(name);
+    const sourceName =
+      showNewShelfInAddModal || showNewShelfInEdit ? newShelfName : name;
+    const s = suggestEmojiFromName(sourceName);
     setSuggestedEmoji(s);
 
     if (!emojiTouched && s) {
-      setEmoji(s);
+      if (showNewShelfInAddModal || showNewShelfInEdit) {
+        setNewShelfEmoji(s);
+      } else {
+        setEmoji(s);
+      }
     }
-  }, [name, emojiTouched]);
+  }, [
+    name,
+    newShelfName,
+    emojiTouched,
+    showNewShelfInAddModal,
+    showNewShelfInEdit,
+  ]);
 
   function handleCreateShelf() {
     const nameTrimmed = name.trim();
@@ -683,6 +908,25 @@ function LibraryPageContent() {
     setShowNewShelfInAddModal(false);
     setNewShelfName("");
     setNewShelfEmoji("📚");
+    setEmojiTouched(false);
+    setSuggestedEmoji(null);
+  }
+
+  function handleCreateShelfInEdit() {
+    const nameTrimmed = newShelfName.trim();
+    if (!nameTrimmed || nameTrimmed.length > 24) return;
+
+    const emojiTrimmed = newShelfEmoji.trim() || "📚";
+    const moodNow = getMood();
+    const shelfMood: Mood = moodNow === "light" ? "calm" : "aesthetic";
+    const shelf = createShelf(nameTrimmed, emojiTrimmed, shelfMood);
+    setShelves(loadShelves());
+    setEditShelfId(shelf.id);
+    setShowNewShelfInEdit(false);
+    setNewShelfName("");
+    setNewShelfEmoji("📚");
+    setEmojiTouched(false);
+    setSuggestedEmoji(null);
   }
 
   function handleAddBookToShelf() {
@@ -727,6 +971,7 @@ function LibraryPageContent() {
       title: finalTitle,
       authors: finalAuthors,
       coverUrl: pendingData?.coverUrl || "",
+      synopsis: (pendingData?.synopsis || "").trim() || undefined,
       shelfId: targetShelfId,
       status: "TBR" as BookStatus,
       addedAt: now,
@@ -857,6 +1102,18 @@ function LibraryPageContent() {
     setShowDeleteConfirm(null);
   }
 
+  function closeBookDetail() {
+    setEditingBookId(null);
+    setDetailEditMode(false);
+    setSynopsisExpanded(false);
+    setShowNewShelfInEdit(false);
+    setEditTitle("");
+    setEditAuthors("");
+    setEditIsbn("");
+    setEditCoverUrl("");
+    setEditShelfId(null);
+  }
+
   function handleEditBook(bookId: string) {
     const book = books.find((b) => b.id === bookId);
     if (!book) return;
@@ -865,6 +1122,10 @@ function LibraryPageContent() {
     setEditAuthors(book.authors?.join(", ") || "");
     setEditIsbn(book.isbn13 || "");
     setEditCoverUrl(book.coverUrl || "");
+    setEditShelfId(book.shelfId || null);
+    setShowNewShelfInEdit(false);
+    setDetailEditMode(false);
+    setSynopsisExpanded(false);
     setEditingBookId(bookId);
     setActionMenuBookId(null);
   }
@@ -880,21 +1141,24 @@ function LibraryPageContent() {
       : [];
     
     const normalizedIsbn = editIsbn.replace(/[^0-9X]/gi, "").trim().toUpperCase();
+    const nextShelfId =
+      editShelfId && shelves.some((s) => s.id === editShelfId)
+        ? editShelfId
+        : book.shelfId;
     
     updateBook(editingBookId, {
       title: editTitle.trim() || book.title,
       authors: authorsArray.length > 0 ? authorsArray : book.authors,
       isbn13: normalizedIsbn || book.isbn13,
       coverUrl: editCoverUrl.trim() || book.coverUrl || "",
+      shelfId: nextShelfId,
     });
     
     const updated = loadBooks();
     setBooks(updated);
-    setEditingBookId(null);
-    setEditTitle("");
-    setEditAuthors("");
-    setEditIsbn("");
-    setEditCoverUrl("");
+    setDetailEditMode(false);
+    setSynopsisExpanded(false);
+    setShowNewShelfInEdit(false);
     showToast(t({ nl: "Boek bijgewerkt", en: "Book updated" }, lang));
   }
 
@@ -1061,13 +1325,14 @@ function LibraryPageContent() {
 
       const filename = count === 1
         ? "currently-reading.png"
-        : scope === "all"
+        : scope === "all" || !activeShelf
           ? "all-shelves.png"
           : `${activeShelf.name.replace(/\s+/g, "-")}-shelf.png`;
       
-      const shelfLabel = scope === "all"
-        ? copy.allShelves.toLowerCase()
-        : `${activeShelf.emoji || "📚"} ${activeShelf.name}`;
+      const shelfLabel =
+        scope === "all" || !activeShelf
+          ? copy.allShelves.toLowerCase()
+          : `${activeShelf.emoji || "📚"} ${activeShelf.name}`;
       
       // Single book: "currently reading" / "aanrader"; 2 books: shelf update (legacy)
       const caption = count === 1
@@ -1386,7 +1651,7 @@ function LibraryPageContent() {
 
       {shareModalOpen && (
         <div
-          style={modalOverlay}
+          style={{ ...modalOverlay, zIndex: 11000 }}
           onClick={() => {
             setShareModalOpen(false);
             setSharePreviewUrl((prev) => {
@@ -1481,7 +1746,8 @@ function LibraryPageContent() {
                 <div style={formHint}>{name.length}/24</div>
                 {suggestedEmoji && !emojiTouched && (
                   <div style={{ marginTop: 6, fontSize: 12, color: "var(--muted)" }}>
-                    Suggested emoji: <span style={{ fontSize: 16 }}>{suggestedEmoji}</span>
+                    {t({ nl: "Suggestie:", en: "Suggested emoji:" }, lang)}{" "}
+                    <span style={{ fontSize: 16 }}>{suggestedEmoji}</span>
                   </div>
                 )}
               </div>
@@ -1490,7 +1756,7 @@ function LibraryPageContent() {
                 <label htmlFor="new-shelf-emoji" style={formLabel}>{copy.emoji}</label>
                 <div style={emojiPicker}>
                   {(() => {
-                    const defaultEmojis = ["📚", "✨", "🔥", "💖", "🧙", "🗡️", "🌙", "🧋", "😭", "🕯️", "🏰", "🐉"];
+                    const defaultEmojis = defaultShelfEmojis;
                     const emojisToShow = suggestedEmoji
                       ? [suggestedEmoji, ...defaultEmojis.filter((e) => e !== suggestedEmoji)]
                       : defaultEmojis;
@@ -1714,6 +1980,7 @@ function LibraryPageContent() {
                                       title: result.title,
                                       authors: result.authors,
                                       coverUrl: result.coverUrl,
+                                      synopsis: (result.synopsis || "").trim(),
                                     });
                                     setManualTitle(result.title);
                                     setManualAuthors(result.authors.join(", "));
@@ -1868,7 +2135,13 @@ function LibraryPageContent() {
                           width: "100%",
                           justifyContent: "center",
                         }}
-                        onClick={() => setShowNewShelfInAddModal(true)}
+                        onClick={() => {
+                          setNewShelfName("");
+                          setNewShelfEmoji("📚");
+                          setEmojiTouched(false);
+                          setSuggestedEmoji(null);
+                          setShowNewShelfInAddModal(true);
+                        }}
                       >
                         + {copy.newShelf}
                       </button>
@@ -1915,7 +2188,10 @@ function LibraryPageContent() {
                         name="add-book-new-shelf-name"
                         type="text"
                         value={newShelfName}
-                        onChange={(e) => setNewShelfName(e.target.value.slice(0, 24))}
+                        onChange={(e) => {
+                          setNewShelfName(e.target.value.slice(0, 24));
+                          if (!e.target.value.trim()) setEmojiTouched(false);
+                        }}
                         placeholder={copy.myShelf}
                         maxLength={24}
                         style={{
@@ -1926,19 +2202,51 @@ function LibraryPageContent() {
                         }}
                         autoFocus
                       />
+                      <div style={formHint}>{newShelfName.length}/24</div>
+                      {suggestedEmoji && !emojiTouched && (
+                        <div style={{ marginTop: 6, fontSize: 12, color: "var(--muted)" }}>
+                          {t({ nl: "Suggestie:", en: "Suggested emoji:" }, lang)}{" "}
+                          <span style={{ fontSize: 16 }}>{suggestedEmoji}</span>
+                        </div>
+                      )}
                     </div>
                     <div style={formGroup}>
                       <label htmlFor="add-book-new-shelf-emoji" style={{ ...formLabel, color: "var(--text)" }}>{copy.emoji}</label>
+                      <div style={emojiPicker}>
+                        {(suggestedEmoji
+                          ? [suggestedEmoji, ...defaultShelfEmojis.filter((e) => e !== suggestedEmoji)]
+                          : defaultShelfEmojis
+                        ).map((emojiOption) => (
+                          <button
+                            key={emojiOption}
+                            type="button"
+                            style={{
+                              ...emojiChip,
+                              ...(newShelfEmoji === emojiOption ? emojiChipActive : {}),
+                            }}
+                            onClick={() => {
+                              setEmojiTouched(true);
+                              setNewShelfEmoji(emojiOption);
+                            }}
+                          >
+                            {emojiOption}
+                          </button>
+                        ))}
+                      </div>
                       <input
                         id="add-book-new-shelf-emoji"
                         name="add-book-new-shelf-emoji"
                         type="text"
                         value={newShelfEmoji}
-                        onChange={(e) => setNewShelfEmoji(e.target.value.slice(0, 2) || "📚")}
+                        onChange={(e) => {
+                          setEmojiTouched(true);
+                          setNewShelfEmoji(e.target.value.slice(0, 2) || "📚");
+                        }}
                         placeholder="📚"
                         maxLength={2}
                         style={{
                           ...formInput,
+                          marginTop: 8,
                           border: "1px solid var(--border)",
                           background: "var(--panel2)",
                           color: "var(--text)",
@@ -1975,6 +2283,8 @@ function LibraryPageContent() {
                           setShowNewShelfInAddModal(false);
                           setNewShelfName("");
                           setNewShelfEmoji("📚");
+                          setEmojiTouched(false);
+                          setSuggestedEmoji(null);
                         }}
                       >
                         {copy.back}
@@ -2008,104 +2318,565 @@ function LibraryPageContent() {
         </div>
       )}
 
-      {editingBookId && (
-        <div style={modalOverlay} onClick={() => setEditingBookId(null)}>
-          <div style={modal} onClick={(e) => e.stopPropagation()}>
-            <h2 style={modalTitle}>{t({ nl: "Bewerk boek", en: "Edit book" }, lang)}</h2>
-            <div style={modalForm}>
-              <div style={formGroup}>
-                <label htmlFor="edit-title" style={{ ...formLabel, color: "var(--text)" }}>
-                  {t({ nl: "Titel", en: "Title" }, lang)} *
-                </label>
-                <input
-                  id="edit-title"
-                  type="text"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  placeholder={t({ nl: "Voer boek titel in", en: "Enter book title" }, lang)}
+      {editingBookId && (() => {
+        const editingBook = books.find((b) => b.id === editingBookId);
+        const editingShelf = editingBook
+          ? shelves.find((s) => s.id === editingBook.shelfId)
+          : undefined;
+        const editingStatus = normalizeStatus(editingBook?.status);
+        const statusLabel =
+          editingStatus === "Finished"
+            ? copy.read
+            : editingStatus === "Reading"
+              ? copy.reading
+              : copy.tbr;
+        const formatLabel =
+          (editingBook?.format || "physical") === "ebook"
+            ? t({ nl: "E-book", en: "E-book" }, lang)
+            : t({ nl: "Papier", en: "Print" }, lang);
+
+        return (
+          <div
+            style={{ ...modalOverlay, alignItems: "flex-end", padding: 0 }}
+            onClick={closeBookDetail}
+          >
+            <div
+              style={{
+                ...modal,
+                maxHeight: "92dvh",
+                overflowY: "auto",
+                padding: 16,
+                borderRadius: "24px 24px 0 0",
+                width: "100%",
+                maxWidth: 480,
+              }}
+              className="se-detail-sheet"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 14,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={closeBookDetail}
                   style={{
-                    ...formInput,
-                    border: "1px solid var(--border)",
-                    background: "var(--panel2)",
+                    border: "none",
+                    background: "transparent",
+                    color: "var(--text)",
+                    fontSize: 22,
+                    cursor: "pointer",
+                    padding: 4,
+                  }}
+                  aria-label={copy.cancel}
+                >
+                  ←
+                </button>
+                <div
+                  style={{
+                    fontFamily: "var(--font-display), Georgia, serif",
+                    fontWeight: 700,
                     color: "var(--text)",
                   }}
-                  autoFocus
-                />
+                >
+                  ShelfieEase
+                </div>
+                <button
+                  type="button"
+                  onClick={() => editingBook && generateShareCard(1, editingBook)}
+                  disabled={sharing || !editingBook}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color: "var(--accent1)",
+                    fontSize: 18,
+                    cursor: "pointer",
+                    padding: 4,
+                  }}
+                  aria-label={copy.shareThisBook}
+                >
+                  ↗
+                </button>
               </div>
-              <div style={formGroup}>
-                <label htmlFor="edit-authors" style={{ ...formLabel, color: "var(--text)" }}>
-                  {t({ nl: "Auteur(s)", en: "Author(s)" }, lang)}
-                </label>
-                <input
-                  id="edit-authors"
-                  type="text"
-                  value={editAuthors}
-                  onChange={(e) => setEditAuthors(e.target.value)}
-                  placeholder={t({ nl: "Voer auteur(s) in (gescheiden door komma)", en: "Enter author(s) (separated by comma)" }, lang)}
+
+              <div
+                style={{
+                  position: "relative",
+                  borderRadius: 18,
+                  overflow: "hidden",
+                  background: "var(--bg2)",
+                  aspectRatio: "2 / 3",
+                  maxHeight: 360,
+                  margin: "0 auto 16px",
+                  width: "100%",
+                  maxWidth: 280,
+                  boxShadow: "0 14px 32px var(--shadow)",
+                }}
+              >
+                {editCoverUrl && !isBadCoverUrl(editCoverUrl) ? (
+                  <CoverImg
+                    src={editCoverUrl}
+                    alt={editTitle || "cover"}
+                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                  />
+                ) : (
+                  <CoverPlaceholder
+                    title={editTitle || "Book"}
+                    authors={editAuthors.split(",").map((a) => a.trim()).filter(Boolean)}
+                    isbn={editIsbn}
+                    mood={currentMood}
+                    style={{ minHeight: 0, height: "100%", width: "100%", borderRadius: 0 }}
+                  />
+                )}
+                <div
                   style={{
-                    ...formInput,
-                    border: "1px solid var(--border)",
-                    background: "var(--panel2)",
-                    color: "var(--text)",
+                    position: "absolute",
+                    left: 10,
+                    right: 10,
+                    bottom: 10,
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr 1fr",
+                    gap: 6,
+                    padding: "10px 8px",
+                    borderRadius: 12,
+                    background: "rgba(30, 20, 24, 0.55)",
+                    backdropFilter: "blur(10px)",
+                    WebkitBackdropFilter: "blur(10px)",
+                    color: "#fff",
+                    textAlign: "center",
                   }}
-                />
-                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
-                  {t({ nl: "Scheid meerdere auteurs met een komma", en: "Separate multiple authors with a comma" }, lang)}
+                >
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 800 }}>{statusLabel}</div>
+                    <div style={{ fontSize: 9, opacity: 0.8, letterSpacing: "0.06em" }}>
+                      {t({ nl: "STATUS", en: "STATUS" }, lang)}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 800 }}>{formatLabel}</div>
+                    <div style={{ fontSize: 9, opacity: 0.8, letterSpacing: "0.06em" }}>
+                      {t({ nl: "FORMAAT", en: "FORMAT" }, lang)}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 800 }}>
+                      {editIsbn ? editIsbn.slice(-4) : "—"}
+                    </div>
+                    <div style={{ fontSize: 9, opacity: 0.8, letterSpacing: "0.06em" }}>ISBN</div>
+                  </div>
                 </div>
               </div>
-              <div style={formGroup}>
-                <label htmlFor="edit-isbn" style={{ ...formLabel, color: "var(--text)" }}>
-                  ISBN
-                </label>
-                <input
-                  id="edit-isbn"
-                  type="text"
-                  value={editIsbn}
-                  onChange={(e) => setEditIsbn(e.target.value)}
-                  placeholder={t({ nl: "Bijv. 9789022591260", en: "E.g. 9789022591260" }, lang)}
-                  inputMode="numeric"
-                  style={{
-                    ...formInput,
-                    border: "1px solid var(--border)",
-                    background: "var(--panel2)",
-                    color: "var(--text)",
-                  }}
-                />
-              </div>
-              <div style={formGroup}>
-                <label htmlFor="edit-cover-url" style={{ ...formLabel, color: "var(--text)" }}>
-                  {t({ nl: "Cover URL (optioneel)", en: "Cover URL (optional)" }, lang)}
-                </label>
-                <input
-                  id="edit-cover-url"
-                  type="url"
-                  value={editCoverUrl}
-                  onChange={(e) => setEditCoverUrl(e.target.value)}
-                  placeholder={t({ nl: "https://...", en: "https://..." }, lang)}
-                  style={{
-                    ...formInput,
-                    border: "1px solid var(--border)",
-                    background: "var(--panel2)",
-                    color: "var(--text)",
-                  }}
-                />
-              </div>
-            </div>
-            <div style={modalActions}>
-              <button style={btnGhost} onClick={() => setEditingBookId(null)}>
-                {copy.cancel}
-              </button>
-              <button
-                style={btnPrimary}
-                onClick={handleSaveBookEdit}
-                disabled={!editTitle.trim()}
+
+              <h2
+                style={{
+                  margin: "0 0 4px",
+                  fontFamily: "var(--font-display), Georgia, serif",
+                  fontSize: 26,
+                  fontWeight: 700,
+                  color: "var(--text)",
+                  lineHeight: 1.2,
+                  textAlign: "center",
+                }}
               >
-                {t({ nl: "Opslaan", en: "Save" }, lang)}
-              </button>
+                {editTitle || t({ nl: "Zonder titel", en: "Untitled" }, lang)}
+              </h2>
+              <p
+                style={{
+                  margin: "0 0 12px",
+                  textAlign: "center",
+                  color: "var(--muted)",
+                  fontStyle: "italic",
+                  fontSize: 15,
+                }}
+              >
+                {editAuthors.trim()
+                  ? `${t({ nl: "door", en: "by" }, lang)} ${editAuthors}`
+                  : t({ nl: "Onbekende auteur", en: "Unknown author" }, lang)}
+              </p>
+
+              {!detailEditMode && (
+                <div
+                  style={{
+                    margin: "0 0 16px",
+                    textAlign: "left",
+                    maxWidth: 420,
+                    marginLeft: "auto",
+                    marginRight: "auto",
+                  }}
+                >
+                  {editingBook?.synopsis?.trim() ? (
+                    <>
+                      <p
+                        style={{
+                          margin: 0,
+                          color: "var(--muted)",
+                          fontSize: 14,
+                          lineHeight: 1.55,
+                          display: "-webkit-box",
+                          WebkitLineClamp: synopsisExpanded ? ("unset" as unknown as number) : 4,
+                          WebkitBoxOrient: "vertical",
+                          overflow: synopsisExpanded ? "visible" : "hidden",
+                        }}
+                      >
+                        {editingBook.synopsis}
+                      </p>
+                      {editingBook.synopsis.length > 220 && (
+                        <button
+                          type="button"
+                          onClick={() => setSynopsisExpanded((v) => !v)}
+                          style={{
+                            marginTop: 6,
+                            border: "none",
+                            background: "transparent",
+                            color: "var(--accent1)",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            padding: 0,
+                          }}
+                        >
+                          {synopsisExpanded
+                            ? t({ nl: "Minder tonen", en: "Show less" }, lang)
+                            : t({ nl: "Meer tonen", en: "Show more" }, lang)}
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <p
+                      style={{
+                        margin: 0,
+                        color: "var(--muted2)",
+                        fontSize: 13,
+                        fontStyle: "italic",
+                      }}
+                    >
+                      {t({ nl: "Geen synopsis", en: "No synopsis" }, lang)}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  justifyContent: "center",
+                  marginBottom: 16,
+                }}
+              >
+                <span
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 999,
+                    background: "var(--accentSoft2)",
+                    color: "var(--accent1)",
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  {statusLabel}
+                </span>
+                {editingShelf && (
+                  <span
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: 999,
+                      background: "var(--btnGhostBg)",
+                      color: "var(--muted)",
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {editingShelf.emoji} {editingShelf.name}
+                  </span>
+                )}
+              </div>
+
+              {!detailEditMode && (
+                <div style={{ ...modalActions, marginTop: 8 }}>
+                  <button
+                    type="button"
+                    style={{ ...btnGhost, width: "100%", justifyContent: "center" }}
+                    onClick={() => {
+                      if (editingBook) setEditShelfId(editingBook.shelfId || null);
+                      setShowNewShelfInEdit(false);
+                      setDetailEditMode(true);
+                    }}
+                  >
+                    {t({ nl: "Bewerken", en: "Edit" }, lang)}
+                  </button>
+                </div>
+              )}
+
+              {detailEditMode && (
+              <>
+              {!showNewShelfInEdit ? (
+              <>
+              <div style={modalForm}>
+                <div style={formGroup}>
+                  <label htmlFor="edit-title" style={{ ...formLabel, color: "var(--text)" }}>
+                    {t({ nl: "Titel", en: "Title" }, lang)} *
+                  </label>
+                  <input
+                    id="edit-title"
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder={t({ nl: "Voer boek titel in", en: "Enter book title" }, lang)}
+                    style={{
+                      ...formInput,
+                      border: "1px solid var(--border)",
+                      background: "var(--panel2)",
+                      color: "var(--text)",
+                    }}
+                  />
+                </div>
+                <div style={formGroup}>
+                  <label htmlFor="edit-authors" style={{ ...formLabel, color: "var(--text)" }}>
+                    {t({ nl: "Auteur(s)", en: "Author(s)" }, lang)}
+                  </label>
+                  <input
+                    id="edit-authors"
+                    type="text"
+                    value={editAuthors}
+                    onChange={(e) => setEditAuthors(e.target.value)}
+                    placeholder={t(
+                      {
+                        nl: "Voer auteur(s) in (gescheiden door komma)",
+                        en: "Enter author(s) (separated by comma)",
+                      },
+                      lang
+                    )}
+                    style={{
+                      ...formInput,
+                      border: "1px solid var(--border)",
+                      background: "var(--panel2)",
+                      color: "var(--text)",
+                    }}
+                  />
+                </div>
+                <div style={formGroup}>
+                  <label htmlFor="edit-shelf" style={{ ...formLabel, color: "var(--text)" }}>
+                    {copy.moveToShelf}
+                  </label>
+                  <select
+                    id="edit-shelf"
+                    value={editShelfId || editingBook?.shelfId || ""}
+                    onChange={(e) => setEditShelfId(e.target.value)}
+                    style={{
+                      ...formInput,
+                      border: "1px solid var(--border)",
+                      background: "var(--panel2)",
+                      color: "var(--text)",
+                    }}
+                  >
+                    {shelves.map((shelf) => (
+                      <option key={shelf.id} value={shelf.id}>
+                        {shelf.emoji} {shelf.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    style={{
+                      ...btnGhost,
+                      width: "100%",
+                      justifyContent: "center",
+                      marginTop: 10,
+                    }}
+                    onClick={() => {
+                      setNewShelfName("");
+                      setNewShelfEmoji("📚");
+                      setEmojiTouched(false);
+                      setSuggestedEmoji(null);
+                      setShowNewShelfInEdit(true);
+                    }}
+                  >
+                    + {copy.newShelf}
+                  </button>
+                </div>
+                <div style={formGroup}>
+                  <label htmlFor="edit-isbn" style={{ ...formLabel, color: "var(--text)" }}>
+                    ISBN
+                  </label>
+                  <input
+                    id="edit-isbn"
+                    type="text"
+                    value={editIsbn}
+                    onChange={(e) => setEditIsbn(e.target.value)}
+                    placeholder={t({ nl: "Bijv. 9789022591260", en: "E.g. 9789022591260" }, lang)}
+                    inputMode="numeric"
+                    style={{
+                      ...formInput,
+                      border: "1px solid var(--border)",
+                      background: "var(--panel2)",
+                      color: "var(--text)",
+                    }}
+                  />
+                </div>
+                <div style={formGroup}>
+                  <label htmlFor="edit-cover-url" style={{ ...formLabel, color: "var(--text)" }}>
+                    {t({ nl: "Cover URL (optioneel)", en: "Cover URL (optional)" }, lang)}
+                  </label>
+                  <input
+                    id="edit-cover-url"
+                    type="url"
+                    value={editCoverUrl}
+                    onChange={(e) => setEditCoverUrl(e.target.value)}
+                    placeholder={t({ nl: "https://...", en: "https://..." }, lang)}
+                    style={{
+                      ...formInput,
+                      border: "1px solid var(--border)",
+                      background: "var(--panel2)",
+                      color: "var(--text)",
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ ...modalActions, marginTop: 8 }}>
+                <button
+                  style={btnGhost}
+                  onClick={() => {
+                    if (!editingBook) return;
+                    setEditTitle(editingBook.title || "");
+                    setEditAuthors(editingBook.authors?.join(", ") || "");
+                    setEditIsbn(editingBook.isbn13 || "");
+                    setEditCoverUrl(editingBook.coverUrl || "");
+                    setEditShelfId(editingBook.shelfId || null);
+                    setShowNewShelfInEdit(false);
+                    setDetailEditMode(false);
+                  }}
+                >
+                  {copy.cancel}
+                </button>
+                <button
+                  style={{
+                    ...btnPrimary,
+                    color: "var(--btnPrimaryText)",
+                    borderRadius: "var(--radiusButton)",
+                  }}
+                  onClick={handleSaveBookEdit}
+                  disabled={!editTitle.trim()}
+                >
+                  {t({ nl: "Opslaan", en: "Save" }, lang)}
+                </button>
+              </div>
+              </>
+              ) : (
+              <div style={modalForm}>
+                <div style={formGroup}>
+                  <label htmlFor="edit-new-shelf-name" style={{ ...formLabel, color: "var(--text)" }}>
+                    {copy.name}
+                  </label>
+                  <input
+                    id="edit-new-shelf-name"
+                    type="text"
+                    value={newShelfName}
+                    onChange={(e) => {
+                      setNewShelfName(e.target.value.slice(0, 24));
+                      if (!e.target.value.trim()) setEmojiTouched(false);
+                    }}
+                    placeholder={copy.myShelf}
+                    maxLength={24}
+                    style={{
+                      ...formInput,
+                      border: "1px solid var(--border)",
+                      background: "var(--panel2)",
+                      color: "var(--text)",
+                    }}
+                    autoFocus
+                  />
+                  <div style={formHint}>{newShelfName.length}/24</div>
+                  {suggestedEmoji && !emojiTouched && (
+                    <div style={{ marginTop: 6, fontSize: 12, color: "var(--muted)" }}>
+                      {t({ nl: "Suggestie:", en: "Suggested emoji:" }, lang)}{" "}
+                      <span style={{ fontSize: 16 }}>{suggestedEmoji}</span>
+                    </div>
+                  )}
+                </div>
+                <div style={formGroup}>
+                  <label htmlFor="edit-new-shelf-emoji" style={{ ...formLabel, color: "var(--text)" }}>
+                    {copy.emoji}
+                  </label>
+                  <div style={emojiPicker}>
+                    {(suggestedEmoji
+                      ? [suggestedEmoji, ...defaultShelfEmojis.filter((e) => e !== suggestedEmoji)]
+                      : defaultShelfEmojis
+                    ).map((emojiOption) => (
+                      <button
+                        key={emojiOption}
+                        type="button"
+                        style={{
+                          ...emojiChip,
+                          ...(newShelfEmoji === emojiOption ? emojiChipActive : {}),
+                        }}
+                        onClick={() => {
+                          setEmojiTouched(true);
+                          setNewShelfEmoji(emojiOption);
+                        }}
+                      >
+                        {emojiOption}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    id="edit-new-shelf-emoji"
+                    type="text"
+                    value={newShelfEmoji}
+                    onChange={(e) => {
+                      setEmojiTouched(true);
+                      setNewShelfEmoji(e.target.value.slice(0, 2) || "📚");
+                    }}
+                    placeholder="📚"
+                    maxLength={2}
+                    style={{
+                      ...formInput,
+                      marginTop: 8,
+                      border: "1px solid var(--border)",
+                      background: "var(--panel2)",
+                      color: "var(--text)",
+                    }}
+                  />
+                </div>
+                <div style={{ ...modalActions, marginTop: 8 }}>
+                  <button
+                    style={btnGhost}
+                    onClick={() => {
+                      setShowNewShelfInEdit(false);
+                      setNewShelfName("");
+                      setNewShelfEmoji("📚");
+                      setEmojiTouched(false);
+                      setSuggestedEmoji(null);
+                    }}
+                  >
+                    {copy.back}
+                  </button>
+                  <button
+                    style={{
+                      ...btnPrimary,
+                      color: "var(--btnPrimaryText)",
+                      borderRadius: "var(--radiusButton)",
+                    }}
+                    onClick={handleCreateShelfInEdit}
+                    disabled={!newShelfName.trim()}
+                  >
+                    {copy.makeShelf}
+                  </button>
+                </div>
+              </div>
+              )}
+              </>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {duplicateWarning && (
         <div style={modalOverlay} onClick={() => setDuplicateWarning(null)}>
@@ -2213,7 +2984,7 @@ function LibraryPageContent() {
         </div>
       )}
 
-      {/* Demo spots left banner: show when 7–9 books so user sees Unlock CTA before hitting limit */}
+      {/* Soft nudge: only when 1 free spot left */}
       {showPreLimitUpgradeBanner && (
         <div
           style={{
@@ -2250,6 +3021,188 @@ function LibraryPageContent() {
           </button>
         </div>
       )}
+
+      {/* Nu aan het lezen — shelf moment, not an e-reader widget */}
+      <section
+        id="nu-aan-het-lezen"
+        style={{
+          margin: "0 16px 20px",
+          padding: currentlyReading ? "18px 16px 16px" : "16px",
+          borderRadius: 24,
+          background: currentlyReading
+            ? "linear-gradient(145deg, color-mix(in srgb, var(--accentSoft2) 55%, var(--panelSolid)) 0%, var(--panelSolid) 55%, color-mix(in srgb, var(--bg2) 40%, var(--panelSolid)) 100%)"
+            : "var(--panelSolid)",
+          border: "1px solid color-mix(in srgb, var(--border) 70%, transparent)",
+          boxShadow: currentlyReading ? "0 16px 36px var(--shadow)" : "0 8px 20px var(--shadow)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            marginBottom: currentlyReading ? 14 : 0,
+            gap: 8,
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--muted2)",
+                fontFamily: "var(--font-body), system-ui, sans-serif",
+              }}
+            >
+              {t({ nl: "Op je plank", en: "On your shelf" }, lang)}
+            </div>
+            <h2
+              style={{
+                margin: "4px 0 0",
+                fontSize: 26,
+                fontWeight: 700,
+                fontFamily: "var(--font-display), Georgia, serif",
+                color: "var(--text)",
+                lineHeight: 1.15,
+              }}
+            >
+              {t({ nl: "Nu aan het lezen", en: "Currently reading" }, lang)}
+            </h2>
+          </div>
+          {currentlyReading && (
+            <button
+              type="button"
+              onClick={() => {
+                setStatusFilter(new Set<BookStatus>(["Reading"]));
+                setScope("all");
+              }}
+              style={{
+                border: "none",
+                background: "transparent",
+                color: "var(--accent1)",
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {t({ nl: "Alles ›", en: "All ›" }, lang)}
+            </button>
+          )}
+        </div>
+
+        {currentlyReading ? (
+          <button
+            type="button"
+            onClick={() => handleEditBook(currentlyReading.id)}
+            style={{
+              display: "flex",
+              gap: 16,
+              alignItems: "stretch",
+              width: "100%",
+              border: "none",
+              background: "transparent",
+              padding: 0,
+              textAlign: "left",
+              cursor: "pointer",
+              color: "inherit",
+            }}
+          >
+            <div
+              style={{
+                width: 128,
+                flexShrink: 0,
+                borderRadius: 16,
+                overflow: "hidden",
+                background: "var(--bg2)",
+                aspectRatio: "2 / 3",
+                boxShadow: "0 12px 28px var(--shadow)",
+              }}
+            >
+              {currentlyReading.coverUrl && !isBadCoverUrl(currentlyReading.coverUrl) ? (
+                <CoverImg
+                  src={currentlyReading.coverUrl}
+                  alt={currentlyReading.title}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                />
+              ) : (
+                <CoverPlaceholder
+                  title={currentlyReading.title}
+                  authors={currentlyReading.authors}
+                  isbn={currentlyReading.isbn13}
+                  mood={currentMood}
+                  style={{ minHeight: 0, height: "100%", width: "100%", borderRadius: 0 }}
+                />
+              )}
+            </div>
+
+            <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6, paddingTop: 2 }}>
+              <div
+                style={{
+                  fontFamily: "var(--font-display), Georgia, serif",
+                  fontSize: 22,
+                  fontWeight: 700,
+                  color: "var(--text)",
+                  lineHeight: 1.2,
+                }}
+              >
+                {currentlyReading.title}
+              </div>
+              {currentlyReading.authors?.length ? (
+                <div style={{ fontSize: 14, color: "var(--muted)", fontStyle: "italic" }}>
+                  {t({ nl: "door", en: "by" }, lang)} {currentlyReading.authors.join(", ")}
+                </div>
+              ) : null}
+              {currentlyReading.synopsis?.trim() ? (
+                <p
+                  style={{
+                    margin: "4px 0 0",
+                    fontSize: 13,
+                    lineHeight: 1.5,
+                    color: "var(--muted)",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {currentlyReading.synopsis}
+                </p>
+              ) : null}
+              <div
+                style={{
+                  marginTop: "auto",
+                  paddingTop: 8,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "var(--accent1)",
+                }}
+              >
+                {t({ nl: "Open op je plank ›", en: "Open on your shelf ›" }, lang)}
+              </div>
+            </div>
+          </button>
+        ) : (
+          <p
+            style={{
+              margin: "10px 0 0",
+              fontSize: 14,
+              lineHeight: 1.5,
+              color: "var(--muted)",
+            }}
+          >
+            {t(
+              {
+                nl: "Nog geen boek op Bezig. Tik een cover en zet de status op Bezig.",
+                en: "Nothing marked Reading yet. Tap a cover and set status to Reading.",
+              },
+              lang
+            )}
+          </p>
+        )}
+      </section>
 
       {/* Search and Filters - Always visible */}
       <div style={{ padding: "0 16px 16px", display: "grid", gap: 12 }}>
@@ -2456,7 +3409,20 @@ function LibraryPageContent() {
             const bookShelf = shelves.find((s) => s.id === b.shelfId);
 
             return (
-              <div key={b.id} style={{ ...cardStyle, animationDelay: `${idx * 35}ms`, position: "relative" }}>
+              <div
+                key={b.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => handleEditBook(b.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleEditBook(b.id);
+                  }
+                }}
+                style={{ ...cardStyle, animationDelay: `${idx * 35}ms`, position: "relative", cursor: "pointer" }}
+                className="se-cover-tile"
+              >
                 <button
                   style={buttonStyle}
                   onClick={(e) => {
@@ -2576,90 +3542,84 @@ function LibraryPageContent() {
                 )}
 
                 {(() => {
-                  const nl = isNlUi();
-                  const isCalm = currentMood === "light";
-
-                  const miniLinkBtn: React.CSSProperties = {
-                    padding: "8px 10px",
-                    borderRadius: 12,
-                    border: isCalm 
-                      ? "1px solid #D8C6A8"
-                      : "1px solid rgba(255,255,255,0.14)",
-                    background: isCalm
-                      ? "rgba(58, 42, 26, 0.08)"
-                      : "rgba(255,255,255,0.06)",
-                    color: isCalm
-                      ? "#4A3825"
-                      : "rgba(255,255,255,0.92)",
-                    fontWeight: 850,
-                    fontSize: 12,
-                    cursor: "pointer",
-                  };
-
                   return (
                     <>
-                      {/* cardTop: titel, auteur, ISBN klein */}
-                      <div style={cardTop}>
-                        <div style={titleStyle}>{b.title}</div>
-                        {b.authors?.length ? <div style={authorStyle}>by {b.authors.join(", ")}</div> : null}
-                        {scope === "all" && bookShelf && (
-                          <div style={{
-                            fontSize: 11,
-                            color: "var(--muted2)",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4,
-                          }}>
-                            <span>{bookShelf.emoji}</span>
-                            <span>{bookShelf.name}</span>
-                </div>
+                      <div
+                        style={{
+                          width: "100%",
+                          aspectRatio: "2 / 3",
+                          borderRadius: 14,
+                          overflow: "hidden",
+                          background: "var(--bg2)",
+                          position: "relative",
+                        }}
+                      >
+                        {b.coverUrl && !isBadCoverUrl(b.coverUrl) ? (
+                          <CoverImg
+                            src={b.coverUrl}
+                            alt={b.title}
+                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                          />
+                        ) : (
+                          <CoverPlaceholder
+                            title={b.title}
+                            authors={b.authors}
+                            isbn={b.isbn13}
+                            mood={currentMood}
+                            style={{ minHeight: 0, height: "100%", width: "100%", borderRadius: 0, padding: 8 }}
+                          />
                         )}
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                          <span style={{ ...isbn, fontSize: 10 }}>ISBN {b.isbn13}</span>
-                          {(() => {
-                            // Use normalizeStatus to ensure consistent display
-                            const s = normalizeStatus(b.status);
-                            const label = s === "Finished" ? copy.read : s === "Reading" ? copy.reading : copy.tbr;
-                            return <span style={badgeFor(s, currentMood)}>{label}</span>;
-                          })()}
-                        </div>
-              </div>
-
-                      {/* cardActions: Samenvatting / Cover zoeken */}
-                      <div style={cardActions}>
-                        <button
-                          type="button"
-                          style={miniLinkBtn}
-                          onClick={() => window.open(googleSummaryUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl), "_blank", "noopener,noreferrer")}
-                        >
-                          {copy.summary}
-                        </button>
-
-                        <button
-                          type="button"
-                          style={miniLinkBtn}
-                          onClick={() => {
-                            const coverUrl = googleCoverUrl(b.title, (b.authors || []).join(", "), b.isbn13, nl);
-                            window.open(coverUrl, "_blank", "noopener,noreferrer");
-                          }}
-                        >
-                          {copy.findCover}
-                        </button>
-            </div>
-
-                      {/* cardBottom: ebook badge */}
-                      <div style={cardBottom}>
                         {(b.format || "physical") === "ebook" && (
-                          <span style={{
-                            fontSize: 11,
-                            color: "var(--muted2)",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 3,
-                          }}>
+                          <span
+                            style={{
+                              position: "absolute",
+                              top: 8,
+                              left: 8,
+                              fontSize: 12,
+                              background: "var(--panelSolid)",
+                              borderRadius: 999,
+                              padding: "2px 6px",
+                            }}
+                          >
                             📱
                           </span>
                         )}
+                      </div>
+
+                      <div style={{ ...cardTop, minHeight: 0, gap: 4 }}>
+                        <div
+                          style={{
+                            ...titleStyle,
+                            fontFamily: "var(--font-display), Georgia, serif",
+                            fontSize: 15,
+                            lineHeight: 1.25,
+                          }}
+                        >
+                          {b.title}
+                        </div>
+                        {b.authors?.length ? (
+                          <div style={{ ...authorStyle, fontSize: 12 }}>{b.authors.join(", ")}</div>
+                        ) : null}
+                        {scope === "all" && bookShelf && (
+                          <div
+                            style={{
+                              fontSize: 11,
+                              color: "var(--muted2)",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            <span>{bookShelf.emoji}</span>
+                            <span>{bookShelf.name}</span>
+                          </div>
+                        )}
+                        {(() => {
+                          const s = normalizeStatus(b.status);
+                          const label =
+                            s === "Finished" ? copy.read : s === "Reading" ? copy.reading : copy.tbr;
+                          return <span style={badgeFor(s, currentMood)}>{label}</span>;
+                        })()}
                       </div>
                     </>
                   );
@@ -3678,41 +4638,29 @@ const emptyCard: React.CSSProperties = {
 
 const grid: React.CSSProperties = {
   display: "grid",
-  gap: 14,
+  gap: 12,
   marginTop: 14,
-  gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-  gridAutoRows: "1fr",
-  alignItems: "stretch", // All cards stretch to same height
+  padding: "0 16px 24px",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  alignItems: "start",
   position: "relative",
   zIndex: 1,
 };
 
 const card: React.CSSProperties = {
-  background: "var(--panel)",
+  background: "var(--panelSolid)",
   border: "1px solid var(--border)",
   borderRadius: 18,
-  padding: 14,
-  boxShadow: `0 14px 34px var(--shadow)`,
+  padding: 10,
+  boxShadow: `0 10px 24px var(--shadow)`,
   animation: "popIn 420ms ease both",
   display: "flex",
   flexDirection: "column",
-  gap: 10,
-  height: "100%",
-  minHeight: 210,
+  gap: 8,
 };
 
 const cardCompact: React.CSSProperties = {
-  background: "var(--panel)",
-  border: "1px solid var(--border)",
-  borderRadius: 14,
-  padding: 14,
-  boxShadow: `0 8px 20px var(--shadow)`,
-  animation: "popIn 420ms ease both",
-  display: "flex",
-  flexDirection: "column",
-  gap: 10,
-  height: "100%",
-  minHeight: 210,
+  ...card,
 };
 
 const cardTop: React.CSSProperties = {
@@ -3817,14 +4765,35 @@ const css = `
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+@keyframes seFadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes seSheetIn {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+#nu-aan-het-lezen {
+  animation: seFadeUp 320ms ease both;
+}
+
+.se-detail-sheet {
+  animation: seSheetIn 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.se-cover-tile {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.se-cover-tile:active {
+  transform: scale(0.97);
+}
+
 @media (hover:hover) {
-  div[style*="animation: popIn"] {
-    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
-  }
-  div[style*="animation: popIn"]:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 18px 46px rgba(0,0,0,0.55);
-    border-color: rgba(255,73,240,0.35);
+  .se-cover-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px var(--shadow);
   }
 }
 

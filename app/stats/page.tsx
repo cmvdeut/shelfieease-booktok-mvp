@@ -210,8 +210,16 @@ export default function StatsPage() {
         <Link href="/library" style={backLink}>
           ← {t({ nl: "Bibliotheek", en: "Library" }, lang)}
         </Link>
-        <h1 style={title}>{t({ nl: "Statistieken", en: "Statistics" }, lang)}</h1>
-        <p style={subtitle}>{t({ nl: "Rustig overzicht van je shelf.", en: "A calm overview of your shelf." }, lang)}</p>
+        <h1 style={title}>{t({ nl: "Profiel", en: "Profile" }, lang)}</h1>
+        <p style={subtitle}>
+          {t(
+            {
+              nl: `${stats.total} boeken · ${stats.statusCounts.TBR} TBR · ${stats.statusCounts.Reading} bezig · ${stats.statusCounts.Finished} gelezen`,
+              en: `${stats.total} books · ${stats.statusCounts.TBR} TBR · ${stats.statusCounts.Reading} reading · ${stats.statusCounts.Finished} finished`,
+            },
+            lang
+          )}
+        </p>
       </div>
 
       <div style={content}>
@@ -402,7 +410,8 @@ const backLink: React.CSSProperties = {
 const title: React.CSSProperties = {
   margin: 0,
   fontSize: 32,
-  fontWeight: 950,
+  fontWeight: 700,
+  fontFamily: "var(--font-display), Georgia, serif",
   color: "var(--text)",
   lineHeight: 1.2,
 };

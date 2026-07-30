@@ -8,6 +8,9 @@ const ALLOWED_HOSTS = [
   "lh3.googleusercontent.com",
   "m.media-amazon.com",
   "images-na.ssl-images-amazon.com",
+  "archive.org",
+  "www.archive.org",
+  "media.s-bol.com",
 ];
 
 function isAllowedUrl(url: string): boolean {

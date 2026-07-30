@@ -93,7 +93,7 @@ export function MoodSwitcher() {
         onClick={() => setIsOpen(!isOpen)}
         style={{
           position: "fixed",
-          bottom: 20,
+          bottom: "calc(80px + env(safe-area-inset-bottom))",
           right: 20,
           width: 56,
           height: 56,
@@ -130,7 +130,7 @@ export function MoodSwitcher() {
           ref={menuRef}
           style={{
             position: "fixed",
-            bottom: 88,
+            bottom: "calc(148px + env(safe-area-inset-bottom))",
             right: 20,
             minWidth: 160,
             borderRadius: 16,
