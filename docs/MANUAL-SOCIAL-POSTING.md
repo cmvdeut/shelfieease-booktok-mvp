@@ -1,34 +1,25 @@
-# Social media — handmatig & Social Hub
+# Social media — handmatig (primair sinds 2026-07-30)
 
-Automatisch publiceren via **GitHub Actions** is uitgeschakeld. Gebruik de **Social Hub** voor geplande Reels, of post volledig handmatig.
+> **Autopublish HARD OFF.** Geen GitHub Actions → Blotato voor ShelfieEase.  
+> Workflow `publish-scheduled.yml` = `if: false`. Script = early return.  
+> Post native in de TikTok/Instagram-app tot bereik herstelt.
 
-## Aanbevolen: Social Hub
+## Aanbevolen: native in de app
+
+1. Film/upload op telefoon (echte B-roll, geen pure Remotion als hoofdcontent).
+2. Caption uit `brand-brief.md` / Story Vault.
+3. Optioneel noteren in `social-posts-log.md`.
+
+## Social Hub (optioneel, lokaal)
 
 Zie **[docs/SOCIAL-HUB.md](./SOCIAL-HUB.md)** voor setup (`npm run social:setup`, `npm run dev`, `npm run social:worker`).
 
-- UI: http://localhost:3000/social (kalender, queue, media-bibliotheek)
-- Auto-publish alleen voor **reels** met `public/videos/*.mp4` en geldige tokens
-- Carrousels/stories blijven **handmatig** (`manualOnly` / status `skipped`)
+- UI: http://localhost:3000/social
+- Gebruik alleen handmatig — niet als vervanging van native posting tijdens recovery
 
-## Handmatige workflow (fallback)
+## Technisch (uitgeschakeld)
 
-| Bestand | Doel |
-|---------|------|
-| `scheduled-posts.json` | Export/import; seed voor SQLite |
-| `docs/INSTAGRAM-JUNI-2026-QUEUE.md` | Overzicht juni 2026 Instagram |
-| `SOCIAL-CALENDAR.md` | Content + copy per dag |
-| `social-posts-log.md` | Live gezet + URL bijhouden |
-
-1. Open queue-doc of Social Hub voor vandaag.
-2. Video: `public/videos/<bestand>.mp4` — app of Meta Business Suite.
-3. Caption uit post / JSON (UTM in bio waar van toepassing).
-4. Noteer in `social-posts-log.md` indien gewenst.
-
-## TikTok
-
-Social Hub gebruikt **Direct Post** met caption. Zonder hub: TikTok-app met video + caption uit kalender.
-
-## Technisch
-
-- Workflow `.github/workflows/publish-scheduled.yml`: geen cron, `if: false`
-- `mcp-tiktok` blijft beschikbaar; primaire publish-laag is `lib/social/publishers/*`
+- Workflow `.github/workflows/publish-scheduled.yml`: **uit** (`if: false`)
+- `scripts/publish-scheduled-blotato.ts`: `AUTOPUBLISH_HARD_OFF = true` + TikTok/IG in `DISABLED_PLATFORMS`
+- Blotato-queue voor @shelfieease (44442 / 50003): leeg gecontroleerd 2026-07-30
+- SeniorEase-scheduling in Blotato blijft los van deze repo

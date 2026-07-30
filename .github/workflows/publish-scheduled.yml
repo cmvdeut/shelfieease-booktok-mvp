@@ -1,7 +1,7 @@
-# Publiceert due posts uit scheduled-posts.json via de Blotato API, elke 15 minuten.
-# Vervangt de oude directe TikTok/Instagram-publishers (uitgeschakeld mei 2026, zie
-# docs/SOCIAL-HUB.md voor de geschiedenis) — dit is nu het primaire publish-pad.
-# npm run social:worker blijft als lokale/handmatige fallback beschikbaar.
+# HARD OFF sinds 2026-07-30 — @shelfieease distributie-kill (TikTok/IG ~0 bereik).
+# Geen Blotato/API-autopublish tot recovery via native app-posts. Job is geblokkeerd
+# met `if: false` (cron blijft in bestand maar runt niet). Heractiveren = if verwijderen
+# én DISABLED_PLATFORMS in scripts/publish-scheduled-blotato.ts leegmaken.
 
 name: Publish Scheduled Social Media Posts
 
@@ -19,6 +19,7 @@ permissions:
 
 jobs:
   publish:
+    if: false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

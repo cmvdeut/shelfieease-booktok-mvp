@@ -31,14 +31,12 @@ try {
 const BLOTATO_API = "https://backend.blotato.com/v2";
 const ROOT_DIR = process.cwd();
 
-// Platforms waarvoor automatisch publiceren (via deze workflow) is UITGESCHAKELD.
-// TikTok uit sinds 2026-07-23: @shelfieease zit in soft-suppression (For You = 0%).
-// Zolang dat speelt posten we NIET automatisch/via API naar TikTok — post native in
-// de app. Geblokkeerde posts blijven "pending" en hervatten zodra je dit weer leegmaakt.
-// Let op: dit raakt alleen de queue van DEZE repo (ShelfieEase). Posts die direct in de
-// Blotato-kalender staan gepland moet je in de Blotato-UI annuleren. SeniorEase draait
-// in een aparte repo en wordt hier niet geraakt.
-const DISABLED_PLATFORMS = new Set<string>(["tiktok"]);
+// HARD OFF sinds 2026-07-30 — geen API/Blotato-autopublish voor ShelfieEase.
+// TikTok + Instagram: soft-suppression sinds ~17 mei (~0 bereik). Post native in de app.
+// Geblokkeerde posts blijven "pending". Heractiveren: set leegmaken + workflow `if: false` weg.
+// SeniorEase zit op andere Blotato-accounts en wordt hier niet geraakt.
+const AUTOPUBLISH_HARD_OFF = true;
+const DISABLED_PLATFORMS = new Set<string>(["tiktok", "instagram"]);
 const SCHEDULE_PATH = path.join(ROOT_DIR, "scheduled-posts.json");
 const LOG_PATH = path.join(ROOT_DIR, "social-posts-log.md");
 
@@ -224,6 +222,14 @@ async function publishNow(
 }
 
 async function main() {
+  if (AUTOPUBLISH_HARD_OFF) {
+    console.log(
+      "⏸️  Autopublish HARD OFF (2026-07-30). Geen Blotato-posts vanuit deze repo. " +
+        "Zet AUTOPUBLISH_HARD_OFF=false + DISABLED_PLATFORMS leeg om te hervatten."
+    );
+    return;
+  }
+
   const apiKey = process.env.BLOTATO_API_KEY;
   if (!apiKey) {
     console.error("❌ BLOTATO_API_KEY ontbreekt in .env\n   Haal je key op via: my.blotato.com → Settings → API");

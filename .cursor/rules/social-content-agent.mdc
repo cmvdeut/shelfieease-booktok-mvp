@@ -1,0 +1,31 @@
+---
+description: "Agent: genereeer ShelfieEase TikTok/Instagram captions. GEEN Blotato/GitHub-scheduling zolang autopublish HARD OFF is."
+globs: ["scheduled-posts.json", "TIKTOK_CONTENT_GUIDE.md", "TikTok/**", "social-posts-log.md"]
+---
+
+# Social content agent — captions only (autopublish OFF)
+
+**HARD OFF sinds 2026-07-30:** geen posts toevoegen aan `scheduled-posts.json` voor
+auto-publish, geen Blotato-scheduling (`blotato_create_post` / schedule scripts), geen
+Remotion-batch plannen via API. @shelfieease recovery = **native** posten in de app.
+
+Je maakt wel: **hooks, captions, shotlists** die de user handmatig kan posten.
+
+## Wanneer de user vraagt om posts
+
+1. Lees `brand-brief.md`, `TIKTOK_CONTENT_GUIDE.md`, Story Vault.
+2. Lever per post: hook (eerste 3s), shotlist, NL caption (max 5 hashtags), CTA.
+3. Zeg expliciet: “Handmatig posten in de TikTok/IG-app — niet via Blotato.”
+4. **Niet** schrijven naar `scheduled-posts.json` tenzij de user expliciet zegt
+   autopublish weer aan te zetten én `AUTOPUBLISH_HARD_OFF` / workflow `if: false` te verwijderen.
+
+## Wat je niet doet
+
+- Geen Blotato schedule/create voor accounts 44442 (TikTok) of 50003 (Instagram).
+- Geen GitHub Actions publish triggeren.
+- Geen video upload/render tenzij gevraagd.
+
+## Korte triggers
+
+- “Maak 7 posts voor volgende week” → 7 captions + shotlists (copy-paste), **geen** queue.
+- “Plan via Blotato” → weigeren zolang HARD OFF; verwijs naar native posting.

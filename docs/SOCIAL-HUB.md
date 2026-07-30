@@ -1,6 +1,13 @@
-# Social Hub (Blotato-achtig)
+# Social Hub (lokale/handmatige fallback)
 
-Lokale publishing hub voor **TikTok** (Direct Post) en **Instagram Reels** (Graph API). UI op `/social`, worker op je pc.
+> **Autopublish HARD OFF sinds 2026-07-30.**  
+> `.github/workflows/publish-scheduled.yml` heeft `if: false` — de cron runt niet.  
+> `scripts/publish-scheduled-blotato.ts` stopt meteen (`AUTOPUBLISH_HARD_OFF`).  
+> Reden: @shelfieease soft-suppression (~0 bereik). Post **native** in TikTok/IG-app.  
+> SeniorEase-Blotato-accounts worden hier niet geraakt.
+
+Deze Social Hub (lokale DB + `lib/social/publishers/*`) blijft beschikbaar als **handmatige**
+optie — niet als autopublish.
 
 ## Eerste setup
 
@@ -53,12 +60,13 @@ Elke minuut in projectmap:
 npm run social:worker:once
 ```
 
-## Oude paden (niet meer gebruiken voor auto-publish)
+## Huidige primaire pad (sinds juli 2026)
 
-- `.github/workflows/publish-scheduled.yml` — uit (`if: false`)
-- GitHub Actions cron voor IG/TikTok — vervangen door lokale worker
+- `.github/workflows/publish-scheduled.yml` — actief, cron `*/15 * * * *`
+- `scripts/publish-scheduled-blotato.ts` — leest `scheduled-posts.json`, publiceert via Blotato API
+- Resultaten worden teruggeschreven naar `scheduled-posts.json` (`status`, `blotatoPostId`) en `social-posts-log.md`
 
-Zie ook `docs/MANUAL-SOCIAL-POSTING.md` voor handmatige fallback.
+Deze pagina beschrijft de **lokale fallback** (Social Hub + worker) — alleen nog nodig als Blotato niet bereikbaar is. Zie ook `docs/MANUAL-SOCIAL-POSTING.md`.
 
 ## Troubleshooting
 
