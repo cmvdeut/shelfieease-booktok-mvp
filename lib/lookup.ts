@@ -530,7 +530,6 @@ async function googleMetadataByIsbn(
     pickGoogleVolumeForIsbn(items, isbn13) ||
     (isbn10 ? pickGoogleVolumeForIsbn(items, isbn10) : undefined);
   const vi = (exact || item).volumeInfo!;
-  const volumeId = (exact || item).id;
   const links = vi.imageLinks;
   // Prefer larger sizes like SeniorEase CoverFetchDialog
   const thumb =
@@ -540,10 +539,11 @@ async function googleMetadataByIsbn(
     links?.thumbnail ||
     links?.smallThumbnail ||
     "";
-  const canonicalById = volumeId
-    ? `https://books.google.com/books/content?id=${encodeURIComponent(volumeId)}&printsec=frontcover&img=1&zoom=1&source=gbs_api`
-    : "";
-  const gCover = thumb ? normalizeGoogleCoverUrl(thumb) : canonicalById;
+  let gCover = thumb ? normalizeGoogleCoverUrl(thumb) : "";
+  // Never trust unvalidated canonical Google URLs — often 1×1 / tiny placeholders
+  if (gCover && !(await isLikelyRealCover(gCover))) {
+    gCover = "";
+  }
 
   return {
     title: exact || items.length === 1 ? (vi.title || "").trim() : "",
@@ -694,6 +694,39 @@ export function toDisplayCoverUrl(url?: string | null): string {
   if (u.startsWith("/api/cover")) return u;
   if (/^https?:\/\//i.test(u)) return proxyCoverUrl(u);
   return u;
+}
+
+/** Reject Google/OL tiny placeholders (~1–12KB) that look like "covers" but aren't. */
+async function isLikelyRealCover(url: string): Promise<boolean> {
+  if (!url || isBadCoverUrl(url)) return false;
+  if (url.startsWith("/api/cover/cb")) return true; // EasyCB JPG probe already validated
+  try {
+    const absolute = url.startsWith("http")
+      ? url
+      : url.startsWith("/api/cover?url=")
+        ? decodeURIComponent(url.slice("/api/cover?url=".length))
+        : "";
+    if (!absolute.startsWith("http")) return Boolean(url);
+    const res = await fetch(absolute, {
+      method: "GET",
+      headers: { Range: "bytes=0-0" },
+      cache: "no-store",
+      redirect: "follow",
+    });
+    if (!res.ok && res.status !== 206) return false;
+    const len = Number(
+      res.headers.get("content-length") ||
+        res.headers.get("content-range")?.split("/")?.[1] ||
+        0
+    );
+    // Known Google shared placeholders are ~1269 / ~9103 bytes
+    if (len > 0 && len < 12000) return false;
+    const type = (res.headers.get("content-type") || "").toLowerCase();
+    if (type && !type.startsWith("image/")) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -876,13 +909,15 @@ export async function lookupByIsbn(isbn13: string): Promise<LookupResult> {
     }
   }
 
-  // EasyCB: NL/BE cover + synopsis only — never override a good Google/OL title/author
+  // EasyCB: NL cover + synopsis. Prefer EasyCB JPG over weak Google placeholders.
   if (likelyNlBe || !(result.synopsis || "").trim() || !result.coverUrl) {
     const cb = await easyCbMetadataByIsbn(clean);
     result = {
       title: result.title.trim() || cb.title,
       authors: result.authors.length > 0 ? result.authors : cb.authors,
-      coverUrl: result.coverUrl || cb.coverUrl,
+      coverUrl: likelyNlBe
+        ? cb.coverUrl || result.coverUrl
+        : result.coverUrl || cb.coverUrl,
       synopsis: (result.synopsis || "").trim() || (cb.synopsis || "").trim(),
     };
   }

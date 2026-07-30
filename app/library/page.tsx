@@ -1240,6 +1240,8 @@ function LibraryPageContent() {
     if (coverFetchBusyId) return;
 
     setCoverFetchBusyId(bookId);
+    // Clear stale/broken cover so UI + lookup start clean
+    if (editingBookId === bookId) setEditCoverUrl("");
     try {
       const res = await fetch(
         `/api/lookup?isbn=${encodeURIComponent(book.isbn13)}&_=${Date.now()}`,
@@ -1263,6 +1265,8 @@ function LibraryPageContent() {
             lang
           )
         );
+        // Keep previous cover if we cleared only the edit preview
+        if (editingBookId === bookId) setEditCoverUrl(book.coverUrl || "");
         return;
       }
 
@@ -1281,14 +1285,19 @@ function LibraryPageContent() {
       setBooks(updated);
 
       if (editingBookId === bookId) {
-        setEditCoverUrl(cover);
-        setEditTitle(nextTitle);
-        setEditAuthors(nextAuthors.join(", "));
+        // Force remount even if URL string looks similar
+        setEditCoverUrl("");
+        flushSync(() => {
+          setEditCoverUrl(cover);
+          setEditTitle(nextTitle);
+          setEditAuthors(nextAuthors.join(", "));
+        });
       }
 
       showToast(t({ nl: "Cover opgehaald", en: "Cover fetched" }, lang));
     } catch {
       showToast(t({ nl: "Cover ophalen mislukt", en: "Could not fetch cover" }, lang));
+      if (editingBookId === bookId) setEditCoverUrl(book.coverUrl || "");
     } finally {
       setCoverFetchBusyId(null);
     }
