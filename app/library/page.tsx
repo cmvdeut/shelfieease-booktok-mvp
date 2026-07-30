@@ -146,6 +146,8 @@ function LibraryPageContent() {
   const [editCoverUrl, setEditCoverUrl] = useState("");
   const [editShelfId, setEditShelfId] = useState<string | null>(null);
   const [showNewShelfInEdit, setShowNewShelfInEdit] = useState(false);
+  const [coverBackfillBusy, setCoverBackfillBusy] = useState(false);
+  const coverBackfillGen = useRef(0);
   const [sharing, setSharing] = useState(false);
   const [shareCoverUrls, setShareCoverUrls] = useState<string[]>([]);
   const [shareBookTitles, setShareBookTitles] = useState<string[]>([]);
@@ -481,104 +483,108 @@ function LibraryPageContent() {
     }
   }, []);
 
-  // Backfill missing covers/synopsis (parallel batches until done or cap)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    let cancelled = false;
+  const refreshMissingCovers = useCallback(
+    async (opts?: { forceAll?: boolean }) => {
+      if (typeof window === "undefined") return;
+      const gen = ++coverBackfillGen.current;
+      setCoverBackfillBusy(true);
 
-    async function backfillMeta() {
-      const current = loadBooks();
-      let attempted: Set<string> = new Set();
       try {
-        const raw = sessionStorage.getItem("se:coverBackfillAttempted:v2");
-        if (raw) attempted = new Set(JSON.parse(raw) as string[]);
-      } catch {
-        attempted = new Set();
-      }
-
-      const needs = current.filter(
-        (b) =>
-          Boolean(b.isbn13) &&
-          !attempted.has(b.isbn13) &&
-          (!b.coverUrl || !String(b.coverUrl).trim() || !b.synopsis?.trim())
-      );
-      if (needs.length === 0) return;
-
-      // Prefer books missing covers first; process up to 24 per page load
-      const queue = [...needs]
-        .sort((a, b) => {
-          const aCover = a.coverUrl && String(a.coverUrl).trim() ? 1 : 0;
-          const bCover = b.coverUrl && String(b.coverUrl).trim() ? 1 : 0;
-          return aCover - bCover;
-        })
-        .slice(0, 24);
-
-      const next = [...current];
-      let changed = false;
-
-      async function fillOne(book: (typeof queue)[number]) {
-        if (cancelled) return;
-        attempted.add(book.isbn13);
-        try {
-          const res = await fetch(
-            `/api/lookup?isbn=${encodeURIComponent(book.isbn13)}&_=${Date.now()}`,
-            { cache: "no-store" }
+        const current = loadBooks();
+        const missing = current.filter((b) => {
+          if (!b.isbn13) return false;
+          const hasCover = Boolean(
+            b.coverUrl && String(b.coverUrl).trim() && !isBadCoverUrl(b.coverUrl)
           );
-          if (!res.ok) return;
-          const data = (await res.json()) as {
-            coverUrl?: string;
-            synopsis?: string;
-          };
-          const idx = next.findIndex((b) => b.id === book.id);
-          if (idx < 0) return;
-
-          const incomingCover =
-            data.coverUrl && !isBadCoverUrl(data.coverUrl)
-              ? toDisplayCoverUrl(data.coverUrl)
-              : "";
-          const coverUrl =
-            !next[idx].coverUrl || !String(next[idx].coverUrl).trim()
-              ? incomingCover || next[idx].coverUrl
-              : toDisplayCoverUrl(next[idx].coverUrl);
-          const synopsis =
-            !(next[idx].synopsis || "").trim() && (data.synopsis || "").trim()
-              ? data.synopsis!.trim()
-              : next[idx].synopsis;
-
-          if (coverUrl !== next[idx].coverUrl || synopsis !== next[idx].synopsis) {
-            next[idx] = { ...next[idx], coverUrl, synopsis, updatedAt: Date.now() };
-            changed = true;
+          return !hasCover;
+        });
+        if (missing.length === 0) {
+          if (opts?.forceAll) {
+            showToast(t({ nl: "Alle covers staan al", en: "All covers already set" }, lang));
           }
-        } catch {
-          // ignore
+          return;
         }
-      }
 
-      for (let i = 0; i < queue.length; i += 3) {
-        if (cancelled) return;
-        await Promise.all(queue.slice(i, i + 3).map(fillOne));
-        if (!cancelled && changed) {
-          saveBooks(next);
-          setBooks([...next]);
-          changed = false;
+        const queue = missing;
+        let working = [...current];
+        let filled = 0;
+
+        for (let i = 0; i < queue.length; i += 3) {
+          if (coverBackfillGen.current !== gen) return;
+          const batch = queue.slice(i, i + 3);
+          const results = await Promise.all(
+            batch.map(async (book) => {
+              try {
+                const res = await fetch(
+                  `/api/lookup?isbn=${encodeURIComponent(book.isbn13)}&_=${Date.now()}`,
+                  { cache: "no-store" }
+                );
+                if (!res.ok) return null;
+                const data = (await res.json()) as { coverUrl?: string; synopsis?: string };
+                const cover = toDisplayCoverUrl(data.coverUrl || "");
+                const synopsis = (data.synopsis || "").trim();
+                return { id: book.id, cover, synopsis };
+              } catch {
+                return null;
+              }
+            })
+          );
+
+          let changed = false;
+          for (const result of results) {
+            if (!result) continue;
+            const idx = working.findIndex((b) => b.id === result.id);
+            if (idx < 0) continue;
+            const prev = working[idx];
+            const nextCover =
+              result.cover && !isBadCoverUrl(result.cover) ? result.cover : prev.coverUrl;
+            const nextSynopsis =
+              !(prev.synopsis || "").trim() && result.synopsis
+                ? result.synopsis
+                : prev.synopsis;
+            if (nextCover !== prev.coverUrl || nextSynopsis !== prev.synopsis) {
+              working[idx] = {
+                ...prev,
+                coverUrl: nextCover,
+                synopsis: nextSynopsis,
+                updatedAt: Date.now(),
+              };
+              changed = true;
+              if (nextCover && nextCover !== prev.coverUrl) filled += 1;
+            }
+          }
+
+          if (changed && coverBackfillGen.current === gen) {
+            saveBooks(working);
+            setBooks([...working]);
+          }
         }
-      }
 
-      try {
-        sessionStorage.setItem(
-          "se:coverBackfillAttempted:v2",
-          JSON.stringify([...attempted].slice(-200))
-        );
-      } catch {
-        // ignore
+        if (opts?.forceAll && coverBackfillGen.current === gen) {
+          showToast(
+            t(
+              {
+                nl: filled > 0 ? `${filled} covers opgehaald` : "Geen nieuwe covers gevonden",
+                en: filled > 0 ? `Fetched ${filled} covers` : "No new covers found",
+              },
+              lang
+            )
+          );
+        }
+      } finally {
+        if (coverBackfillGen.current === gen) setCoverBackfillBusy(false);
       }
-    }
+    },
+    [lang, showToast]
+  );
 
-    void backfillMeta();
+  // Auto backfill missing covers on every library visit
+  useEffect(() => {
+    void refreshMissingCovers();
     return () => {
-      cancelled = true;
+      coverBackfillGen.current += 1;
     };
-  }, []);
+  }, [refreshMissingCovers]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -1599,6 +1605,30 @@ function LibraryPageContent() {
               {sharing ? copy.generating : copy.shareShelfie}
             </button>
           )}
+
+          <button
+            type="button"
+            style={btnGhost}
+            disabled={coverBackfillBusy}
+            onClick={() => {
+              // Clear broken/empty covers then force lookup for everything still missing
+              const current = loadBooks();
+              const cleared = current.map((b) => {
+                const url = (b.coverUrl || "").trim();
+                if (!url || isBadCoverUrl(url)) return { ...b, coverUrl: "" };
+                return { ...b, coverUrl: toDisplayCoverUrl(url) };
+              });
+              saveBooks(cleared);
+              setBooks(cleared);
+              void refreshMissingCovers({ forceAll: true });
+            }}
+            aria-label={t({ nl: "Covers ophalen", en: "Fetch covers" }, lang)}
+            title={t({ nl: "Covers ophalen", en: "Fetch covers" }, lang)}
+          >
+            {coverBackfillBusy
+              ? t({ nl: "Covers…", en: "Covers…" }, lang)
+              : t({ nl: "Covers ophalen", en: "Fetch covers" }, lang)}
+          </button>
 
           {/* Manual ISBN input */}
           <div style={{ display: "flex", gap: 8, flex: 1, maxWidth: 200 }}>
@@ -3615,6 +3645,11 @@ function LibraryPageContent() {
                               display: "block",
                               position: "relative",
                               zIndex: 1,
+                            }}
+                            onError={() => {
+                              // Drop dead cover URLs so auto-backfill can retry
+                              updateBook(b.id, { coverUrl: "" });
+                              setBooks(loadBooks());
                             }}
                           />
                         ) : null}
