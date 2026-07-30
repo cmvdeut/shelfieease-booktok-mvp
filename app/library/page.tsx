@@ -146,6 +146,7 @@ function LibraryPageContent() {
   const [editCoverUrl, setEditCoverUrl] = useState("");
   const [editShelfId, setEditShelfId] = useState<string | null>(null);
   const [showNewShelfInEdit, setShowNewShelfInEdit] = useState(false);
+  const [coverFetchBusyId, setCoverFetchBusyId] = useState<string | null>(null);
   const [coverBackfillBusy, setCoverBackfillBusy] = useState(false);
   const coverBackfillGen = useRef(0);
   const [sharing, setSharing] = useState(false);
@@ -1229,6 +1230,69 @@ function LibraryPageContent() {
   }
 
   // Removed handleSearchCover - users should use "Find cover" button instead
+
+  async function handleFetchBookCover(bookId: string) {
+    const book = books.find((b) => b.id === bookId) || loadBooks().find((b) => b.id === bookId);
+    if (!book?.isbn13) {
+      showToast(t({ nl: "Geen ISBN om cover op te zoeken", en: "No ISBN to look up cover" }, lang));
+      return;
+    }
+    if (coverFetchBusyId) return;
+
+    setCoverFetchBusyId(bookId);
+    try {
+      const res = await fetch(
+        `/api/lookup?isbn=${encodeURIComponent(book.isbn13)}&_=${Date.now()}`,
+        { cache: "no-store" }
+      );
+      if (!res.ok) {
+        showToast(t({ nl: "Cover ophalen mislukt", en: "Could not fetch cover" }, lang));
+        return;
+      }
+      const data = (await res.json()) as {
+        title?: string;
+        authors?: string[];
+        coverUrl?: string;
+        synopsis?: string;
+      };
+      const cover = toDisplayCoverUrl(data.coverUrl || "");
+      if (!cover || isBadCoverUrl(cover)) {
+        showToast(
+          t(
+            { nl: "Geen cover gevonden voor dit ISBN", en: "No cover found for this ISBN" },
+            lang
+          )
+        );
+        return;
+      }
+
+      const nextTitle = (data.title || "").trim() || book.title;
+      const nextAuthors =
+        Array.isArray(data.authors) && data.authors.length > 0 ? data.authors : book.authors;
+      const nextSynopsis = (data.synopsis || "").trim() || book.synopsis;
+
+      updateBook(bookId, {
+        coverUrl: cover,
+        title: nextTitle,
+        authors: nextAuthors,
+        synopsis: nextSynopsis,
+      });
+      const updated = loadBooks();
+      setBooks(updated);
+
+      if (editingBookId === bookId) {
+        setEditCoverUrl(cover);
+        setEditTitle(nextTitle);
+        setEditAuthors(nextAuthors.join(", "));
+      }
+
+      showToast(t({ nl: "Cover opgehaald", en: "Cover fetched" }, lang));
+    } catch {
+      showToast(t({ nl: "Cover ophalen mislukt", en: "Could not fetch cover" }, lang));
+    } finally {
+      setCoverFetchBusyId(null);
+    }
+  }
 
   async function handleShareShelf() {
     // Allow sharing for both "All shelves" and specific shelf
@@ -2509,7 +2573,7 @@ function LibraryPageContent() {
               >
                 {editCoverUrl && !isBadCoverUrl(editCoverUrl) ? (
                   <CoverImg
-                    src={editCoverUrl}
+                    src={toDisplayCoverUrl(editCoverUrl)}
                     alt={editTitle || "cover"}
                     style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                   />
@@ -2560,6 +2624,29 @@ function LibraryPageContent() {
                   </div>
                 </div>
               </div>
+
+              {editingBook && (
+                <button
+                  type="button"
+                  onClick={() => void handleFetchBookCover(editingBook.id)}
+                  disabled={coverFetchBusyId === editingBook.id || !editIsbn.trim()}
+                  style={{
+                    ...btnPrimary,
+                    width: "100%",
+                    maxWidth: 280,
+                    margin: "0 auto 16px",
+                    display: "flex",
+                    justifyContent: "center",
+                    opacity: coverFetchBusyId === editingBook.id ? 0.7 : 1,
+                  }}
+                >
+                  {coverFetchBusyId === editingBook.id
+                    ? t({ nl: "Cover ophalen…", en: "Fetching cover…" }, lang)
+                    : editCoverUrl && !isBadCoverUrl(editCoverUrl)
+                      ? t({ nl: "Cover opnieuw ophalen", en: "Fetch cover again" }, lang)
+                      : t({ nl: "Cover ophalen", en: "Fetch cover" }, lang)}
+                </button>
+              )}
 
               <h2
                 style={{
@@ -3598,6 +3685,21 @@ function LibraryPageContent() {
                           </button>
                         ))}
                       </div>
+
+                      <button
+                        style={actionMenuItem}
+                        onClick={() => {
+                          setActionMenuBookId(null);
+                          void handleFetchBookCover(b.id);
+                        }}
+                        disabled={coverFetchBusyId === b.id}
+                      >
+                        <span>
+                          {coverFetchBusyId === b.id
+                            ? t({ nl: "⏳ Cover ophalen…", en: "⏳ Fetching cover…" }, lang)
+                            : t({ nl: "🖼️ Cover ophalen", en: "🖼️ Fetch cover" }, lang)}
+                        </span>
+                      </button>
 
                       <button
                         style={actionMenuItem}
