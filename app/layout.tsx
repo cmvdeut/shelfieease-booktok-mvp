@@ -41,9 +41,17 @@ export const metadata: Metadata = {
     google: "AN7HjMnbeCLXP6sWheQrqxaW0wrmpd1HGcwr2t4RWrQ",
   },
   icons: {
-    icon: [{ url: "/icons/v2/favicon.ico" }],
-    apple: [{ url: "/icons/v2/apple-touch-icon.png", sizes: "180x180" }],
-    shortcut: [{ url: "/icons/v2/favicon-32.png", sizes: "32x32" }],
+    icon: [
+      { url: "/icons/v2/favicon.ico?v=3" },
+      { url: "/icons/v2/android-chrome-192x192.png?v=3", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png?v=3", sizes: "180x180", type: "image/png" }],
+    shortcut: [{ url: "/icons/v2/favicon-32.png?v=3", sizes: "32x32" }],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "ShelfieEase",
+    statusBarStyle: "default",
   },
 };
 
