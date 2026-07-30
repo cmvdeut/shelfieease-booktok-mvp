@@ -91,7 +91,9 @@ function LibraryPageContent() {
   const [manualTitle, setManualTitle] = useState("");
   const [manualAuthors, setManualAuthors] = useState("");
   const [bookSearchQuery, setBookSearchQuery] = useState("");
-  const [bookSearchResults, setBookSearchResults] = useState<Array<{ title: string; authors: string[]; coverUrl: string }>>([]);
+  const [bookSearchResults, setBookSearchResults] = useState<
+    Array<{ title: string; authors: string[]; coverUrl: string; synopsis?: string }>
+  >([]);
   const [bookSearching, setBookSearching] = useState(false);
   const [manualIsbnInput, setManualIsbnInput] = useState("");
 
