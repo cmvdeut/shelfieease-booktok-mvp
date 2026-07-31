@@ -194,11 +194,17 @@ function getArg(flag: string): string | undefined {
   return undefined;
 }
 
+/** When true, refuse to schedule. Typed as boolean so TS does not treat the rest as unreachable. */
+const AUTOPUBLISH_HARD_OFF: boolean = true;
+
 async function main() {
-  console.error(
-    "⏸️  HARD OFF (2026-07-30): geen Blotato-scheduling voor ShelfieEase. Post native in de app."
-  );
-  process.exit(1);
+  if (AUTOPUBLISH_HARD_OFF) {
+    console.error(
+      "⏸️  HARD OFF (2026-07-30): geen Blotato-scheduling voor ShelfieEase. Post native in de app."
+    );
+    process.exitCode = 1;
+    return;
+  }
 
   const apiKey = process.env.BLOTATO_API_KEY;
   if (!apiKey) {
