@@ -71,6 +71,46 @@ export default function TermsPage() {
               color: "var(--text)",
             }}
           >
+            {t({ nl: "Aanbieder", en: "Provider" }, lang)}
+          </h2>
+          <p style={{ marginBottom: 8, color: "var(--muted)" }}>
+            {t(
+              {
+                nl: "ShelfieEase is een product van Ease Works.",
+                en: "ShelfieEase is a product of Ease Works.",
+              },
+              lang
+            )}
+          </p>
+          <p style={{ marginBottom: 8, color: "var(--muted)" }}>
+            {t(
+              {
+                nl: "KvK 42201315 · Nederland",
+                en: "Chamber of Commerce (KvK) 42201315 · the Netherlands",
+              },
+              lang
+            )}
+          </p>
+          <p style={{ marginBottom: 12, color: "var(--muted)" }}>
+            {t(
+              {
+                nl: "Contact: support@shelfieease.app",
+                en: "Contact: support@shelfieease.app",
+              },
+              lang
+            )}
+          </p>
+        </section>
+
+        <section style={{ marginBottom: 32 }}>
+          <h2
+            style={{
+              fontSize: 20,
+              fontWeight: 700,
+              marginBottom: 12,
+              color: "var(--text)",
+            }}
+          >
             {t({ nl: "Gebruik van de app", en: "Use of the App" }, lang)}
           </h2>
           <p style={{ marginBottom: 12, color: "var(--muted)" }}>
@@ -98,8 +138,17 @@ export default function TermsPage() {
           <p style={{ marginBottom: 12, color: "var(--muted)" }}>
             {t(
               {
-                nl: "De volledige versie van ShelfieEase is beschikbaar voor een eenmalige betaling van €4,99. Na betaling krijg je een levenslange licentie voor de volledige functionaliteit. Er zijn geen terugkerende kosten.",
-                en: "The full version of ShelfieEase is available for a one-time payment of €4.99. After payment you receive a lifetime license for the full functionality. There are no recurring costs.",
+                nl: "De volledige versie van ShelfieEase is beschikbaar voor een eenmalige betaling van €4,99. Na betaling krijg je een levenslange licentie voor de volledige functionaliteit. Er zijn geen terugkerende kosten. Betalingen worden verwerkt via Stripe.",
+                en: "The full version of ShelfieEase is available for a one-time payment of €4.99. After payment you receive a lifetime license for the full functionality. There are no recurring costs. Payments are processed via Stripe.",
+              },
+              lang
+            )}
+          </p>
+          <p style={{ marginBottom: 12, color: "var(--muted)" }}>
+            {t(
+              {
+                nl: "Voor vragen over betalingen of restitutie kun je contact opnemen via support@shelfieease.app.",
+                en: "For questions about payments or refunds, contact support@shelfieease.app.",
               },
               lang
             )}

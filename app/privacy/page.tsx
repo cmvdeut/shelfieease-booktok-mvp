@@ -71,6 +71,46 @@ export default function PrivacyPage() {
               color: "var(--text)",
             }}
           >
+            {t({ nl: "Verwerkingsverantwoordelijke", en: "Data Controller" }, lang)}
+          </h2>
+          <p style={{ marginBottom: 8, color: "var(--muted)" }}>
+            {t(
+              {
+                nl: "ShelfieEase is een product van Ease Works.",
+                en: "ShelfieEase is a product of Ease Works.",
+              },
+              lang
+            )}
+          </p>
+          <p style={{ marginBottom: 8, color: "var(--muted)" }}>
+            {t(
+              {
+                nl: "KvK 42201315 · Nederland",
+                en: "Chamber of Commerce (KvK) 42201315 · the Netherlands",
+              },
+              lang
+            )}
+          </p>
+          <p style={{ marginBottom: 12, color: "var(--muted)" }}>
+            {t(
+              {
+                nl: "Contact: support@shelfieease.app",
+                en: "Contact: support@shelfieease.app",
+              },
+              lang
+            )}
+          </p>
+        </section>
+
+        <section style={{ marginBottom: 32 }}>
+          <h2
+            style={{
+              fontSize: 20,
+              fontWeight: 700,
+              marginBottom: 12,
+              color: "var(--text)",
+            }}
+          >
             {t({ nl: "Gegevensopslag", en: "Data Storage" }, lang)}
           </h2>
           <p style={{ marginBottom: 12, color: "var(--muted)" }}>
@@ -120,8 +160,8 @@ export default function PrivacyPage() {
           <p style={{ marginBottom: 12, color: "var(--muted)" }}>
             {t(
               {
-                nl: "ShelfieEase gebruikt Google Books API en Open Library voor het ophalen van boekgegevens en covers. Deze diensten hebben hun eigen privacybeleid.",
-                en: "ShelfieEase uses Google Books API and Open Library to fetch book data and covers. These services have their own privacy policies.",
+                nl: "ShelfieEase gebruikt Google Books API en Open Library voor het ophalen van boekgegevens en covers. Betalingen lopen via Stripe. Voor anonieme bezoekstatistieken gebruiken we Plausible. Deze diensten hebben hun eigen privacybeleid.",
+                en: "ShelfieEase uses Google Books API and Open Library to fetch book data and covers. Payments are processed via Stripe. For anonymous visit statistics we use Plausible. These services have their own privacy policies.",
               },
               lang
             )}
