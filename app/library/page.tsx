@@ -2541,11 +2541,21 @@ function LibraryPageContent() {
                 </button>
                 <div
                   style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
                     fontFamily: "var(--font-display), Georgia, serif",
                     fontWeight: 700,
                     color: "var(--text)",
                   }}
                 >
+                  <img
+                    src="/brand/v2/logo-mark.png?v=3"
+                    alt=""
+                    width={28}
+                    height={28}
+                    style={{ width: 28, height: 28, objectFit: "contain", display: "block" }}
+                  />
                   ShelfieEase
                 </div>
                 <button
@@ -2605,12 +2615,13 @@ function LibraryPageContent() {
                     gridTemplateColumns: "1fr 1fr 1fr",
                     gap: 6,
                     padding: "10px 8px",
-                    borderRadius: 12,
-                    background: "rgba(30, 20, 24, 0.55)",
-                    backdropFilter: "blur(10px)",
-                    WebkitBackdropFilter: "blur(10px)",
+                    borderRadius: 14,
+                    background: "color-mix(in srgb, var(--deepBurgundy) 55%, transparent)",
+                    backdropFilter: "blur(12px)",
+                    WebkitBackdropFilter: "blur(12px)",
                     color: "#fff",
                     textAlign: "center",
+                    border: "0.5px solid rgba(255,255,255,0.35)",
                   }}
                 >
                   <div>
@@ -2634,7 +2645,7 @@ function LibraryPageContent() {
                 </div>
               </div>
 
-              {editingBook && (
+              {editingBook && detailEditMode && (
                 <button
                   type="button"
                   onClick={() => void handleFetchBookCover(editingBook.id)}
@@ -2663,9 +2674,10 @@ function LibraryPageContent() {
                   fontFamily: "var(--font-display), Georgia, serif",
                   fontSize: 26,
                   fontWeight: 700,
-                  color: "var(--text)",
+                  color: "var(--deepBurgundy)",
                   lineHeight: 1.2,
                   textAlign: "center",
+                  letterSpacing: "-0.02em",
                 }}
               >
                 {editTitle || t({ nl: "Zonder titel", en: "Untitled" }, lang)}
@@ -3242,7 +3254,7 @@ function LibraryPageContent() {
                 fontFamily: "var(--font-body), system-ui, sans-serif",
               }}
             >
-              {t({ nl: "Op je plank", en: "On your shelf" }, lang)}
+              {t({ nl: "Mijn reis", en: "My journey" }, lang)}
             </div>
             <h2
               style={{
@@ -3250,8 +3262,9 @@ function LibraryPageContent() {
                 fontSize: 26,
                 fontWeight: 700,
                 fontFamily: "var(--font-display), Georgia, serif",
-                color: "var(--text)",
+                color: "var(--deepBurgundy)",
                 lineHeight: 1.15,
+                letterSpacing: "-0.02em",
               }}
             >
               {t({ nl: "Nu aan het lezen", en: "Currently reading" }, lang)}
@@ -3274,7 +3287,7 @@ function LibraryPageContent() {
                 whiteSpace: "nowrap",
               }}
             >
-              {t({ nl: "Alles ›", en: "All ›" }, lang)}
+              {t({ nl: "Bekijk alles ›", en: "View all ›" }, lang)}
             </button>
           )}
         </div>
@@ -3390,6 +3403,23 @@ function LibraryPageContent() {
         )}
       </section>
 
+      {/* Mijn Virtuele Boekenplank — Stitch shelf_tool section */}
+      <div style={{ padding: "0 16px 8px" }}>
+        <h2
+          style={{
+            margin: 0,
+            fontSize: 24,
+            fontWeight: 700,
+            fontFamily: "var(--font-display), Georgia, serif",
+            color: "var(--deepBurgundy)",
+            letterSpacing: "-0.02em",
+            lineHeight: 1.2,
+          }}
+        >
+          {t({ nl: "Mijn Virtuele Boekenplank", en: "My virtual bookshelf" }, lang)}
+        </h2>
+      </div>
+
       {/* Search and Filters - Always visible */}
       <div style={{ padding: "0 16px 16px", display: "grid", gap: 12 }}>
           {/* Search input */}
@@ -3406,9 +3436,9 @@ function LibraryPageContent() {
                 width: "100%",
                 padding: "12px 16px",
                 paddingRight: searchQuery ? "40px" : "16px",
-                borderRadius: 12,
+                borderRadius: 999,
                 border: "1px solid var(--border)",
-                background: "var(--panel2)",
+                background: "var(--surface)",
                 color: "var(--text)",
                 fontSize: 16,
                 fontFamily: "inherit",
@@ -3446,16 +3476,16 @@ function LibraryPageContent() {
           {/* Scope toggle and filters */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
             {/* Scope toggle */}
-            <div style={{ display: "flex", gap: 4, borderRadius: 12, padding: 2, background: "var(--btnGhostBg)", border: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", gap: 4, borderRadius: 999, padding: 3, background: "var(--surface)", border: "1px solid var(--border)" }}>
               <button
                 type="button"
                 onClick={() => setScope("shelf")}
                 style={{
-                  padding: "6px 12px",
-                  borderRadius: 10,
+                  padding: "7px 14px",
+                  borderRadius: 999,
                   border: "none",
-                  background: scope === "shelf" ? "var(--accentSoft)" : "transparent",
-                  color: scope === "shelf" ? "var(--text)" : "var(--muted)",
+                  background: scope === "shelf" ? "var(--accentSoft2)" : "transparent",
+                  color: scope === "shelf" ? "var(--deepBurgundy)" : "var(--muted)",
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: "pointer",
@@ -3468,11 +3498,11 @@ function LibraryPageContent() {
                 type="button"
                 onClick={() => setScope("all")}
                 style={{
-                  padding: "6px 12px",
-                  borderRadius: 10,
+                  padding: "7px 14px",
+                  borderRadius: 999,
                   border: "none",
-                  background: scope === "all" ? "var(--accentSoft)" : "transparent",
-                  color: scope === "all" ? "var(--text)" : "var(--muted)",
+                  background: scope === "all" ? "var(--accentSoft2)" : "transparent",
+                  color: scope === "all" ? "var(--deepBurgundy)" : "var(--muted)",
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: "pointer",
@@ -3484,7 +3514,15 @@ function LibraryPageContent() {
             </div>
 
             {/* Status filters */}
-            {(["TBR", "Reading", "Finished"] as BookStatus[]).map((status) => (
+            {(["TBR", "Reading", "Finished"] as BookStatus[]).map((status) => {
+              const active = statusFilter.has(status);
+              const activeBg =
+                status === "Finished"
+                  ? "var(--sageSoft)"
+                  : status === "Reading"
+                    ? "var(--accentSoft)"
+                    : "var(--accentSoft2)";
+              return (
               <button
                 key={status}
                 type="button"
@@ -3498,15 +3536,13 @@ function LibraryPageContent() {
                   setStatusFilter(newFilter);
                 }}
                 style={{
-                  padding: "6px 12px",
-                  borderRadius: 12,
-                  border: statusFilter.has(status)
-                    ? "1px solid var(--accent1)"
+                  padding: "7px 14px",
+                  borderRadius: 999,
+                  border: active
+                    ? "1px solid color-mix(in srgb, var(--accent1) 35%, var(--border))"
                     : "1px solid var(--border)",
-                  background: statusFilter.has(status)
-                    ? "var(--accentSoft)"
-                    : "var(--btnGhostBg)",
-                  color: statusFilter.has(status) ? "var(--text)" : "var(--muted)",
+                  background: active ? activeBg : "var(--surface)",
+                  color: active ? "var(--deepBurgundy)" : "var(--muted)",
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: "pointer",
@@ -3515,7 +3551,8 @@ function LibraryPageContent() {
               >
                 {status === "TBR" ? copy.tbr : status === "Reading" ? copy.reading : copy.finished}
               </button>
-            ))}
+              );
+            })}
 
             {/* Sort dropdown */}
             <select
@@ -3525,11 +3562,11 @@ function LibraryPageContent() {
               onChange={(e) => setSortBy(e.target.value as "recent" | "title" | "author")}
               aria-label={copy.sortBooks}
               style={{
-                padding: "6px 12px",
+                padding: "7px 14px",
                 paddingRight: 32,
-                borderRadius: 12,
+                borderRadius: 999,
                 border: "1px solid var(--border)",
-                background: "var(--btnGhostBg)",
+                background: "var(--surface)",
                 color: "var(--text)",
                 fontSize: 13,
                 fontWeight: 700,
@@ -3538,7 +3575,7 @@ function LibraryPageContent() {
                 appearance: "none",
                 backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 4L6 8L10 4' stroke='currentColor' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E")`,
                 backgroundRepeat: "no-repeat",
-                backgroundPosition: "right 8px center",
+                backgroundPosition: "right 10px center",
               }}
             >
               <option value="recent">{copy.sortRecent}</option>
@@ -3749,10 +3786,11 @@ function LibraryPageContent() {
                         style={{
                           width: "100%",
                           aspectRatio: "2 / 3",
-                          borderRadius: 14,
+                          borderRadius: 16,
                           overflow: "hidden",
-                          background: "var(--bg2)",
+                          background: "var(--surface)",
                           position: "relative",
+                          boxShadow: "0 10px 24px var(--shadow)",
                         }}
                       >
                         <CoverPlaceholder
@@ -4868,15 +4906,15 @@ const grid: React.CSSProperties = {
 };
 
 const card: React.CSSProperties = {
-  background: "var(--panelSolid)",
-  border: "1px solid var(--border)",
-  borderRadius: 18,
-  padding: 10,
-  boxShadow: `0 10px 24px var(--shadow)`,
+  background: "transparent",
+  border: "none",
+  borderRadius: 0,
+  padding: 0,
+  boxShadow: "none",
   animation: "popIn 420ms ease both",
   display: "flex",
   flexDirection: "column",
-  gap: 8,
+  gap: 10,
 };
 
 const cardCompact: React.CSSProperties = {
@@ -4954,27 +4992,32 @@ const isbn: React.CSSProperties = {
 
 function badgeFor(status: string, mood: DocumentMood): React.CSSProperties {
   const isCalm = mood === "light";
-  
+
   let background = "";
+  let color = "var(--text)";
   if (status === "TBR") {
-    background = isCalm ? "rgba(140,120,255,0.15)" : "rgba(140,120,255,0.18)";
+    background = isCalm ? "var(--accentSoft2)" : "rgba(231,183,196,0.22)";
+    color = "var(--deepBurgundy)";
   } else if (status === "Reading") {
-    background = isCalm ? "rgba(80,180,200,0.15)" : "rgba(80,180,200,0.18)";
+    background = isCalm ? "var(--accentSoft)" : "rgba(231,183,196,0.18)";
+    color = "var(--deepBurgundy)";
   } else {
-    background = isCalm ? "rgba(120,160,120,0.15)" : "rgba(120,160,120,0.18)";
+    background = isCalm ? "var(--sageSoft)" : "rgba(180,196,174,0.22)";
+    color = isCalm ? "color-mix(in srgb, var(--sage) 35%, var(--text))" : "var(--sage)";
   }
-  
+
   return {
     display: "inline-flex",
     alignItems: "center",
-    padding: "2px 8px",
+    padding: "3px 10px",
     borderRadius: 999,
     fontSize: 11,
     fontWeight: 600,
-    marginLeft: 6,
+    marginLeft: 0,
+    marginTop: 2,
     cursor: "default",
     background,
-    color: "var(--text)",
+    color,
     userSelect: "none",
   };
 }

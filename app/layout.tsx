@@ -8,6 +8,7 @@ import { MoodProvider } from "@/components/MoodProvider";
 import { UiLangProvider } from "@/components/UiLangProvider";
 import { MoodSwitcher } from "@/components/MoodSwitcher";
 import { AppMenu } from "@/components/AppMenu";
+import { BrandMark } from "@/components/BrandMark";
 import { BottomNav } from "@/components/BottomNav";
 import UiBoot from "@/components/UiBoot";
 import { Suspense } from "react";
@@ -128,10 +129,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   --danger: #C0435A;
   --dangerSoft: rgba(192,67,90,0.12);
 
-  /* Stitch design system */
+  /* Stitch design system (Route 1) */
   --sage: #B4C4AE;
+  --sageSoft: rgba(180, 196, 174, 0.28);
   --surface: #fff8f2;
   --deepBurgundy: #5d172c;
+  --stitchPrimary: #5d172c;
+  --stitchPrimaryContainer: #7a2e42;
 }
 
 [data-mood="dark"] {
@@ -168,8 +172,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   --dangerSoft: rgba(255,143,160,0.14);
 
   --sage: #B4C4AE;
+  --sageSoft: rgba(180, 196, 174, 0.22);
   --surface: #2A1930;
   --deepBurgundy: #E7B7C4;
+  --stitchPrimary: #E7B7C4;
+  --stitchPrimaryContainer: #7a2e42;
 }
 
 [data-mood="light"] * {
@@ -258,6 +265,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <UiLangProvider>
           <MoodProvider>
             <ClientErrorTrap />
+            <BrandMark />
             <AppMenu />
             <div style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom))" }}>
               {children}

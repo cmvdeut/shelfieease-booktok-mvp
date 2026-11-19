@@ -315,8 +315,8 @@ export function AppMenu() {
           ref={buttonRef}
           onClick={() => setIsOpen(!isOpen)}
           style={{
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             borderRadius: 12,
             border: "1px solid var(--border)",
             background: "var(--panel)",

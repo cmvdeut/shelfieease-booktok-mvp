@@ -95,14 +95,14 @@ export function MoodSwitcher() {
           position: "fixed",
           bottom: "calc(80px + env(safe-area-inset-bottom))",
           right: 20,
-          width: 56,
-          height: 56,
-          borderRadius: 28,
+          width: 48,
+          height: 48,
+          borderRadius: 24,
           border: "1px solid var(--border)",
           background: "var(--panel)",
           backdropFilter: "blur(12px)",
           color: "var(--text)",
-          fontSize: 24,
+          fontSize: 22,
           fontWeight: 700,
           cursor: "pointer",
           display: "flex",
@@ -110,7 +110,7 @@ export function MoodSwitcher() {
           justifyContent: "center",
           boxShadow: "0 8px 24px var(--shadow)",
           zIndex: 1000,
-          transition: "all 200ms ease",
+          transition: "transform 200ms ease, box-shadow 200ms ease, opacity 120ms ease",
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = "scale(1.05)";
