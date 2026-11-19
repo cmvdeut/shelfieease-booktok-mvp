@@ -185,7 +185,7 @@ export default function StatisticsPage() {
         {/* Shelves */}
         {stats.shelfCounts.length > 0 && (
           <div style={card}>
-            <div style={cardLabel}>{t({ nl: "Shelves", en: "Shelves" }, lang)}</div>
+            <div style={cardLabel}>{t({ nl: "Planken", en: "Shelves" }, lang)}</div>
             <div style={shelfList}>
               {stats.shelfCounts.map(({ shelf, count }) => {
                 const percentage = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;

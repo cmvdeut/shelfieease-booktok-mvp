@@ -173,7 +173,7 @@ function LibraryPageContent() {
 
   // Translations - useMemo to recalculate when lang changes
   const copy = useMemo(() => ({
-    myShelf: t({ nl: "Mijn shelf", en: "My Shelf" }, lang),
+    myShelf: t({ nl: "Mijn plank", en: "My Shelf" }, lang),
     total: t({ nl: "Totaal", en: "Total" }, lang),
     tbr: t({ nl: "TBR", en: "TBR" }, lang),
     reading: t({ nl: "Bezig", en: "Reading" }, lang),
@@ -184,7 +184,7 @@ function LibraryPageContent() {
     scan: t({ nl: "+ Scannen", en: "+ Scan" }, lang),
     noBooksYet: t({ nl: "Nog geen boeken. Tijd om te scannen 📚✨", en: "No books yet. Time to scan 📚✨" }, lang),
     scanFirstBook: t({ nl: "Scan je eerste boek", en: "Scan your first book" }, lang),
-    newShelf: t({ nl: "Nieuwe shelf", en: "New shelf" }, lang),
+    newShelf: t({ nl: "Nieuwe plank", en: "New shelf" }, lang),
     name: t({ nl: "Naam", en: "Name" }, lang),
     emoji: t({ nl: "Emoji", en: "Emoji" }, lang),
     cancel: t({ nl: "Annuleren", en: "Cancel" }, lang),
@@ -193,7 +193,7 @@ function LibraryPageContent() {
     deleteBookQuestion: t({ nl: "Boek verwijderen?", en: "Delete book?" }, lang),
     cannotUndo: t({ nl: "Dit kan niet ongedaan gemaakt worden.", en: "This action cannot be undone." }, lang),
     delete: t({ nl: "Verwijderen", en: "Delete" }, lang),
-    moveToShelf: t({ nl: "Verplaats naar shelf", en: "Move to shelf" }, lang),
+    moveToShelf: t({ nl: "Verplaats naar plank", en: "Move to shelf" }, lang),
     changeStatus: t({ nl: "Status wijzigen", en: "Change status" }, lang),
     shareModalTitle: t({ nl: "Deel je boek", en: "Share your book" }, lang),
     shareModalTip: t(
@@ -205,26 +205,26 @@ function LibraryPageContent() {
     ),
     shareButton: t({ nl: "Delen", en: "Share" }, lang),
     close: t({ nl: "Sluiten", en: "Close" }, lang),
-    finished: t({ nl: "Finished", en: "Finished" }, lang),
+    finished: t({ nl: "Gelezen", en: "Finished" }, lang),
     addBook: t({ nl: "Boek toevoegen", en: "Add book" }, lang),
     loading: t({ nl: "Bezig met ophalen...", en: "Loading..." }, lang),
-    chooseShelf: t({ nl: "Kies een shelf", en: "Choose a shelf" }, lang),
-    addToShelf: t({ nl: "Zet in deze shelf", en: "Add to this shelf" }, lang),
-    makeShelf: t({ nl: "Maak shelf", en: "Create shelf" }, lang),
+    chooseShelf: t({ nl: "Kies een plank", en: "Choose a shelf" }, lang),
+    addToShelf: t({ nl: "Zet in deze plank", en: "Add to this shelf" }, lang),
+    makeShelf: t({ nl: "Maak plank", en: "Create shelf" }, lang),
     back: t({ nl: "Terug", en: "Back" }, lang),
     noBooksFound: t({ nl: "Geen boeken gevonden", en: "No books found" }, lang),
-    checkFilters: t({ nl: "Check je filters of zoekterm.", en: "Check your filters or search term." }, lang),
-    thisShelf: t({ nl: "This shelf", en: "This shelf" }, lang),
-    allShelves: t({ nl: "All shelves", en: "All shelves" }, lang),
-    sortRecent: t({ nl: "Sort: Recent", en: "Sort: Recent" }, lang),
-    sortTitle: t({ nl: "Sort: Title A–Z", en: "Sort: Title A–Z" }, lang),
-    sortAuthor: t({ nl: "Sort: Author A–Z", en: "Sort: Author A–Z" }, lang),
+    checkFilters: t({ nl: "Controleer je filters of zoekterm.", en: "Check your filters or search term." }, lang),
+    thisShelf: t({ nl: "Deze plank", en: "This shelf" }, lang),
+    allShelves: t({ nl: "Alle planken", en: "All shelves" }, lang),
+    sortRecent: t({ nl: "Sorteren: Recent", en: "Sort: Recent" }, lang),
+    sortTitle: t({ nl: "Sorteren: Titel A–Z", en: "Sort: Title A–Z" }, lang),
+    sortAuthor: t({ nl: "Sorteren: Auteur A–Z", en: "Sort: Author A–Z" }, lang),
     summary: t({ nl: "Samenvatting", en: "Summary" }, lang),
     findCover: t({ nl: "Cover zoeken", en: "Find cover" }, lang),
-    searchPlaceholder: t({ nl: "Zoek in library op titel, auteur of ISBN", en: "Search library by title, author or ISBN" }, lang),
+    searchPlaceholder: t({ nl: "Zoek in bibliotheek op titel, auteur of ISBN", en: "Search library by title, author or ISBN" }, lang),
     sortBooks: t({ nl: "Sorteer boeken", en: "Sort books" }, lang),
     duplicateWarning: t({ nl: "Dit boek bestaat al", en: "This book already exists" }, lang),
-    duplicateWarningText: t({ nl: "Dit boek staat al in shelf:", en: "This book is already in shelf:" }, lang),
+    duplicateWarningText: t({ nl: "Dit boek staat al in plank:", en: "This book is already in shelf:" }, lang),
     addAnyway: t({ nl: "Toch toevoegen", en: "Add anyway" }, lang),
   }), [lang]);
   const demoSpotsLeft = demoRemaining();
@@ -1371,7 +1371,7 @@ function LibraryPageContent() {
     
     // When sharing a specific book, we don't need a shelf
     if (!selectedBook && scope === "shelf" && !activeShelf) {
-      showToast(t({ nl: "Geen shelf geselecteerd", en: "No shelf selected" }, lang));
+      showToast(t({ nl: "Geen plank geselecteerd", en: "No shelf selected" }, lang));
       return;
     }
 
@@ -3087,7 +3087,7 @@ function LibraryPageContent() {
                   {duplicateWarning.existingShelf.emoji} {duplicateWarning.existingShelf.name}
                 </span>
               ) : (
-                <span style={{ fontWeight: 700, color: "var(--text)" }}>{t({ nl: "Onbekende shelf", en: "Unknown shelf" }, lang)}</span>
+                <span style={{ fontWeight: 700, color: "var(--text)" }}>{t({ nl: "Onbekende plank", en: "Unknown shelf" }, lang)}</span>
               )}
             </p>
             <div style={modalActions}>
@@ -3205,7 +3205,7 @@ function LibraryPageContent() {
                   { nl: `Nog ${demoSpotsLeft} plekken in de gratis demo.`, en: `${demoSpotsLeft} spots left in the free demo.` },
                   lang
                 )}{" "}
-            {t({ nl: "Unlock onbeperkt voor €4,99.", en: "Unlock unlimited for €4.99." }, lang)}
+            {t({ nl: "Ontgrendel onbeperkt voor €4,99.", en: "Unlock unlimited for €4.99." }, lang)}
           </span>
           <button
             type="button"
@@ -3600,7 +3600,7 @@ function LibraryPageContent() {
           ) : scope === "all" ? (
             <>
               <p style={{ color: "var(--muted)", marginTop: 0, fontWeight: 700, marginBottom: 8 }}>
-                {t({ nl: "Nog geen boeken in je library", en: "No books in your library yet" }, lang)}
+                {t({ nl: "Nog geen boeken in je bibliotheek", en: "No books in your library yet" }, lang)}
               </p>
               <p style={{ color: "var(--muted2)", marginTop: 0, fontSize: 14 }}>
                 {t({ nl: "Scan een ISBN om je eerste boek toe te voegen.", en: "Scan an ISBN to add your first book." }, lang)}
@@ -3609,7 +3609,7 @@ function LibraryPageContent() {
           ) : (
             <>
               <p style={{ color: "var(--muted)", marginTop: 0, fontWeight: 700, marginBottom: 8 }}>
-                {t({ nl: "Nog geen boeken in deze shelf", en: "No books in this shelf yet" }, lang)}
+                {t({ nl: "Nog geen boeken in deze plank", en: "No books in this shelf yet" }, lang)}
               </p>
               <p style={{ color: "var(--muted2)", marginTop: 0, fontSize: 14 }}>
                 {t({ nl: "Scan een ISBN om een boek toe te voegen.", en: "Scan an ISBN to add a book." }, lang)}
@@ -3906,7 +3906,7 @@ function LibraryPageContent() {
           }}
         >
           <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
-            {t({ nl: "One-time payment • no subscription", en: "One-time payment • no subscription" }, lang)}
+            {t({ nl: "Eenmalige betaling • geen abonnement", en: "One-time payment • no subscription" }, lang)}
           </div>
           <button
             type="button"
@@ -3914,7 +3914,9 @@ function LibraryPageContent() {
             onClick={goToCheckout}
             disabled={checkoutLoading}
           >
-            {checkoutLoading ? t({ nl: "Laden...", en: "Loading..." }, lang) : "Unlock €4.99"}
+            {checkoutLoading
+              ? t({ nl: "Laden...", en: "Loading..." }, lang)
+              : t({ nl: "Ontgrendel €4,99", en: "Unlock €4.99" }, lang)}
           </button>
         </div>
       )}
@@ -4073,7 +4075,7 @@ function ShareCardPreview() {
 
   return (
     <div
-      aria-label="Share card preview"
+      aria-label={t({ nl: "Voorbeeld deelkaart", en: "Share card preview" }, lang)}
       style={{
         width: 140,
         height: 250,
@@ -4383,10 +4385,10 @@ const ShareCard = React.forwardRef<
       >
         {(
           [
-            { label: "Total", value: stats.total, glow: "rgba(122,46,66,0.12)" },
-            { label: "TBR", value: stats.tbr, glow: "rgba(201,166,217,0.22)" },
-            { label: "Reading", value: stats.reading, glow: "rgba(244,211,94,0.22)" },
-            { label: "Read", value: stats.read, glow: "rgba(231,183,196,0.22)" },
+            { label: copy.total, value: stats.total, glow: "rgba(122,46,66,0.12)" },
+            { label: copy.tbr, value: stats.tbr, glow: "rgba(201,166,217,0.22)" },
+            { label: copy.reading, value: stats.reading, glow: "rgba(244,211,94,0.22)" },
+            { label: copy.read, value: stats.read, glow: "rgba(231,183,196,0.22)" },
           ] as const
         ).map((s) => (
           <div

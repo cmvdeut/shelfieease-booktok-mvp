@@ -213,7 +213,7 @@ export default function PaySuccessPage() {
               color: "var(--muted)",
               lineHeight: 1.5,
             }}>
-              {t({ nl: "Onbeperkt boeken en shelves", en: "Unlimited books and shelves" }, lang)}
+              {t({ nl: "Onbeperkt boeken en planken", en: "Unlimited books and shelves" }, lang)}
             </p>
           </div>
 
@@ -254,10 +254,10 @@ export default function PaySuccessPage() {
                 <span style={{ fontSize: 24, flexShrink: 0 }}>🗂️</span>
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginBottom: 4 }}>
-                    {t({ nl: "Kies een shelf", en: "Choose a shelf" }, lang)}
+                    {t({ nl: "Kies een plank", en: "Choose a shelf" }, lang)}
                   </div>
                   <div style={{ fontSize: 14, color: "var(--muted)" }}>
-                    {t({ nl: "Of maak een nieuwe shelf aan", en: "Or create a new shelf" }, lang)}
+                    {t({ nl: "Of maak een nieuwe plank aan", en: "Or create a new shelf" }, lang)}
                   </div>
                 </div>
               </div>
@@ -297,7 +297,7 @@ export default function PaySuccessPage() {
               marginBottom: 12,
             }}
           >
-            {t({ nl: "Ga naar My Shelf", en: "Go to My Shelf" }, lang)}
+            {t({ nl: "Ga naar Mijn plank", en: "Go to My Shelf" }, lang)}
             <span style={{ opacity: 0.8 }}>→</span>
           </Link>
 
@@ -407,7 +407,7 @@ export default function PaySuccessPage() {
               fontSize: 16,
             }}
           >
-            {t({ nl: "Terug naar library", en: "Back to library" }, lang)}
+            {t({ nl: "Terug naar bibliotheek", en: "Back to library" }, lang)}
           </Link>
         </div>
       )}

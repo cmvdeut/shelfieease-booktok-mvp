@@ -171,7 +171,7 @@ function HomePageInner() {
             <div className="home-actions-secondary">
               <Link href="/library" className="home-btn-secondary">
                 <ShelfIcon />
-                {t({ nl: "Mijn shelf", en: "My Shelf" }, lang)}
+                {t({ nl: "Mijn plank", en: "My Shelf" }, lang)}
               </Link>
               <Link href="/scan" className="home-btn-secondary">
                 <KeyboardIcon />
@@ -262,7 +262,7 @@ function HomePageInner() {
 
         {!isPro && (
           <p className="home-unlock home-unlock-block">
-            {t({ nl: "Unlock onbeperkt:", en: "Unlock unlimited:" }, lang)}{" "}
+            {t({ nl: "Ontgrendel onbeperkt:", en: "Unlock unlimited:" }, lang)}{" "}
             <Link href="/library">
               €4,99 {t({ nl: "eenmalig", en: "one-time" }, lang)}
             </Link>
@@ -362,7 +362,7 @@ function HomePageInner() {
 
         <section className="home-footer home-updates" aria-labelledby="home-updates-title">
           <h2 id="home-updates-title">
-            {t({ nl: "Blijf op de hoogte van nieuwe features", en: "Get notified about new features" }, lang)}
+            {t({ nl: "Blijf op de hoogte van nieuwe functies", en: "Get notified about new features" }, lang)}
           </h2>
           {footerEmailStatus === "done" ? (
             <p className="home-thanks">

@@ -3,6 +3,8 @@
 import React, { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { canAddBook } from "@/lib/demo";
+import { useUiLang } from "@/components/UiLangProvider";
+import { t } from "@/lib/i18n";
 
 export type ScannerProps = {
   onDetected: (code: string) => void;
@@ -13,6 +15,7 @@ const SCANNER_REGION_ID = "shelfieease-qr-region";
 
 export function Scanner({ onDetected, onClose }: ScannerProps) {
   const router = useRouter();
+  const { lang } = useUiLang();
   // Stable id for SSR + client (no Math.random / window checks during render)
   const regionId = SCANNER_REGION_ID;
 
@@ -218,7 +221,7 @@ export function Scanner({ onDetected, onClose }: ScannerProps) {
             onClose?.();
           }}
         >
-          Back
+          {t({ nl: "Terug", en: "Back" }, lang)}
         </button>
       </div>
 

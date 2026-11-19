@@ -171,7 +171,7 @@ export function AppMenu() {
         // Share active shelf
         const activeShelf = shelves.find((s) => s.id === activeShelfId);
         if (!activeShelf) {
-          showToast(t({ nl: "Shelf niet gevonden", en: "Shelf not found" }, lang));
+          showToast(t({ nl: "Plank niet gevonden", en: "Shelf not found" }, lang));
           return;
         }
         booksToShare = books.filter((b) => b.shelfId === activeShelfId);
@@ -179,7 +179,7 @@ export function AppMenu() {
       } else {
         // Share all shelves
         booksToShare = books;
-        shelfTitle = t({ nl: "Alle shelves", en: "All Shelves" }, lang);
+        shelfTitle = t({ nl: "Alle planken", en: "All Shelves" }, lang);
       }
 
       if (booksToShare.length === 0) {
@@ -521,7 +521,7 @@ export function AppMenu() {
             >
               {t(
                 {
-                  nl: "Dit verwijdert al je boeken, shelves en instellingen van dit apparaat. Dit kan niet ongedaan worden gemaakt.",
+                  nl: "Dit verwijdert al je boeken, planken en instellingen van dit apparaat. Dit kan niet ongedaan worden gemaakt.",
                   en: "This will delete all your books, shelves and settings from this device. This cannot be undone.",
                 },
                 lang

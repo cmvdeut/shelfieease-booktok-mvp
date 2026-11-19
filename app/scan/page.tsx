@@ -90,7 +90,7 @@ export default function ScanPage() {
             color: "var(--muted2)",
           }}
         >
-          {t({ nl: "Op je plank", en: "On your shelf" }, lang)}
+          {t({ nl: "Ontdek", en: "Discover" }, lang)}
         </p>
         <h1
           style={{
@@ -98,17 +98,18 @@ export default function ScanPage() {
             fontFamily: "var(--font-display), Georgia, serif",
             fontSize: 30,
             fontWeight: 700,
-            color: "var(--text)",
+            color: "var(--deepBurgundy)",
             lineHeight: 1.15,
+            letterSpacing: "-0.02em",
           }}
         >
-          {t({ nl: "Scan je boek", en: "Scan your book" }, lang)}
+          {t({ nl: "Ontdek nieuwe boeken", en: "Discover new books" }, lang)}
         </h1>
         <p style={{ margin: "8px 0 0", color: "var(--muted)", fontSize: 15, lineHeight: 1.45, maxWidth: 360 }}>
           {t(
             {
-              nl: "Richt op de barcode. We checken of hij al op je plank staat.",
-              en: "Point at the barcode. We'll check if it's already on your shelf.",
+              nl: "Scan de barcode. We checken of hij al op je plank staat.",
+              en: "Scan the barcode. We'll check if it's already on your shelf.",
             },
             lang
           )}
@@ -135,15 +136,39 @@ export default function ScanPage() {
             borderRadius: 24,
             padding: 12,
             background:
-              "linear-gradient(160deg, color-mix(in srgb, var(--accentSoft2) 40%, var(--panelSolid)), var(--panelSolid))",
-            border: "1px solid color-mix(in srgb, var(--border) 80%, transparent)",
+              "linear-gradient(160deg, color-mix(in srgb, var(--accent1) 88%, #3a0f1c), color-mix(in srgb, var(--accent1) 72%, var(--deepBurgundy)))",
+            border: "1px solid color-mix(in srgb, var(--deepBurgundy) 40%, transparent)",
             boxShadow: "0 16px 36px var(--shadow)",
             marginBottom: 16,
           }}
         >
+          <div style={{ padding: "4px 4px 10px", color: "var(--btnPrimaryText)" }}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                opacity: 0.85,
+                marginBottom: 4,
+              }}
+            >
+              {t({ nl: "Op je plank", en: "On your shelf" }, lang)}
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-display), Georgia, serif",
+                fontSize: 22,
+                fontWeight: 700,
+                lineHeight: 1.2,
+              }}
+            >
+              {t({ nl: "Barcode scannen", en: "Scan barcode" }, lang)}
+            </div>
+          </div>
           <Scanner onDetected={onDetected} onClose={() => router.push("/library")} />
           {lastScan ? (
-            <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
+            <div style={{ marginTop: 8, fontSize: 12, color: "var(--btnPrimaryText)", opacity: 0.85, textAlign: "center" }}>
               {t({ nl: "Laatste scan: ", en: "Last scan: " }, lang)}
               <span style={{ fontWeight: 600 }}>{lastScan}</span>
             </div>

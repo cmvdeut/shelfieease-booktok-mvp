@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { getMood, setMood, type Mood } from "./MoodProvider";
 import { getActiveShelfId, loadShelves, saveShelves } from "@/lib/storage";
+import { useUiLang } from "@/components/UiLangProvider";
+import { t } from "@/lib/i18n";
 
 const MOODS: Array<{ value: Mood; label: string; emoji: string }> = [
   { value: "light", label: "Bookish Romance", emoji: "🌸" },
@@ -10,6 +12,7 @@ const MOODS: Array<{ value: Mood; label: string; emoji: string }> = [
 ];
 
 export function MoodSwitcher() {
+  const { lang } = useUiLang();
   const [currentMood, setCurrentMood] = useState<Mood>("light"); // Start with default for SSR
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -120,7 +123,7 @@ export function MoodSwitcher() {
           e.currentTarget.style.transform = "scale(1)";
           e.currentTarget.style.boxShadow = `0 8px 24px var(--shadow)`;
         }}
-        aria-label="Change mood"
+        aria-label={t({ nl: "Wijzig sfeer", en: "Change mood" }, lang)}
       >
         {currentMoodOption.emoji}
       </button>

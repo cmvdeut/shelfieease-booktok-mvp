@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { loadBooks, loadShelves, normalizeStatus, setActiveShelfId, type Book, type Shelf, type BookStatus, type BookFormat } from "@/lib/storage";
@@ -10,60 +9,42 @@ import { getMood, type Mood as DocumentMood } from "@/components/MoodProvider";
 
 function statusPillStyle(status: BookStatus, mood: DocumentMood): React.CSSProperties {
   const isCalm = mood === "light";
-  
+  const base: React.CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "4px 10px",
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: 600,
+    marginLeft: 0,
+    cursor: "default",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    userSelect: "none",
+  };
+
   if (status === "TBR") {
     return {
-      display: "inline-flex",
-      alignItems: "center",
-      padding: "4px 10px",
-      borderRadius: 999,
-      fontSize: 12,
-      fontWeight: 600,
-      marginLeft: 0,
-      cursor: "default",
-      background: isCalm ? "rgba(90, 62, 99, 0.14)" : "rgba(165,120,255,0.14)",
-      borderWidth: "1px",
-      borderStyle: "solid",
-      borderColor: isCalm ? "rgba(90, 62, 99, 0.28)" : "rgba(165,120,255,0.28)",
-      color: isCalm ? "#5A3E63" : "#CFC2FF",
-      userSelect: "none",
-    };
-  } else if (status === "Reading") {
-    return {
-      display: "inline-flex",
-      alignItems: "center",
-      padding: "4px 10px",
-      borderRadius: 999,
-      fontSize: 12,
-      fontWeight: 600,
-      marginLeft: 0,
-      cursor: "default",
-      background: isCalm ? "rgba(47, 90, 79, 0.14)" : "rgba(100,220,190,0.14)",
-      borderWidth: "1px",
-      borderStyle: "solid",
-      borderColor: isCalm ? "rgba(47, 90, 79, 0.28)" : "rgba(100,220,190,0.28)",
-      color: isCalm ? "#2F5A4F" : "#BDF3E6",
-      userSelect: "none",
-    };
-  } else {
-    // Finished/Read
-    return {
-      display: "inline-flex",
-      alignItems: "center",
-      padding: "4px 10px",
-      borderRadius: 999,
-      fontSize: 12,
-      fontWeight: 600,
-      marginLeft: 0,
-      cursor: "default",
-      background: isCalm ? "rgba(90, 61, 31, 0.14)" : "rgba(228,192,140,0.14)",
-      borderWidth: "1px",
-      borderStyle: "solid",
-      borderColor: isCalm ? "rgba(90, 61, 31, 0.28)" : "rgba(228,192,140,0.28)",
-      color: isCalm ? "#5A3D1F" : "#F3D9B3",
-      userSelect: "none",
+      ...base,
+      background: isCalm ? "var(--accentSoft2)" : "rgba(231,183,196,0.18)",
+      borderColor: isCalm ? "color-mix(in srgb, var(--accent2) 55%, transparent)" : "rgba(231,183,196,0.35)",
+      color: "var(--deepBurgundy)",
     };
   }
+  if (status === "Reading") {
+    return {
+      ...base,
+      background: isCalm ? "var(--accentSoft)" : "rgba(231,183,196,0.14)",
+      borderColor: isCalm ? "color-mix(in srgb, var(--accent1) 28%, transparent)" : "rgba(231,183,196,0.28)",
+      color: "var(--deepBurgundy)",
+    };
+  }
+  return {
+    ...base,
+    background: isCalm ? "var(--sageSoft)" : "rgba(180,196,174,0.2)",
+    borderColor: isCalm ? "color-mix(in srgb, var(--sage) 55%, transparent)" : "rgba(180,196,174,0.35)",
+    color: isCalm ? "color-mix(in srgb, var(--sage) 40%, var(--text))" : "var(--sage)",
+  };
 }
 
 function statusLabel(status: BookStatus, nl: boolean): string {
@@ -74,12 +55,12 @@ function statusLabel(status: BookStatus, nl: boolean): string {
 
 function statusColor(status: BookStatus, isCalm: boolean): string {
   if (status === "TBR") {
-    return isCalm ? "rgba(90, 62, 99, 0.14)" : "rgba(165,120,255,0.14)";
-  } else if (status === "Reading") {
-    return isCalm ? "rgba(47, 90, 79, 0.14)" : "rgba(100,220,190,0.14)";
-  } else {
-    return isCalm ? "rgba(90, 61, 31, 0.14)" : "rgba(228,192,140,0.14)";
+    return isCalm ? "var(--accent2)" : "rgba(231,183,196,0.55)";
   }
+  if (status === "Reading") {
+    return isCalm ? "var(--accent1)" : "rgba(231,183,196,0.75)";
+  }
+  return isCalm ? "var(--sage)" : "rgba(180,196,174,0.75)";
 }
 
 export default function StatsPage() {
@@ -207,10 +188,19 @@ export default function StatsPage() {
   return (
     <div style={page}>
       <div style={header}>
-        <Link href="/library" style={backLink}>
-          ← {t({ nl: "Bibliotheek", en: "Library" }, lang)}
-        </Link>
-        <h1 style={title}>{t({ nl: "Profiel", en: "Profile" }, lang)}</h1>
+        <p
+          style={{
+            margin: "0 0 6px",
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "var(--muted2)",
+          }}
+        >
+          {t({ nl: "Persoonlijk", en: "Personal" }, lang)}
+        </p>
+        <h1 style={title}>{t({ nl: "Mijn Leesreis", en: "My reading journey" }, lang)}</h1>
         <p style={subtitle}>
           {t(
             {
@@ -231,7 +221,7 @@ export default function StatsPage() {
 
         {/* Largest Shelf - clickable */}
         <div style={card}>
-          <div style={cardLabel}>{t({ nl: "Grootste shelf", en: "Largest shelf" }, lang)}</div>
+          <div style={cardLabel}>{t({ nl: "Grootste plank", en: "Largest shelf" }, lang)}</div>
           {stats.largestShelf ? (
             <button
               type="button"
@@ -273,7 +263,7 @@ export default function StatsPage() {
             </button>
           ) : (
             <div style={emptyState}>
-              {t({ nl: "Nog geen shelves met boeken", en: "No shelves with books yet" }, lang)}
+              {t({ nl: "Nog geen planken met boeken", en: "No shelves with books yet" }, lang)}
             </div>
           )}
         </div>
@@ -397,23 +387,14 @@ const header: React.CSSProperties = {
   marginBottom: 24,
 };
 
-const backLink: React.CSSProperties = {
-  display: "inline-block",
-  marginBottom: 12,
-  color: "var(--muted)",
-  textDecoration: "none",
-  fontSize: 14,
-  fontWeight: 600,
-  transition: "color 0.2s ease",
-};
-
 const title: React.CSSProperties = {
   margin: 0,
   fontSize: 32,
   fontWeight: 700,
   fontFamily: "var(--font-display), Georgia, serif",
-  color: "var(--text)",
+  color: "var(--deepBurgundy)",
   lineHeight: 1.2,
+  letterSpacing: "-0.02em",
 };
 
 const subtitle: React.CSSProperties = {
@@ -434,23 +415,24 @@ const card: React.CSSProperties = {
   padding: 20,
   borderRadius: 20,
   border: "1px solid var(--border)",
-  background: "var(--panel)",
+  background: "var(--surface)",
   boxShadow: "0 8px 24px var(--shadow)",
 };
 
 const cardLabel: React.CSSProperties = {
   fontSize: 12,
-  fontWeight: 900,
+  fontWeight: 700,
   color: "var(--muted)",
   textTransform: "uppercase",
-  letterSpacing: 0.5,
+  letterSpacing: "0.06em",
   marginBottom: 16,
 };
 
 const cardValue: React.CSSProperties = {
   fontSize: 48,
-  fontWeight: 950,
-  color: "var(--text)",
+  fontWeight: 700,
+  fontFamily: "var(--font-display), Georgia, serif",
+  color: "var(--deepBurgundy)",
   lineHeight: 1,
 };
 
