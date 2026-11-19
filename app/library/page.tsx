@@ -4071,6 +4071,7 @@ function BookmarkSticker({ style }: { style?: React.CSSProperties }) {
 }
 
 function ShareCardPreview() {
+  const { lang } = useUiLang();
   const tokens = getShareCardTokens();
 
   return (
@@ -4124,7 +4125,11 @@ function ShareCardPreview() {
         </div>
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {["Total", "TBR", "Read"].map((label) => (
+          {[
+            t({ nl: "Totaal", en: "Total" }, lang),
+            t({ nl: "TBR", en: "TBR" }, lang),
+            t({ nl: "Gelezen", en: "Read" }, lang),
+          ].map((label) => (
             <div
               key={label}
               style={{
@@ -4163,12 +4168,19 @@ const ShareCard = React.forwardRef<
     stats: { total: number; tbr: number; reading: number; read: number };
   }
 >(({ mode: modeProp, shelf, coverUrls, bookTitles = [], bookAuthors = [], bookIsbns = [], bookCount = 2, stats }, ref) => {
+  const { lang } = useUiLang();
   const mode = modeProp ?? "share";
   const width = 1080;
   const height = 1400; // Reduced from 1920 to make cards less tall
 
   const cardRadius = 24;
   const tokens = getShareCardTokens();
+  const statLabels = {
+    total: t({ nl: "Totaal", en: "Total" }, lang),
+    tbr: t({ nl: "TBR", en: "TBR" }, lang),
+    reading: t({ nl: "Bezig", en: "Reading" }, lang),
+    read: t({ nl: "Gelezen", en: "Read" }, lang),
+  };
 
   // Track cover URLs that failed to load so we render placeholder instead of broken img (avoids html-to-image rejecting with Event)
   const [failedCoverUrls, setFailedCoverUrls] = useState<Set<string>>(() => new Set());
@@ -4385,10 +4397,10 @@ const ShareCard = React.forwardRef<
       >
         {(
           [
-            { label: copy.total, value: stats.total, glow: "rgba(122,46,66,0.12)" },
-            { label: copy.tbr, value: stats.tbr, glow: "rgba(201,166,217,0.22)" },
-            { label: copy.reading, value: stats.reading, glow: "rgba(244,211,94,0.22)" },
-            { label: copy.read, value: stats.read, glow: "rgba(231,183,196,0.22)" },
+            { label: statLabels.total, value: stats.total, glow: "rgba(122,46,66,0.12)" },
+            { label: statLabels.tbr, value: stats.tbr, glow: "rgba(201,166,217,0.22)" },
+            { label: statLabels.reading, value: stats.reading, glow: "rgba(244,211,94,0.22)" },
+            { label: statLabels.read, value: stats.read, glow: "rgba(231,183,196,0.22)" },
           ] as const
         ).map((s) => (
           <div
