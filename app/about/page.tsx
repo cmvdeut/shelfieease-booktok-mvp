@@ -43,7 +43,7 @@ export default function AboutPage() {
           color: "var(--text)",
         }}
       >
-        About ShelfieEase
+        {t({ nl: "Over ShelfieEase", en: "About ShelfieEase" }, lang)}
       </h1>
 
       <div
@@ -54,17 +54,70 @@ export default function AboutPage() {
         }}
       >
         <p style={{ marginBottom: 16 }}>
-          ShelfieEase is built for book lovers who want clarity.
+          {t(
+            {
+              nl: "ShelfieEase is gemaakt voor boekliefhebbers die overzicht willen.",
+              en: "ShelfieEase is built for book lovers who want clarity.",
+            },
+            lang
+          )}
         </p>
         <p style={{ marginBottom: 16 }}>
-          Easily scan books by ISBN and keep your library organized.
+          {t(
+            {
+              nl: "Scan boeken eenvoudig via ISBN en houd je bibliotheek georganiseerd.",
+              en: "Easily scan books by ISBN and keep your library organized.",
+            },
+            lang
+          )}
         </p>
         <p style={{ marginBottom: 16 }}>
-          ShelfieEase is actively being developed and improved.
+          {t(
+            {
+              nl: "ShelfieEase wordt actief ontwikkeld en verbeterd.",
+              en: "ShelfieEase is actively being developed and improved.",
+            },
+            lang
+          )}
         </p>
         <p style={{ marginBottom: 24 }}>
-          It&apos;s built by a book lover, for book lovers 📚
+          {t(
+            {
+              nl: "Gemaakt door een boekliefhebber, voor boekliefhebbers 📚",
+              en: "It's built by a book lover, for book lovers 📚",
+            },
+            lang
+          )}
         </p>
+
+        <div
+          style={{
+            marginBottom: 24,
+            padding: "14px 16px",
+            borderRadius: 14,
+            border: "1px solid var(--border)",
+            background: "var(--panelSolid)",
+          }}
+        >
+          <p style={{ margin: "0 0 6px", fontWeight: 700 }}>
+            {t(
+              {
+                nl: "ShelfieEase is een product van Ease Works.",
+                en: "ShelfieEase is a product of Ease Works.",
+              },
+              lang
+            )}
+          </p>
+          <p style={{ margin: 0, fontSize: 14, color: "var(--muted)" }}>
+            {t(
+              {
+                nl: "KvK 42201315 · Nederland",
+                en: "Chamber of Commerce (KvK) 42201315 · the Netherlands",
+              },
+              lang
+            )}
+          </p>
+        </div>
 
         <h2
           style={{
@@ -74,10 +127,16 @@ export default function AboutPage() {
             color: "var(--text)",
           }}
         >
-          Have feedback or ideas?
+          {t({ nl: "Feedback of ideeën?", en: "Have feedback or ideas?" }, lang)}
         </h2>
         <p style={{ marginBottom: 8 }}>
-          Suggestions are always welcome — they help shape the app.
+          {t(
+            {
+              nl: "Suggesties zijn altijd welkom — zo groeit de app mee.",
+              en: "Suggestions are always welcome — they help shape the app.",
+            },
+            lang
+          )}
         </p>
         <a
           href="mailto:support@shelfieease.app"
@@ -95,9 +154,10 @@ export default function AboutPage() {
             fontSize: 13,
             color: "var(--muted)",
             marginBottom: 8,
+            marginTop: 16,
           }}
         >
-          Version 1.0 — Early release
+          {t({ nl: "Versie 1.0 — vroege release", en: "Version 1.0 — Early release" }, lang)}
         </p>
       </div>
 
@@ -111,7 +171,13 @@ export default function AboutPage() {
           color: "var(--muted2)",
         }}
       >
-        Made with ❤️ for book lovers
+        {t(
+          {
+            nl: "Met ❤️ gemaakt voor boekliefhebbers",
+            en: "Made with ❤️ for book lovers",
+          },
+          lang
+        )}
       </div>
     </main>
   );
