@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
 import { getMood, type Mood } from "@/components/MoodProvider";
@@ -9,6 +8,12 @@ import { t, type UiLang } from "@/lib/i18n";
 import { useUiLang } from "@/components/UiLangProvider";
 import { isProUser } from "@/lib/demo";
 import { trackEvent } from "@/lib/analytics";
+import { HomeScanPhoneMock } from "@/components/HomeScanPhoneMock";
+import {
+  HomeLibraryMomentMock,
+  HomeResultMomentMock,
+  HomeScanMomentMock,
+} from "@/components/HomeFeaturePhoneMocks";
 
 const headline = {
   nl: "Geen reading-app met een feed. Een tool voor je fysieke plank.",
@@ -209,20 +214,18 @@ function HomePageInner() {
           </div>
 
           <div className="home-hero-visual">
-            <div className="home-phone">
-              <Image
-                src="/screenshots/v2/ontdek-scan.png"
-                alt={t(
-                  {
-                    nl: "ShelfieEase scan-scherm op telefoon",
-                    en: "ShelfieEase scan screen on phone",
-                  },
-                  lang
-                )}
-                width={390}
-                height={844}
-                priority
-              />
+            <div
+              className="home-phone"
+              role="img"
+              aria-label={t(
+                {
+                  nl: "ShelfieEase scan-scherm op telefoon",
+                  en: "ShelfieEase scan screen on phone",
+                },
+                lang
+              )}
+            >
+              <HomeScanPhoneMock lang={lang} />
             </div>
             <p className="home-caption">
               {t(
@@ -271,13 +274,8 @@ function HomePageInner() {
 
         <section className="home-moments" aria-label={t({ nl: "Zo werkt het", en: "How it works" }, lang)}>
           <article className="home-moment">
-            <figure>
-              <Image
-                src="/screenshots/v2/ontdek-scan.png"
-                alt={t({ nl: "Barcode scannen", en: "Scanning a barcode" }, lang)}
-                width={390}
-                height={844}
-              />
+            <figure aria-label={t({ nl: "Barcode scannen", en: "Scanning a barcode" }, lang)}>
+              <HomeScanMomentMock lang={lang} />
             </figure>
             <h2>{t({ nl: "Scan de barcode", en: "Scan the barcode" }, lang)}</h2>
             <p>
@@ -292,13 +290,8 @@ function HomePageInner() {
           </article>
 
           <article className="home-moment">
-            <figure>
-              <Image
-                src="/screenshots/v2/book-detail.png"
-                alt={t({ nl: "Boekresultaat met status", en: "Book result with status" }, lang)}
-                width={390}
-                height={844}
-              />
+            <figure aria-label={t({ nl: "Boekresultaat met status", en: "Book result with status" }, lang)}>
+              <HomeResultMomentMock lang={lang} />
             </figure>
             <h2>{t({ nl: "Zie het resultaat", en: "See the result" }, lang)}</h2>
             <p>
@@ -313,13 +306,8 @@ function HomePageInner() {
           </article>
 
           <article className="home-moment">
-            <figure>
-              <Image
-                src="/screenshots/v2/library-plank.png"
-                alt={t({ nl: "TBR Bezig Gelezen overzicht", en: "TBR Reading Finished overview" }, lang)}
-                width={390}
-                height={844}
-              />
+            <figure aria-label={t({ nl: "TBR Bezig Gelezen overzicht", en: "TBR Reading Finished overview" }, lang)}>
+              <HomeLibraryMomentMock lang={lang} />
             </figure>
             <h2>{t({ nl: "Houd je TBR bij", en: "Track your TBR" }, lang)}</h2>
             <p>
